@@ -1,0 +1,114 @@
+# Kit Maker needs two backing services: Postgres 16+ with pgvector, and object
+# storage. Everything else (registry, build runner, AI, identity) is a driver
+# configured in the admin UI.
+
+image:
+  repository: docker.io/docker/kitmaker   # placeholder namespace
+  tag: ""                                 # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Bootstrap config (env). Drivers are configured in the app, not here.
+config:
+  baseURL: ""          # e.g. https://kitmaker.example.com; defaults from route/ingress host
+  logLevel: info
+  bootstrapAdmin: ""   # email of the break-glass Owner account
+
+database:
+  # Either a URL (stored in a chart-managed Secret) or an existing Secret.
+  url: ""
+  existingSecret: ""
+  existingSecretKey: url
+
+storage:
+  # gocloud.dev/blob URL: s3://bucket?region=…, azblob://container, gs://bucket
+  url: ""
+  # Prefer workload identity (IRSA, Azure Workload Identity, GKE WI) through
+  # serviceAccount.annotations. Otherwise pass credentials with extraEnvFrom.
+
+secrets:
+  # gocloud.dev/secrets keeper that seals stored integration secrets:
+  #   base64key://…  (generate with `kitmaker secrets new-key`)
+  #   awskms://<key-id>?region=…, azurekeyvault://…, gcpkms://…
+  # Either a URL (stored in a chart-managed Secret) or an existing Secret.
+  url: ""
+  existingSecret: ""
+  existingSecretKey: url
+
+# Extra env / envFrom for serve, worker and migrate (e.g. AWS_REGION,
+# AZURE_STORAGE_ACCOUNT, or a Secret with credentials).
+extraEnv: []
+extraEnvFrom: []
+
+serve:
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+worker:
+  replicas: 1
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Runs `kitmaker migrate` as a pre-install/pre-upgrade hook.
+migrate:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 256Mi }
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}      # e.g. eks.amazonaws.com/role-arn, azure.workload.identity/client-id
+
+podAnnotations: {}
+podLabels: {}
+
+# No runAsUser: OpenShift's restricted-v2 SCC assigns one, and the image
+# works with any UID. Elsewhere the image's own nonroot user (65532) applies.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: kitmaker.example.com
+  tls: []
+  #  - secretName: kitmaker-tls
+  #    hosts: [kitmaker.example.com]
+
+# OpenShift Route (route.openshift.io/v1).
+route:
+  enabled: false
+  host: ""             # empty: the router assigns one
+  annotations: {}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

@@ -1,0 +1,8 @@
+.git
+**/node_modules
+web/dist
+web/hot
+deploy
+tmp
+*.md
+.env

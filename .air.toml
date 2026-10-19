@@ -1,0 +1,22 @@
+# Live reload for `make dev` (github.com/air-verse/air): rebuilds and restarts
+# `kitmaker dev` when Go, SQL or embedded fixture files change. The UI is
+# served by Vite with hot reload, so web/ is not watched here.
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/kitmaker ./cmd/kitmaker"
+  entrypoint = ["./tmp/kitmaker", "dev"]
+  include_ext = ["go", "sql", "json", "tmpl"]
+  exclude_dir = ["tmp", "bin", "web", "deploy", "docs", ".beads", ".claude", "internal/ent/schema"]
+  exclude_regex = ["_test\\.go$"]
+  delay = 300
+  # Stop the old process gracefully so :8080 is free before the new one starts.
+  send_interrupt = true
+  kill_delay = "3s"
+  # Keep serving the last good build when a change doesn't compile; the
+  # compile error prints in the terminal.
+  stop_on_error = false
+
+[misc]
+  clean_on_exit = true

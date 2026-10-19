@@ -1,0 +1,123 @@
+# Kit Maker on one computer (DESIGN.md §11.5): `make up` → http://localhost:8080
+#
+# Host ports come from deploy/compose/.env, which `make up` writes on first
+# run, moving any port already taken on this machine (macOS AirPlay holds
+# 5000, a local Postgres holds 5432) to the next free one.
+name: kitmaker
+
+x-kitmaker: &kitmaker
+  image: kitmaker:dev
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+  # Same constraints as production: arbitrary non-root UID, read-only root fs.
+  user: "${KITMAKER_UID:-10001}:0"
+  read_only: true
+  tmpfs: [/tmp]
+  # Local settings and secrets (git-ignored). See kitmaker.env.example.
+  env_file:
+    - path: kitmaker.env
+      required: false
+  environment: &kitmaker-env
+    KITMAKER_DATABASE_URL: postgres://kitmaker:kitmaker@postgres:5432/kitmaker?sslmode=disable
+    KITMAKER_STORAGE_URL: s3://kitmaker?endpoint=http://minio:9000&use_path_style=true&region=us-east-1
+    AWS_ACCESS_KEY_ID: kitmaker
+    AWS_SECRET_ACCESS_KEY: kitmaker-secret
+    KITMAKER_BASE_URL: http://localhost:${KITMAKER_PORT:-8080}
+    # Drivers come later; these are where the local ones live.
+    KITMAKER_REGISTRY_URL: zot:5000
+    KITMAKER_BUILDKIT_ADDR: tcp://buildkit:1234
+    KITMAKER_SMTP_URL: smtp://mailpit:1025
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: kitmaker
+      POSTGRES_PASSWORD: kitmaker
+      POSTGRES_DB: kitmaker
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kitmaker -d kitmaker"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # MinIO no longer publishes images to Docker Hub or Quay; Chainguard builds
+  # it from source.
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    user: "0"
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: kitmaker
+      MINIO_ROOT_PASSWORD: kitmaker-secret
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes: [minio:/data]
+
+  # Creates the bucket. Restarts until MinIO answers.
+  minio-init:
+    image: cgr.dev/chainguard/minio-client:latest
+    command: ["mb", "--ignore-existing", "local/kitmaker"]
+    environment:
+      MC_HOST_local: http://kitmaker:kitmaker-secret@minio:9000
+    depends_on: [minio]
+    restart: on-failure
+
+  # Local kit registry, the same throwaway localhost:5000 the spec examples use.
+  zot:
+    image: ghcr.io/project-zot/zot:v2.1.22
+    ports: ["${ZOT_PORT:-5000}:5000"]
+    volumes: [zot:/var/lib/registry]
+
+  # Build runner for kits with Dockerfile content.
+  buildkit:
+    image: moby/buildkit:v0.34.0
+    privileged: true
+    command: ["--addr", "tcp://0.0.0.0:1234", "--addr", "unix:///run/buildkit/buildkitd.sock"]
+    volumes: [buildkit:/var/lib/buildkit]
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+
+  migrate:
+    <<: *kitmaker
+    command: ["migrate"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  seed:
+    <<: *kitmaker
+    command: ["seed"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      minio-init: { condition: service_completed_successfully }
+
+  kitmaker:
+    <<: *kitmaker
+    command: ["serve"]
+    ports: ["${KITMAKER_PORT:-8080}:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      minio-init: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  worker:
+    <<: *kitmaker
+    command: ["worker"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      minio-init: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  minio:
+  zot:
+  buildkit:

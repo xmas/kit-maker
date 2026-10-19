@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kitmaker.fullname" . }}-serve
+  labels:
+    {{- include "kitmaker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: serve
+spec:
+  replicas: {{ .Values.serve.replicas }}
+  selector:
+    matchLabels:
+      {{- include "kitmaker.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: serve
+  template:
+    metadata:
+      labels:
+        {{- include "kitmaker.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: serve
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "kitmaker.serviceAccountName" . }}
+      {{- include "kitmaker.podSpecCommon" . | nindent 6 }}
+      containers:
+        - name: serve
+          args: ["serve"]
+          {{- include "kitmaker.containerCommon" . | nindent 10 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.serve.resources | nindent 12 }}
+      {{- with .Values.serve.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.serve.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.serve.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

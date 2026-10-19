@@ -1,0 +1,6 @@
+{
+  "route": "ping",
+  "answers": [
+    {"json": {"ok": true, "message": "Fake AI is answering. Configure an Anthropic, Bedrock or Vertex integration for real answers."}}
+  ]
+}

@@ -1,0 +1,79 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
+import { Boxes, LogOut } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
+
+interface AuthUser {
+  id: string
+  email: string
+  displayName: string
+}
+
+const page = usePage<{ auth: { user: AuthUser | null } }>()
+const user = computed(() => page.props.auth?.user)
+const initials = computed(() => {
+  const name = user.value?.displayName || user.value?.email || '?'
+  return name
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('')
+})
+
+const nav = [
+  { href: '/kits', label: 'Kits' },
+  { href: '/blocks', label: 'Blocks' },
+  { href: '/blueprints', label: 'Blueprints', disabled: true },
+  { href: '/sandboxes', label: 'Sandboxes', disabled: true },
+]
+
+function signOut() {
+  router.post('/logout')
+}
+</script>
+
+<template>
+  <div class="flex min-h-screen flex-col bg-[#F6F7F9]">
+    <header class="border-b bg-background">
+      <div class="flex h-14 items-center gap-6 px-6">
+        <Link href="/kits" class="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
+          <span class="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Boxes class="size-4" />
+          </span>
+          kit maker
+        </Link>
+        <nav aria-label="Primary" class="flex gap-1 text-sm">
+          <template v-for="item in nav" :key="item.href">
+            <Link
+              v-if="!item.disabled"
+              :href="item.href"
+              class="rounded-md px-3 py-1.5 font-medium"
+              :class="$page.url.startsWith(item.href) ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'"
+            >
+              {{ item.label }}
+            </Link>
+            <span v-else class="cursor-not-allowed rounded-md px-3 py-1.5 text-muted-foreground/60" title="Coming soon">
+              {{ item.label }}
+            </span>
+          </template>
+        </nav>
+        <div class="flex-1" />
+        <div v-if="user" class="flex items-center gap-3">
+          <span class="hidden text-sm text-muted-foreground sm:inline">{{ user.email }}</span>
+          <span
+            class="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+            :title="user.displayName || user.email"
+          >
+            {{ initials }}
+          </span>
+          <Button variant="ghost" size="icon-sm" aria-label="Sign out" title="Sign out" @click="signOut">
+            <LogOut />
+          </Button>
+        </div>
+      </div>
+    </header>
+    <slot />
+  </div>
+</template>

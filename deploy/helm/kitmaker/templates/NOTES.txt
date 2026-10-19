@@ -1,0 +1,13 @@
+Kit Maker {{ .Chart.AppVersion }} is installed.
+
+{{- if .Values.route.enabled }}
+  Route: oc get route {{ include "kitmaker.fullname" . }} -n {{ .Release.Namespace }}
+{{- else if .Values.ingress.enabled }}
+  URL: {{ include "kitmaker.baseURL" . }}
+{{- else }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "kitmaker.fullname" . }} 8080:{{ .Values.service.port }}
+  then open http://localhost:8080
+{{- end }}
+
+Readiness (/readyz) checks Postgres, object storage and that migrations match
+the image.

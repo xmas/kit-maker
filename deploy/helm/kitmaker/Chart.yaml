@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kitmaker
+description: Kit Maker — build Docker Sandboxes kits from reusable blocks. One chart for EKS, AKS, GKE and OpenShift.
+type: application
+# The image and chart are semver'd together (DESIGN.md §11.6).
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0-0"
+keywords: [docker, sandboxes, kits]
