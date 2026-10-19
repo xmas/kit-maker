@@ -51,9 +51,11 @@ type UserEdges struct {
 	Memberships []*TeamMembership `json:"memberships,omitempty"`
 	// AcceptedBlockVersions holds the value of the accepted_block_versions edge.
 	AcceptedBlockVersions []*BlockVersion `json:"accepted_block_versions,omitempty"`
+	// KitRevisions holds the value of the kit_revisions edge.
+	KitRevisions []*KitRevision `json:"kit_revisions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // MembershipsOrErr returns the Memberships value or an error if the edge
@@ -72,6 +74,15 @@ func (e UserEdges) AcceptedBlockVersionsOrErr() ([]*BlockVersion, error) {
 		return e.AcceptedBlockVersions, nil
 	}
 	return nil, &NotLoadedError{edge: "accepted_block_versions"}
+}
+
+// KitRevisionsOrErr returns the KitRevisions value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) KitRevisionsOrErr() ([]*KitRevision, error) {
+	if e.loadedTypes[2] {
+		return e.KitRevisions, nil
+	}
+	return nil, &NotLoadedError{edge: "kit_revisions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -198,6 +209,11 @@ func (_m *User) QueryMemberships() *TeamMembershipQuery {
 // QueryAcceptedBlockVersions queries the "accepted_block_versions" edge of the User entity.
 func (_m *User) QueryAcceptedBlockVersions() *BlockVersionQuery {
 	return NewUserClient(_m.config).QueryAcceptedBlockVersions(_m)
+}
+
+// QueryKitRevisions queries the "kit_revisions" edge of the User entity.
+func (_m *User) QueryKitRevisions() *KitRevisionQuery {
+	return NewUserClient(_m.config).QueryKitRevisions(_m)
 }
 
 // Update returns a builder for updating this User.

@@ -49,6 +49,8 @@ const (
 	EdgeGoal = "goal"
 	// EdgeChecks holds the string denoting the checks edge name in mutations.
 	EdgeChecks = "checks"
+	// EdgeRevisions holds the string denoting the revisions edge name in mutations.
+	EdgeRevisions = "revisions"
 	// Table holds the table name of the kit in the database.
 	Table = "kits"
 	// TeamTable is the table that holds the team relation/edge.
@@ -100,6 +102,13 @@ const (
 	ChecksInverseTable = "checks"
 	// ChecksColumn is the table column denoting the checks relation/edge.
 	ChecksColumn = "kit_id"
+	// RevisionsTable is the table that holds the revisions relation/edge.
+	RevisionsTable = "kit_revisions"
+	// RevisionsInverseTable is the table name for the KitRevision entity.
+	// It exists in this package in order to avoid circular dependency with the "kitrevision" package.
+	RevisionsInverseTable = "kit_revisions"
+	// RevisionsColumn is the table column denoting the revisions relation/edge.
+	RevisionsColumn = "kit_id"
 )
 
 // Columns holds all SQL columns for kit fields.
@@ -314,6 +323,20 @@ func ByChecks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newChecksStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByRevisionsCount orders the results by revisions count.
+func ByRevisionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRevisionsStep(), opts...)
+	}
+}
+
+// ByRevisions orders the results by revisions terms.
+func ByRevisions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRevisionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newTeamStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -361,5 +384,12 @@ func newChecksStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChecksInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChecksTable, ChecksColumn),
+	)
+}
+func newRevisionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RevisionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RevisionsTable, RevisionsColumn),
 	)
 }

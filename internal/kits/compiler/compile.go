@@ -33,6 +33,9 @@ type Block struct {
 	Version int
 	Edits   int
 	Payload map[string]any // effective payload, item keys included
+	// Base is the library version's payload. When set, entries the kit
+	// added or changed are annotated in the YAML, and removed ones noted.
+	Base map[string]any
 }
 
 // Slot is one place in the outline. Block is nil while the slot is blank.
@@ -84,8 +87,11 @@ type Output struct {
 	Surface  *spec.Surface `json:"surface,omitempty"`
 	// Spans are the YAML lines each slot produced (1-based, inclusive,
 	// starting at its "# slot" comment), so the UI can highlight a block.
-	Spans  map[string][][2]int `json:"spans,omitempty"`
-	Policy Policy              `json:"-"`
+	Spans map[string][][2]int `json:"spans,omitempty"`
+	// Marks are lines annotated as edits made in the kit (added, changed,
+	// removed), keyed by 1-based line number.
+	Marks  map[int]string `json:"marks,omitempty"`
+	Policy Policy         `json:"-"`
 }
 
 // Problem is a block-level validation failure, shown on its slot.
@@ -163,6 +169,7 @@ func Compile(in Input) Output {
 	}
 	out.YAML = buf.String()
 	out.Spans = Spans(out.YAML)
+	out.Marks = Marks(out.YAML)
 
 	if len(out.Problems) > 0 {
 		out.Error = "fix the blocks marked with problems"
@@ -197,6 +204,105 @@ func sourceComment(slotKey string, b *Block) string {
 	return c
 }
 
+// Edit annotations, as YAML comments above the entries they describe.
+const (
+	markAdded   = "+ added in this kit"
+	markChanged = "~ changed in this kit"
+	markRemoved = "- removed in this kit: "
+)
+
+// withNotes puts removal notes right after the slot line of a head comment,
+// before any mark that belongs to the entry itself.
+func withNotes(head string, notes []string) string {
+	if len(notes) == 0 {
+		return head
+	}
+	lines := strings.Split(head, "\n")
+	at := 0
+	if head != "" && strings.HasPrefix(lines[0], "slot ") {
+		at = 1
+	}
+	if head == "" {
+		lines = nil
+	}
+	out := append(append(append([]string{}, lines[:at]...), notes...), lines[at:]...)
+	return strings.Join(out, "\n")
+}
+
+func sameJSON(a, b any) bool {
+	x, _ := json.Marshal(a)
+	y, _ := json.Marshal(b)
+	return string(x) == string(y)
+}
+
+func sortedItems(m map[string]map[string]any) []map[string]any {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	out := make([]map[string]any, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, m[k])
+	}
+	return out
+}
+
+// describe names a removed entry in one line.
+func describe(e map[string]any) string {
+	var b strings.Builder
+	if l, _ := e["label"].(string); l != "" {
+		b.WriteString(l + " (")
+	}
+	b.WriteString(strings.Join(strs(e["hosts"]), ", "))
+	if m := strs(e["methods"]); len(m) > 0 {
+		b.WriteString(" " + strings.Join(m, ","))
+	}
+	if p := strs(e["paths"]); len(p) > 0 {
+		b.WriteString(" " + strings.Join(p, ","))
+	}
+	if l, _ := e["label"].(string); l != "" {
+		b.WriteString(")")
+	}
+	return b.String()
+}
+
+var markRE = regexp.MustCompile(`^(\s*)# ([+~-]) (added|changed|removed) in this kit`)
+
+// Marks finds the lines annotated as kit edits: an added or changed mark
+// covers its comment and the entry under it; a removed mark is its comment.
+func Marks(yamlText string) map[int]string {
+	lines := strings.Split(strings.TrimRight(yamlText, "\n"), "\n")
+	marks := map[int]string{}
+	for i := 0; i < len(lines); i++ {
+		m := markRE.FindStringSubmatch(lines[i])
+		if m == nil {
+			continue
+		}
+		kind, indent := m[3], len(m[1])
+		marks[i+1] = kind
+		if kind == "removed" {
+			continue
+		}
+		// Skip any further comments, then the "- " entry and its children.
+		j := i + 1
+		for j < len(lines) && strings.HasPrefix(strings.TrimLeft(lines[j], " "), "#") {
+			j++
+		}
+		if j < len(lines) && strings.HasPrefix(strings.TrimLeft(lines[j], " "), "- ") {
+			marks[j+1] = kind
+			for k := j + 1; k < len(lines); k++ {
+				t := strings.TrimLeft(lines[k], " ")
+				if t == "" || len(lines[k])-len(t) <= indent {
+					break
+				}
+				marks[k+1] = kind
+			}
+		}
+	}
+	return marks
+}
+
 var slotCommentRE = regexp.MustCompile(`^(\s*)# slot ([a-z0-9][a-z0-9-]*) · `)
 
 // Spans finds each slot's lines in the emitted YAML. A slot's content starts
@@ -225,7 +331,7 @@ func Spans(yamlText string) map[string][][2]int {
 		}
 		trimmed := strings.TrimLeft(line, " ")
 		ind := len(line) - len(trimmed)
-		if trimmed == "" || ind > indent || (ind == indent && strings.HasPrefix(trimmed, "- ")) {
+		if trimmed == "" || ind > indent || (ind == indent && (strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "#"))) {
 			continue
 		}
 		closeSpan(n - 1)
@@ -237,11 +343,33 @@ func Spans(yamlText string) map[string][][2]int {
 // --- network: merged into one network-policy@2 ---------------------------------------
 
 func addNetwork(network map[string]map[string]*yaml.Node, pol *Policy, s Slot, source string) {
+	var firstEntry *yaml.Node
+	var removed []map[string]any // removed from a list where the block has nothing left
+	defer func() {
+		if firstEntry == nil {
+			return
+		}
+		var notes []string
+		for _, b := range removed {
+			notes = append(notes, markRemoved+describe(b))
+		}
+		firstEntry.HeadComment = withNotes(firstEntry.HeadComment, notes)
+	}()
 	for _, phase := range []string{"install", "runtime"} {
 		rules, _ := s.Block.Payload[phase].(map[string]any)
 		for _, list := range []string{"allow", "deny"} {
 			items, _ := rules[list].([]any)
 			if len(items) == 0 {
+				// The kit may have removed every library entry in this list.
+				if s.Block.Base != nil {
+					bph, _ := s.Block.Base[phase].(map[string]any)
+					bl, _ := bph[list].([]any)
+					for _, it := range bl {
+						if e, ok := it.(map[string]any); ok {
+							removed = append(removed, e)
+						}
+					}
+				}
 				continue
 			}
 			if network[phase] == nil {
@@ -252,15 +380,42 @@ func addNetwork(network map[string]map[string]*yaml.Node, pol *Policy, s Slot, s
 				seq = &yaml.Node{Kind: yaml.SequenceNode}
 				network[phase][list] = seq
 			}
+			baseItems := map[string]map[string]any{}
+			if s.Block.Base != nil {
+				bph, _ := s.Block.Base[phase].(map[string]any)
+				bl, _ := bph[list].([]any)
+				for _, it := range bl {
+					if e, ok := it.(map[string]any); ok {
+						if k, _ := e["_k"].(string); k != "" {
+							baseItems[k] = e
+						}
+					}
+				}
+			}
 			for i, it := range items {
 				e, _ := it.(map[string]any)
 				r := Rule{Hosts: strs(e["hosts"]), Methods: strs(e["methods"]), Paths: strs(e["paths"]), Source: s.Key}
 				r.Label, _ = e["label"].(string)
 				n := entryNode(r)
+				var head []string
 				if i == 0 {
-					n.HeadComment = source
+					head = append(head, source)
 				}
+				if s.Block.Base != nil {
+					k, _ := e["_k"].(string)
+					switch b, inBase := baseItems[k]; {
+					case !inBase:
+						head = append(head, markAdded)
+					case !sameJSON(b, e):
+						head = append(head, markChanged)
+					}
+					delete(baseItems, k)
+				}
+				n.HeadComment = strings.Join(head, "\n")
 				seq.Content = append(seq.Content, n)
+				if firstEntry == nil {
+					firstEntry = n
+				}
 				ph := &pol.Runtime
 				if phase == "install" {
 					ph = &pol.Install
@@ -271,6 +426,18 @@ func addNetwork(network map[string]map[string]*yaml.Node, pol *Policy, s Slot, s
 					ph.Deny = append(ph.Deny, r)
 				}
 			}
+			// Library entries the kit removed: noted above this block's
+			// first entry in the list, so the YAML says what is gone.
+			if len(baseItems) > 0 && len(items) > 0 {
+				first := seq.Content[len(seq.Content)-len(items)]
+				var notes []string
+				for _, b := range sortedItems(baseItems) {
+					notes = append(notes, markRemoved+describe(b))
+				}
+				first.HeadComment = withNotes(first.HeadComment, notes)
+				baseItems = nil
+			}
+			removed = append(removed, sortedItems(baseItems)...)
 		}
 	}
 }

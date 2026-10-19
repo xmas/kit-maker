@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
 	"github.com/docker/kit-maker/internal/ent/user"
@@ -224,6 +225,21 @@ func (_u *UserUpdate) AddAcceptedBlockVersions(v ...*BlockVersion) *UserUpdate {
 	return _u.AddAcceptedBlockVersionIDs(ids...)
 }
 
+// AddKitRevisionIDs adds the "kit_revisions" edge to the KitRevision entity by IDs.
+func (_u *UserUpdate) AddKitRevisionIDs(ids ...string) *UserUpdate {
+	_u.mutation.AddKitRevisionIDs(ids...)
+	return _u
+}
+
+// AddKitRevisions adds the "kit_revisions" edges to the KitRevision entity.
+func (_u *UserUpdate) AddKitRevisions(v ...*KitRevision) *UserUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddKitRevisionIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
@@ -269,6 +285,27 @@ func (_u *UserUpdate) RemoveAcceptedBlockVersions(v ...*BlockVersion) *UserUpdat
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAcceptedBlockVersionIDs(ids...)
+}
+
+// ClearKitRevisions clears all "kit_revisions" edges to the KitRevision entity.
+func (_u *UserUpdate) ClearKitRevisions() *UserUpdate {
+	_u.mutation.ClearKitRevisions()
+	return _u
+}
+
+// RemoveKitRevisionIDs removes the "kit_revisions" edge to KitRevision entities by IDs.
+func (_u *UserUpdate) RemoveKitRevisionIDs(ids ...string) *UserUpdate {
+	_u.mutation.RemoveKitRevisionIDs(ids...)
+	return _u
+}
+
+// RemoveKitRevisions removes "kit_revisions" edges to KitRevision entities.
+func (_u *UserUpdate) RemoveKitRevisions(v ...*KitRevision) *UserUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveKitRevisionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -462,6 +499,51 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(blockversion.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.KitRevisionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.KitRevisionsTable,
+			Columns: []string{user.KitRevisionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedKitRevisionsIDs(); len(nodes) > 0 && !_u.mutation.KitRevisionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.KitRevisionsTable,
+			Columns: []string{user.KitRevisionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.KitRevisionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.KitRevisionsTable,
+			Columns: []string{user.KitRevisionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -683,6 +765,21 @@ func (_u *UserUpdateOne) AddAcceptedBlockVersions(v ...*BlockVersion) *UserUpdat
 	return _u.AddAcceptedBlockVersionIDs(ids...)
 }
 
+// AddKitRevisionIDs adds the "kit_revisions" edge to the KitRevision entity by IDs.
+func (_u *UserUpdateOne) AddKitRevisionIDs(ids ...string) *UserUpdateOne {
+	_u.mutation.AddKitRevisionIDs(ids...)
+	return _u
+}
+
+// AddKitRevisions adds the "kit_revisions" edges to the KitRevision entity.
+func (_u *UserUpdateOne) AddKitRevisions(v ...*KitRevision) *UserUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddKitRevisionIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
@@ -728,6 +825,27 @@ func (_u *UserUpdateOne) RemoveAcceptedBlockVersions(v ...*BlockVersion) *UserUp
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAcceptedBlockVersionIDs(ids...)
+}
+
+// ClearKitRevisions clears all "kit_revisions" edges to the KitRevision entity.
+func (_u *UserUpdateOne) ClearKitRevisions() *UserUpdateOne {
+	_u.mutation.ClearKitRevisions()
+	return _u
+}
+
+// RemoveKitRevisionIDs removes the "kit_revisions" edge to KitRevision entities by IDs.
+func (_u *UserUpdateOne) RemoveKitRevisionIDs(ids ...string) *UserUpdateOne {
+	_u.mutation.RemoveKitRevisionIDs(ids...)
+	return _u
+}
+
+// RemoveKitRevisions removes "kit_revisions" edges to KitRevision entities.
+func (_u *UserUpdateOne) RemoveKitRevisions(v ...*KitRevision) *UserUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveKitRevisionIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -951,6 +1069,51 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(blockversion.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.KitRevisionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.KitRevisionsTable,
+			Columns: []string{user.KitRevisionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedKitRevisionsIDs(); len(nodes) > 0 && !_u.mutation.KitRevisionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.KitRevisionsTable,
+			Columns: []string{user.KitRevisionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.KitRevisionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.KitRevisionsTable,
+			Columns: []string{user.KitRevisionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

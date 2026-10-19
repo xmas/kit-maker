@@ -364,6 +364,51 @@ var (
 			},
 		},
 	}
+	// KitRevisionsColumns holds the columns for the "kit_revisions" table.
+	KitRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "seq", Type: field.TypeInt},
+		{Name: "action", Type: field.TypeString},
+		{Name: "slot_key", Type: field.TypeString, Nullable: true},
+		{Name: "summary", Type: field.TypeString, Size: 2147483647},
+		{Name: "snapshot", Type: field.TypeJSON},
+		{Name: "yaml", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "kit_id", Type: field.TypeString},
+		{Name: "actor_user_id", Type: field.TypeString, Nullable: true},
+	}
+	// KitRevisionsTable holds the schema information for the "kit_revisions" table.
+	KitRevisionsTable = &schema.Table{
+		Name:       "kit_revisions",
+		Columns:    KitRevisionsColumns,
+		PrimaryKey: []*schema.Column{KitRevisionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "kit_revisions_kits_revisions",
+				Columns:    []*schema.Column{KitRevisionsColumns[8]},
+				RefColumns: []*schema.Column{KitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "kit_revisions_users_kit_revisions",
+				Columns:    []*schema.Column{KitRevisionsColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "kitrevision_kit_id_seq",
+				Unique:  true,
+				Columns: []*schema.Column{KitRevisionsColumns[8], KitRevisionsColumns[2]},
+			},
+			{
+				Name:    "kitrevision_kit_id_slot_key",
+				Unique:  false,
+				Columns: []*schema.Column{KitRevisionsColumns[8], KitRevisionsColumns[4]},
+			},
+		},
+	}
 	// RoleAssignmentsColumns holds the columns for the "role_assignments" table.
 	RoleAssignmentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -555,6 +600,7 @@ var (
 		IntegrationsTable,
 		KitsTable,
 		KitIncludesTable,
+		KitRevisionsTable,
 		RoleAssignmentsTable,
 		SessionsTable,
 		SlotsTable,
@@ -580,6 +626,8 @@ func init() {
 	KitsTable.ForeignKeys[0].RefTable = TeamsTable
 	KitIncludesTable.ForeignKeys[0].RefTable = KitsTable
 	KitIncludesTable.ForeignKeys[1].RefTable = KitsTable
+	KitRevisionsTable.ForeignKeys[0].RefTable = KitsTable
+	KitRevisionsTable.ForeignKeys[1].RefTable = UsersTable
 	SessionsTable.Annotation = &entsql.Annotation{
 		Table: "sessions",
 	}

@@ -25,6 +25,7 @@ import (
 	"github.com/docker/kit-maker/internal/ent/integration"
 	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/kitinclude"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/session"
 	"github.com/docker/kit-maker/internal/ent/slot"
@@ -60,6 +61,8 @@ type Client struct {
 	Kit *KitClient
 	// KitInclude is the client for interacting with the KitInclude builders.
 	KitInclude *KitIncludeClient
+	// KitRevision is the client for interacting with the KitRevision builders.
+	KitRevision *KitRevisionClient
 	// RoleAssignment is the client for interacting with the RoleAssignment builders.
 	RoleAssignment *RoleAssignmentClient
 	// Session is the client for interacting with the Session builders.
@@ -93,6 +96,7 @@ func (c *Client) init() {
 	c.Integration = NewIntegrationClient(c.config)
 	c.Kit = NewKitClient(c.config)
 	c.KitInclude = NewKitIncludeClient(c.config)
+	c.KitRevision = NewKitRevisionClient(c.config)
 	c.RoleAssignment = NewRoleAssignmentClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.Slot = NewSlotClient(c.config)
@@ -201,6 +205,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Integration:       NewIntegrationClient(cfg),
 		Kit:               NewKitClient(cfg),
 		KitInclude:        NewKitIncludeClient(cfg),
+		KitRevision:       NewKitRevisionClient(cfg),
 		RoleAssignment:    NewRoleAssignmentClient(cfg),
 		Session:           NewSessionClient(cfg),
 		Slot:              NewSlotClient(cfg),
@@ -236,6 +241,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Integration:       NewIntegrationClient(cfg),
 		Kit:               NewKitClient(cfg),
 		KitInclude:        NewKitIncludeClient(cfg),
+		KitRevision:       NewKitRevisionClient(cfg),
 		RoleAssignment:    NewRoleAssignmentClient(cfg),
 		Session:           NewSessionClient(cfg),
 		Slot:              NewSlotClient(cfg),
@@ -272,8 +278,8 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AICall, c.Block, c.BlockLink, c.BlockVersion, c.Check, c.DeploymentSetting,
-		c.Goal, c.Integration, c.Kit, c.KitInclude, c.RoleAssignment, c.Session,
-		c.Slot, c.Team, c.TeamMembership, c.User,
+		c.Goal, c.Integration, c.Kit, c.KitInclude, c.KitRevision, c.RoleAssignment,
+		c.Session, c.Slot, c.Team, c.TeamMembership, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -284,8 +290,8 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AICall, c.Block, c.BlockLink, c.BlockVersion, c.Check, c.DeploymentSetting,
-		c.Goal, c.Integration, c.Kit, c.KitInclude, c.RoleAssignment, c.Session,
-		c.Slot, c.Team, c.TeamMembership, c.User,
+		c.Goal, c.Integration, c.Kit, c.KitInclude, c.KitRevision, c.RoleAssignment,
+		c.Session, c.Slot, c.Team, c.TeamMembership, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -314,6 +320,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Kit.mutate(ctx, m)
 	case *KitIncludeMutation:
 		return c.KitInclude.mutate(ctx, m)
+	case *KitRevisionMutation:
+		return c.KitRevision.mutate(ctx, m)
 	case *RoleAssignmentMutation:
 		return c.RoleAssignment.mutate(ctx, m)
 	case *SessionMutation:
@@ -1919,6 +1927,22 @@ func (c *KitClient) QueryChecks(_m *Kit) *CheckQuery {
 	return query
 }
 
+// QueryRevisions queries the revisions edge of a Kit.
+func (c *KitClient) QueryRevisions(_m *Kit) *KitRevisionQuery {
+	query := (&KitRevisionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(kit.Table, kit.FieldID, id),
+			sqlgraph.To(kitrevision.Table, kitrevision.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, kit.RevisionsTable, kit.RevisionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *KitClient) Hooks() []Hook {
 	return c.hooks.Kit
@@ -2106,6 +2130,171 @@ func (c *KitIncludeClient) mutate(ctx context.Context, m *KitIncludeMutation) (V
 		return (&KitIncludeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown KitInclude mutation op: %q", m.Op())
+	}
+}
+
+// KitRevisionClient is a client for the KitRevision schema.
+type KitRevisionClient struct {
+	config
+}
+
+// NewKitRevisionClient returns a client for the KitRevision from the given config.
+func NewKitRevisionClient(c config) *KitRevisionClient {
+	return &KitRevisionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `kitrevision.Hooks(f(g(h())))`.
+func (c *KitRevisionClient) Use(hooks ...Hook) {
+	c.hooks.KitRevision = append(c.hooks.KitRevision, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `kitrevision.Intercept(f(g(h())))`.
+func (c *KitRevisionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.KitRevision = append(c.inters.KitRevision, interceptors...)
+}
+
+// Create returns a builder for creating a KitRevision entity.
+func (c *KitRevisionClient) Create() *KitRevisionCreate {
+	mutation := newKitRevisionMutation(c.config, OpCreate)
+	return &KitRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of KitRevision entities.
+func (c *KitRevisionClient) CreateBulk(builders ...*KitRevisionCreate) *KitRevisionCreateBulk {
+	return &KitRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *KitRevisionClient) MapCreateBulk(slice any, setFunc func(*KitRevisionCreate, int)) *KitRevisionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &KitRevisionCreateBulk{err: fmt.Errorf("calling to KitRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*KitRevisionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &KitRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for KitRevision.
+func (c *KitRevisionClient) Update() *KitRevisionUpdate {
+	mutation := newKitRevisionMutation(c.config, OpUpdate)
+	return &KitRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *KitRevisionClient) UpdateOne(_m *KitRevision) *KitRevisionUpdateOne {
+	mutation := newKitRevisionMutation(c.config, OpUpdateOne, withKitRevision(_m))
+	return &KitRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *KitRevisionClient) UpdateOneID(id string) *KitRevisionUpdateOne {
+	mutation := newKitRevisionMutation(c.config, OpUpdateOne, withKitRevisionID(id))
+	return &KitRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for KitRevision.
+func (c *KitRevisionClient) Delete() *KitRevisionDelete {
+	mutation := newKitRevisionMutation(c.config, OpDelete)
+	return &KitRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *KitRevisionClient) DeleteOne(_m *KitRevision) *KitRevisionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *KitRevisionClient) DeleteOneID(id string) *KitRevisionDeleteOne {
+	builder := c.Delete().Where(kitrevision.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &KitRevisionDeleteOne{builder}
+}
+
+// Query returns a query builder for KitRevision.
+func (c *KitRevisionClient) Query() *KitRevisionQuery {
+	return &KitRevisionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeKitRevision},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a KitRevision entity by its id.
+func (c *KitRevisionClient) Get(ctx context.Context, id string) (*KitRevision, error) {
+	return c.Query().Where(kitrevision.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *KitRevisionClient) GetX(ctx context.Context, id string) *KitRevision {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryKit queries the kit edge of a KitRevision.
+func (c *KitRevisionClient) QueryKit(_m *KitRevision) *KitQuery {
+	query := (&KitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(kitrevision.Table, kitrevision.FieldID, id),
+			sqlgraph.To(kit.Table, kit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, kitrevision.KitTable, kitrevision.KitColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryActor queries the actor edge of a KitRevision.
+func (c *KitRevisionClient) QueryActor(_m *KitRevision) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(kitrevision.Table, kitrevision.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, kitrevision.ActorTable, kitrevision.ActorColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *KitRevisionClient) Hooks() []Hook {
+	return c.hooks.KitRevision
+}
+
+// Interceptors returns the client interceptors.
+func (c *KitRevisionClient) Interceptors() []Interceptor {
+	return c.inters.KitRevision
+}
+
+func (c *KitRevisionClient) mutate(ctx context.Context, m *KitRevisionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&KitRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&KitRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&KitRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&KitRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown KitRevision mutation op: %q", m.Op())
 	}
 }
 
@@ -3106,6 +3295,22 @@ func (c *UserClient) QueryAcceptedBlockVersions(_m *User) *BlockVersionQuery {
 	return query
 }
 
+// QueryKitRevisions queries the kit_revisions edge of a User.
+func (c *UserClient) QueryKitRevisions(_m *User) *KitRevisionQuery {
+	query := (&KitRevisionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(kitrevision.Table, kitrevision.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.KitRevisionsTable, user.KitRevisionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -3135,12 +3340,12 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 type (
 	hooks struct {
 		AICall, Block, BlockLink, BlockVersion, Check, DeploymentSetting, Goal,
-		Integration, Kit, KitInclude, RoleAssignment, Session, Slot, Team,
+		Integration, Kit, KitInclude, KitRevision, RoleAssignment, Session, Slot, Team,
 		TeamMembership, User []ent.Hook
 	}
 	inters struct {
 		AICall, Block, BlockLink, BlockVersion, Check, DeploymentSetting, Goal,
-		Integration, Kit, KitInclude, RoleAssignment, Session, Slot, Team,
+		Integration, Kit, KitInclude, KitRevision, RoleAssignment, Session, Slot, Team,
 		TeamMembership, User []ent.Interceptor
 	}
 )

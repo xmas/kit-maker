@@ -36,5 +36,6 @@ func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("memberships", TeamMembership.Type),
 		edge.To("accepted_block_versions", BlockVersion.Type),
+		edge.To("kit_revisions", KitRevision.Type),
 	}
 }

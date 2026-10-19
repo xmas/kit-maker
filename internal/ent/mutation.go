@@ -21,6 +21,7 @@ import (
 	"github.com/docker/kit-maker/internal/ent/integration"
 	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/kitinclude"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/session"
@@ -51,6 +52,7 @@ const (
 	TypeIntegration       = "Integration"
 	TypeKit               = "Kit"
 	TypeKitInclude        = "KitInclude"
+	TypeKitRevision       = "KitRevision"
 	TypeRoleAssignment    = "RoleAssignment"
 	TypeSession           = "Session"
 	TypeSlot              = "Slot"
@@ -8241,6 +8243,9 @@ type KitMutation struct {
 	checks               map[string]struct{}
 	removedchecks        map[string]struct{}
 	clearedchecks        bool
+	revisions            map[string]struct{}
+	removedrevisions     map[string]struct{}
+	clearedrevisions     bool
 	done                 bool
 	oldValue             func(context.Context) (*Kit, error)
 	predicates           []predicate.Kit
@@ -9072,6 +9077,60 @@ func (m *KitMutation) ResetChecks() {
 	m.removedchecks = nil
 }
 
+// AddRevisionIDs adds the "revisions" edge to the KitRevision entity by ids.
+func (m *KitMutation) AddRevisionIDs(ids ...string) {
+	if m.revisions == nil {
+		m.revisions = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.revisions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRevisions clears the "revisions" edge to the KitRevision entity.
+func (m *KitMutation) ClearRevisions() {
+	m.clearedrevisions = true
+}
+
+// RevisionsCleared reports if the "revisions" edge to the KitRevision entity was cleared.
+func (m *KitMutation) RevisionsCleared() bool {
+	return m.clearedrevisions
+}
+
+// RemoveRevisionIDs removes the "revisions" edge to the KitRevision entity by IDs.
+func (m *KitMutation) RemoveRevisionIDs(ids ...string) {
+	if m.removedrevisions == nil {
+		m.removedrevisions = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.revisions, ids[i])
+		m.removedrevisions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRevisions returns the removed IDs of the "revisions" edge to the KitRevision entity.
+func (m *KitMutation) RemovedRevisionsIDs() (ids []string) {
+	for id := range m.removedrevisions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RevisionsIDs returns the "revisions" edge IDs in the mutation.
+func (m *KitMutation) RevisionsIDs() (ids []string) {
+	for id := range m.revisions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRevisions resets all changes to the "revisions" edge.
+func (m *KitMutation) ResetRevisions() {
+	m.revisions = nil
+	m.clearedrevisions = false
+	m.removedrevisions = nil
+}
+
 // Where appends a list predicates to the KitMutation builder.
 func (m *KitMutation) Where(ps ...predicate.Kit) {
 	m.predicates = append(m.predicates, ps...)
@@ -9373,7 +9432,7 @@ func (m *KitMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *KitMutation) AddedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.team != nil {
 		edges = append(edges, kit.EdgeTeam)
 	}
@@ -9394,6 +9453,9 @@ func (m *KitMutation) AddedEdges() []string {
 	}
 	if m.checks != nil {
 		edges = append(edges, kit.EdgeChecks)
+	}
+	if m.revisions != nil {
+		edges = append(edges, kit.EdgeRevisions)
 	}
 	return edges
 }
@@ -9440,13 +9502,19 @@ func (m *KitMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case kit.EdgeRevisions:
+		ids := make([]ent.Value, 0, len(m.revisions))
+		for id := range m.revisions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *KitMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.removedslots != nil {
 		edges = append(edges, kit.EdgeSlots)
 	}
@@ -9461,6 +9529,9 @@ func (m *KitMutation) RemovedEdges() []string {
 	}
 	if m.removedchecks != nil {
 		edges = append(edges, kit.EdgeChecks)
+	}
+	if m.removedrevisions != nil {
+		edges = append(edges, kit.EdgeRevisions)
 	}
 	return edges
 }
@@ -9499,13 +9570,19 @@ func (m *KitMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case kit.EdgeRevisions:
+		ids := make([]ent.Value, 0, len(m.removedrevisions))
+		for id := range m.removedrevisions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *KitMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 7)
+	edges := make([]string, 0, 8)
 	if m.clearedteam {
 		edges = append(edges, kit.EdgeTeam)
 	}
@@ -9526,6 +9603,9 @@ func (m *KitMutation) ClearedEdges() []string {
 	}
 	if m.clearedchecks {
 		edges = append(edges, kit.EdgeChecks)
+	}
+	if m.clearedrevisions {
+		edges = append(edges, kit.EdgeRevisions)
 	}
 	return edges
 }
@@ -9548,6 +9628,8 @@ func (m *KitMutation) EdgeCleared(name string) bool {
 		return m.clearedgoal
 	case kit.EdgeChecks:
 		return m.clearedchecks
+	case kit.EdgeRevisions:
+		return m.clearedrevisions
 	}
 	return false
 }
@@ -9590,6 +9672,9 @@ func (m *KitMutation) ResetEdge(name string) error {
 		return nil
 	case kit.EdgeChecks:
 		m.ResetChecks()
+		return nil
+	case kit.EdgeRevisions:
+		m.ResetRevisions()
 		return nil
 	}
 	return fmt.Errorf("unknown Kit edge %s", name)
@@ -10407,6 +10492,960 @@ func (m *KitIncludeMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown KitInclude edge %s", name)
+}
+
+// KitRevisionMutation represents an operation that mutates the KitRevision nodes in the graph.
+type KitRevisionMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	created_at    *time.Time
+	seq           *int
+	addseq        *int
+	action        *string
+	slot_key      *string
+	summary       *string
+	snapshot      *map[string]interface{}
+	yaml          *string
+	clearedFields map[string]struct{}
+	kit           *string
+	clearedkit    bool
+	actor         *string
+	clearedactor  bool
+	done          bool
+	oldValue      func(context.Context) (*KitRevision, error)
+	predicates    []predicate.KitRevision
+}
+
+var _ ent.Mutation = (*KitRevisionMutation)(nil)
+
+// kitrevisionOption allows management of the mutation configuration using functional options.
+type kitrevisionOption func(*KitRevisionMutation)
+
+// newKitRevisionMutation creates new mutation for the KitRevision entity.
+func newKitRevisionMutation(c config, op Op, opts ...kitrevisionOption) *KitRevisionMutation {
+	m := &KitRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitRevisionID sets the ID field of the mutation.
+func withKitRevisionID(id string) kitrevisionOption {
+	return func(m *KitRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitRevision
+		)
+		m.oldValue = func(ctx context.Context) (*KitRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitRevision sets the old KitRevision of the mutation.
+func withKitRevision(node *KitRevision) kitrevisionOption {
+	return func(m *KitRevisionMutation) {
+		m.oldValue = func(context.Context) (*KitRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitRevision entities.
+func (m *KitRevisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitRevisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitRevisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetKitID sets the "kit_id" field.
+func (m *KitRevisionMutation) SetKitID(s string) {
+	m.kit = &s
+}
+
+// KitID returns the value of the "kit_id" field in the mutation.
+func (m *KitRevisionMutation) KitID() (r string, exists bool) {
+	v := m.kit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKitID returns the old "kit_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldKitID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKitID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
+	}
+	return oldValue.KitID, nil
+}
+
+// ResetKitID resets all changes to the "kit_id" field.
+func (m *KitRevisionMutation) ResetKitID() {
+	m.kit = nil
+}
+
+// SetSeq sets the "seq" field.
+func (m *KitRevisionMutation) SetSeq(i int) {
+	m.seq = &i
+	m.addseq = nil
+}
+
+// Seq returns the value of the "seq" field in the mutation.
+func (m *KitRevisionMutation) Seq() (r int, exists bool) {
+	v := m.seq
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSeq returns the old "seq" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldSeq(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSeq is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSeq requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSeq: %w", err)
+	}
+	return oldValue.Seq, nil
+}
+
+// AddSeq adds i to the "seq" field.
+func (m *KitRevisionMutation) AddSeq(i int) {
+	if m.addseq != nil {
+		*m.addseq += i
+	} else {
+		m.addseq = &i
+	}
+}
+
+// AddedSeq returns the value that was added to the "seq" field in this mutation.
+func (m *KitRevisionMutation) AddedSeq() (r int, exists bool) {
+	v := m.addseq
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSeq resets all changes to the "seq" field.
+func (m *KitRevisionMutation) ResetSeq() {
+	m.seq = nil
+	m.addseq = nil
+}
+
+// SetActorUserID sets the "actor_user_id" field.
+func (m *KitRevisionMutation) SetActorUserID(s string) {
+	m.actor = &s
+}
+
+// ActorUserID returns the value of the "actor_user_id" field in the mutation.
+func (m *KitRevisionMutation) ActorUserID() (r string, exists bool) {
+	v := m.actor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorUserID returns the old "actor_user_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldActorUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorUserID: %w", err)
+	}
+	return oldValue.ActorUserID, nil
+}
+
+// ClearActorUserID clears the value of the "actor_user_id" field.
+func (m *KitRevisionMutation) ClearActorUserID() {
+	m.actor = nil
+	m.clearedFields[kitrevision.FieldActorUserID] = struct{}{}
+}
+
+// ActorUserIDCleared returns if the "actor_user_id" field was cleared in this mutation.
+func (m *KitRevisionMutation) ActorUserIDCleared() bool {
+	_, ok := m.clearedFields[kitrevision.FieldActorUserID]
+	return ok
+}
+
+// ResetActorUserID resets all changes to the "actor_user_id" field.
+func (m *KitRevisionMutation) ResetActorUserID() {
+	m.actor = nil
+	delete(m.clearedFields, kitrevision.FieldActorUserID)
+}
+
+// SetAction sets the "action" field.
+func (m *KitRevisionMutation) SetAction(s string) {
+	m.action = &s
+}
+
+// Action returns the value of the "action" field in the mutation.
+func (m *KitRevisionMutation) Action() (r string, exists bool) {
+	v := m.action
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAction returns the old "action" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldAction(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAction is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAction requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAction: %w", err)
+	}
+	return oldValue.Action, nil
+}
+
+// ResetAction resets all changes to the "action" field.
+func (m *KitRevisionMutation) ResetAction() {
+	m.action = nil
+}
+
+// SetSlotKey sets the "slot_key" field.
+func (m *KitRevisionMutation) SetSlotKey(s string) {
+	m.slot_key = &s
+}
+
+// SlotKey returns the value of the "slot_key" field in the mutation.
+func (m *KitRevisionMutation) SlotKey() (r string, exists bool) {
+	v := m.slot_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlotKey returns the old "slot_key" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldSlotKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlotKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlotKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlotKey: %w", err)
+	}
+	return oldValue.SlotKey, nil
+}
+
+// ClearSlotKey clears the value of the "slot_key" field.
+func (m *KitRevisionMutation) ClearSlotKey() {
+	m.slot_key = nil
+	m.clearedFields[kitrevision.FieldSlotKey] = struct{}{}
+}
+
+// SlotKeyCleared returns if the "slot_key" field was cleared in this mutation.
+func (m *KitRevisionMutation) SlotKeyCleared() bool {
+	_, ok := m.clearedFields[kitrevision.FieldSlotKey]
+	return ok
+}
+
+// ResetSlotKey resets all changes to the "slot_key" field.
+func (m *KitRevisionMutation) ResetSlotKey() {
+	m.slot_key = nil
+	delete(m.clearedFields, kitrevision.FieldSlotKey)
+}
+
+// SetSummary sets the "summary" field.
+func (m *KitRevisionMutation) SetSummary(s string) {
+	m.summary = &s
+}
+
+// Summary returns the value of the "summary" field in the mutation.
+func (m *KitRevisionMutation) Summary() (r string, exists bool) {
+	v := m.summary
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSummary returns the old "summary" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldSummary(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSummary is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSummary requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSummary: %w", err)
+	}
+	return oldValue.Summary, nil
+}
+
+// ResetSummary resets all changes to the "summary" field.
+func (m *KitRevisionMutation) ResetSummary() {
+	m.summary = nil
+}
+
+// SetSnapshot sets the "snapshot" field.
+func (m *KitRevisionMutation) SetSnapshot(value map[string]interface{}) {
+	m.snapshot = &value
+}
+
+// Snapshot returns the value of the "snapshot" field in the mutation.
+func (m *KitRevisionMutation) Snapshot() (r map[string]interface{}, exists bool) {
+	v := m.snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshot returns the old "snapshot" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldSnapshot(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
+	}
+	return oldValue.Snapshot, nil
+}
+
+// ResetSnapshot resets all changes to the "snapshot" field.
+func (m *KitRevisionMutation) ResetSnapshot() {
+	m.snapshot = nil
+}
+
+// SetYaml sets the "yaml" field.
+func (m *KitRevisionMutation) SetYaml(s string) {
+	m.yaml = &s
+}
+
+// Yaml returns the value of the "yaml" field in the mutation.
+func (m *KitRevisionMutation) Yaml() (r string, exists bool) {
+	v := m.yaml
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldYaml returns the old "yaml" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldYaml(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldYaml is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldYaml requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldYaml: %w", err)
+	}
+	return oldValue.Yaml, nil
+}
+
+// ResetYaml resets all changes to the "yaml" field.
+func (m *KitRevisionMutation) ResetYaml() {
+	m.yaml = nil
+}
+
+// ClearKit clears the "kit" edge to the Kit entity.
+func (m *KitRevisionMutation) ClearKit() {
+	m.clearedkit = true
+	m.clearedFields[kitrevision.FieldKitID] = struct{}{}
+}
+
+// KitCleared reports if the "kit" edge to the Kit entity was cleared.
+func (m *KitRevisionMutation) KitCleared() bool {
+	return m.clearedkit
+}
+
+// KitIDs returns the "kit" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// KitID instead. It exists only for internal usage by the builders.
+func (m *KitRevisionMutation) KitIDs() (ids []string) {
+	if id := m.kit; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetKit resets all changes to the "kit" edge.
+func (m *KitRevisionMutation) ResetKit() {
+	m.kit = nil
+	m.clearedkit = false
+}
+
+// SetActorID sets the "actor" edge to the User entity by id.
+func (m *KitRevisionMutation) SetActorID(id string) {
+	m.actor = &id
+}
+
+// ClearActor clears the "actor" edge to the User entity.
+func (m *KitRevisionMutation) ClearActor() {
+	m.clearedactor = true
+	m.clearedFields[kitrevision.FieldActorUserID] = struct{}{}
+}
+
+// ActorCleared reports if the "actor" edge to the User entity was cleared.
+func (m *KitRevisionMutation) ActorCleared() bool {
+	return m.ActorUserIDCleared() || m.clearedactor
+}
+
+// ActorID returns the "actor" edge ID in the mutation.
+func (m *KitRevisionMutation) ActorID() (id string, exists bool) {
+	if m.actor != nil {
+		return *m.actor, true
+	}
+	return
+}
+
+// ActorIDs returns the "actor" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ActorID instead. It exists only for internal usage by the builders.
+func (m *KitRevisionMutation) ActorIDs() (ids []string) {
+	if id := m.actor; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetActor resets all changes to the "actor" edge.
+func (m *KitRevisionMutation) ResetActor() {
+	m.actor = nil
+	m.clearedactor = false
+}
+
+// Where appends a list predicates to the KitRevisionMutation builder.
+func (m *KitRevisionMutation) Where(ps ...predicate.KitRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitRevision).
+func (m *KitRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.created_at != nil {
+		fields = append(fields, kitrevision.FieldCreatedAt)
+	}
+	if m.kit != nil {
+		fields = append(fields, kitrevision.FieldKitID)
+	}
+	if m.seq != nil {
+		fields = append(fields, kitrevision.FieldSeq)
+	}
+	if m.actor != nil {
+		fields = append(fields, kitrevision.FieldActorUserID)
+	}
+	if m.action != nil {
+		fields = append(fields, kitrevision.FieldAction)
+	}
+	if m.slot_key != nil {
+		fields = append(fields, kitrevision.FieldSlotKey)
+	}
+	if m.summary != nil {
+		fields = append(fields, kitrevision.FieldSummary)
+	}
+	if m.snapshot != nil {
+		fields = append(fields, kitrevision.FieldSnapshot)
+	}
+	if m.yaml != nil {
+		fields = append(fields, kitrevision.FieldYaml)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	case kitrevision.FieldKitID:
+		return m.KitID()
+	case kitrevision.FieldSeq:
+		return m.Seq()
+	case kitrevision.FieldActorUserID:
+		return m.ActorUserID()
+	case kitrevision.FieldAction:
+		return m.Action()
+	case kitrevision.FieldSlotKey:
+		return m.SlotKey()
+	case kitrevision.FieldSummary:
+		return m.Summary()
+	case kitrevision.FieldSnapshot:
+		return m.Snapshot()
+	case kitrevision.FieldYaml:
+		return m.Yaml()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case kitrevision.FieldKitID:
+		return m.OldKitID(ctx)
+	case kitrevision.FieldSeq:
+		return m.OldSeq(ctx)
+	case kitrevision.FieldActorUserID:
+		return m.OldActorUserID(ctx)
+	case kitrevision.FieldAction:
+		return m.OldAction(ctx)
+	case kitrevision.FieldSlotKey:
+		return m.OldSlotKey(ctx)
+	case kitrevision.FieldSummary:
+		return m.OldSummary(ctx)
+	case kitrevision.FieldSnapshot:
+		return m.OldSnapshot(ctx)
+	case kitrevision.FieldYaml:
+		return m.OldYaml(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case kitrevision.FieldKitID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKitID(v)
+		return nil
+	case kitrevision.FieldSeq:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSeq(v)
+		return nil
+	case kitrevision.FieldActorUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorUserID(v)
+		return nil
+	case kitrevision.FieldAction:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAction(v)
+		return nil
+	case kitrevision.FieldSlotKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlotKey(v)
+		return nil
+	case kitrevision.FieldSummary:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSummary(v)
+		return nil
+	case kitrevision.FieldSnapshot:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshot(v)
+		return nil
+	case kitrevision.FieldYaml:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetYaml(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addseq != nil {
+		fields = append(fields, kitrevision.FieldSeq)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case kitrevision.FieldSeq:
+		return m.AddedSeq()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case kitrevision.FieldSeq:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSeq(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(kitrevision.FieldActorUserID) {
+		fields = append(fields, kitrevision.FieldActorUserID)
+	}
+	if m.FieldCleared(kitrevision.FieldSlotKey) {
+		fields = append(fields, kitrevision.FieldSlotKey)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitRevisionMutation) ClearField(name string) error {
+	switch name {
+	case kitrevision.FieldActorUserID:
+		m.ClearActorUserID()
+		return nil
+	case kitrevision.FieldSlotKey:
+		m.ClearSlotKey()
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitRevisionMutation) ResetField(name string) error {
+	switch name {
+	case kitrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case kitrevision.FieldKitID:
+		m.ResetKitID()
+		return nil
+	case kitrevision.FieldSeq:
+		m.ResetSeq()
+		return nil
+	case kitrevision.FieldActorUserID:
+		m.ResetActorUserID()
+		return nil
+	case kitrevision.FieldAction:
+		m.ResetAction()
+		return nil
+	case kitrevision.FieldSlotKey:
+		m.ResetSlotKey()
+		return nil
+	case kitrevision.FieldSummary:
+		m.ResetSummary()
+		return nil
+	case kitrevision.FieldSnapshot:
+		m.ResetSnapshot()
+		return nil
+	case kitrevision.FieldYaml:
+		m.ResetYaml()
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.kit != nil {
+		edges = append(edges, kitrevision.EdgeKit)
+	}
+	if m.actor != nil {
+		edges = append(edges, kitrevision.EdgeActor)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitRevisionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case kitrevision.EdgeKit:
+		if id := m.kit; id != nil {
+			return []ent.Value{*id}
+		}
+	case kitrevision.EdgeActor:
+		if id := m.actor; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedkit {
+		edges = append(edges, kitrevision.EdgeKit)
+	}
+	if m.clearedactor {
+		edges = append(edges, kitrevision.EdgeActor)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitRevisionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case kitrevision.EdgeKit:
+		return m.clearedkit
+	case kitrevision.EdgeActor:
+		return m.clearedactor
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitRevisionMutation) ClearEdge(name string) error {
+	switch name {
+	case kitrevision.EdgeKit:
+		m.ClearKit()
+		return nil
+	case kitrevision.EdgeActor:
+		m.ClearActor()
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitRevisionMutation) ResetEdge(name string) error {
+	switch name {
+	case kitrevision.EdgeKit:
+		m.ResetKit()
+		return nil
+	case kitrevision.EdgeActor:
+		m.ResetActor()
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision edge %s", name)
 }
 
 // RoleAssignmentMutation represents an operation that mutates the RoleAssignment nodes in the graph.
@@ -14525,6 +15564,9 @@ type UserMutation struct {
 	accepted_block_versions        map[string]struct{}
 	removedaccepted_block_versions map[string]struct{}
 	clearedaccepted_block_versions bool
+	kit_revisions                  map[string]struct{}
+	removedkit_revisions           map[string]struct{}
+	clearedkit_revisions           bool
 	done                           bool
 	oldValue                       func(context.Context) (*User, error)
 	predicates                     []predicate.User
@@ -15217,6 +16259,60 @@ func (m *UserMutation) ResetAcceptedBlockVersions() {
 	m.removedaccepted_block_versions = nil
 }
 
+// AddKitRevisionIDs adds the "kit_revisions" edge to the KitRevision entity by ids.
+func (m *UserMutation) AddKitRevisionIDs(ids ...string) {
+	if m.kit_revisions == nil {
+		m.kit_revisions = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.kit_revisions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearKitRevisions clears the "kit_revisions" edge to the KitRevision entity.
+func (m *UserMutation) ClearKitRevisions() {
+	m.clearedkit_revisions = true
+}
+
+// KitRevisionsCleared reports if the "kit_revisions" edge to the KitRevision entity was cleared.
+func (m *UserMutation) KitRevisionsCleared() bool {
+	return m.clearedkit_revisions
+}
+
+// RemoveKitRevisionIDs removes the "kit_revisions" edge to the KitRevision entity by IDs.
+func (m *UserMutation) RemoveKitRevisionIDs(ids ...string) {
+	if m.removedkit_revisions == nil {
+		m.removedkit_revisions = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.kit_revisions, ids[i])
+		m.removedkit_revisions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedKitRevisions returns the removed IDs of the "kit_revisions" edge to the KitRevision entity.
+func (m *UserMutation) RemovedKitRevisionsIDs() (ids []string) {
+	for id := range m.removedkit_revisions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// KitRevisionsIDs returns the "kit_revisions" edge IDs in the mutation.
+func (m *UserMutation) KitRevisionsIDs() (ids []string) {
+	for id := range m.kit_revisions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetKitRevisions resets all changes to the "kit_revisions" edge.
+func (m *UserMutation) ResetKitRevisions() {
+	m.kit_revisions = nil
+	m.clearedkit_revisions = false
+	m.removedkit_revisions = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -15568,12 +16664,15 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.memberships != nil {
 		edges = append(edges, user.EdgeMemberships)
 	}
 	if m.accepted_block_versions != nil {
 		edges = append(edges, user.EdgeAcceptedBlockVersions)
+	}
+	if m.kit_revisions != nil {
+		edges = append(edges, user.EdgeKitRevisions)
 	}
 	return edges
 }
@@ -15594,18 +16693,27 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeKitRevisions:
+		ids := make([]ent.Value, 0, len(m.kit_revisions))
+		for id := range m.kit_revisions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedmemberships != nil {
 		edges = append(edges, user.EdgeMemberships)
 	}
 	if m.removedaccepted_block_versions != nil {
 		edges = append(edges, user.EdgeAcceptedBlockVersions)
+	}
+	if m.removedkit_revisions != nil {
+		edges = append(edges, user.EdgeKitRevisions)
 	}
 	return edges
 }
@@ -15626,18 +16734,27 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeKitRevisions:
+		ids := make([]ent.Value, 0, len(m.removedkit_revisions))
+		for id := range m.removedkit_revisions {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedmemberships {
 		edges = append(edges, user.EdgeMemberships)
 	}
 	if m.clearedaccepted_block_versions {
 		edges = append(edges, user.EdgeAcceptedBlockVersions)
+	}
+	if m.clearedkit_revisions {
+		edges = append(edges, user.EdgeKitRevisions)
 	}
 	return edges
 }
@@ -15650,6 +16767,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedmemberships
 	case user.EdgeAcceptedBlockVersions:
 		return m.clearedaccepted_block_versions
+	case user.EdgeKitRevisions:
+		return m.clearedkit_revisions
 	}
 	return false
 }
@@ -15671,6 +16790,9 @@ func (m *UserMutation) ResetEdge(name string) error {
 		return nil
 	case user.EdgeAcceptedBlockVersions:
 		m.ResetAcceptedBlockVersions()
+		return nil
+	case user.EdgeKitRevisions:
+		m.ResetKitRevisions()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

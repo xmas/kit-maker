@@ -355,3 +355,23 @@ func (s *Service) TeamOf(ctx context.Context, id string) (string, error) {
 	}
 	return b.TeamID, nil
 }
+
+// RestoreVersion publishes an earlier version's payload as the newest
+// version, so kits following the block can take it like any update.
+func (s *Service) RestoreVersion(ctx context.Context, blockID string, version int, userID string) (*ent.BlockVersion, error) {
+	old, err := s.Ent.BlockVersion.Query().Where(blockversion.BlockID(blockID), blockversion.Version(version)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	v, created, err := s.Publish(ctx, blockID, old.Payload, fmt.Sprintf("Restored v%d.", version), userID)
+	if err != nil {
+		return nil, err
+	}
+	if !created {
+		return nil, fmt.Errorf("v%d is the same as the current version", version)
+	}
+	return v, nil
+}

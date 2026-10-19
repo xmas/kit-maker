@@ -64,6 +64,7 @@ export interface Compiled {
   blanks?: string[]
   digest?: string
   spans?: Record<string, [number, number][]>
+  marks?: Record<string, 'added' | 'changed' | 'removed'>
 }
 
 export interface CheckResult {
@@ -107,12 +108,12 @@ export const sectionStyle: Record<string, { fg: string; bg: string; label: strin
 }
 
 export const originStyle: Record<Origin, { label: string; fg: string }> = {
-  inherited: { label: 'Inherited', fg: '#64748B' },
-  modified: { label: 'Modified', fg: '#1A4FBF' },
-  custom: { label: 'Custom', fg: '#0F172A' },
+  inherited: { label: 'Linked', fg: '#64748B' },
+  modified: { label: 'Linked, edited', fg: '#64748B' },
+  custom: { label: 'Kit only', fg: '#0F172A' },
   sub: { label: 'From sub-kit', fg: '#4338CA' },
   over: { label: 'Overrides sub-kit', fg: '#C2410C' },
-  blank: { label: 'Blank', fg: '#B45309' },
+  blank: { label: 'Empty', fg: '#B45309' },
 }
 
 export function slotHref(kitId: string, key?: string | null) {

@@ -12,10 +12,8 @@ import (
 	"github.com/docker/kit-maker/internal/ent"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
-	"github.com/docker/kit-maker/internal/ent/blockversion"
 	"github.com/docker/kit-maker/internal/ent/check"
 	"github.com/docker/kit-maker/internal/ent/kit"
-	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/slot"
 	"github.com/docker/kit-maker/internal/kits/blocktypes"
 )
@@ -36,8 +34,8 @@ var starterSlots = []struct{ key, label, section string }{
 	{"network-access", "Network access", "network"},
 }
 
-// Create makes a kit with its goal and a starter outline.
-func (s *Service) Create(ctx context.Context, in CreateInput) (*ent.Kit, error) {
+// create makes a kit with its goal and a starter outline.
+func (s *Service) create(ctx context.Context, in CreateInput) (*ent.Kit, error) {
 	in.DisplayName = strings.TrimSpace(in.DisplayName)
 	if in.DisplayName == "" {
 		return nil, errors.New("give the kit a name")
@@ -86,27 +84,31 @@ func rollback(tx *ent.Tx, err error) error {
 	return err
 }
 
-// UpdateGoal sets (or clears) a kit's goal statement.
-func (s *Service) UpdateGoal(ctx context.Context, kitID, statement string) error {
+// updateGoal sets (or clears) a kit's goal statement.
+func (s *Service) updateGoal(ctx context.Context, kitID, statement string) error {
+	return setGoal(ctx, s.Ent, kitID, statement)
+}
+
+func setGoal(ctx context.Context, c *ent.Client, kitID, statement string) error {
 	statement = strings.TrimSpace(statement)
-	g, err := s.Ent.Kit.Query().Where(kit.ID(kitID)).QueryGoal().Only(ctx)
+	g, err := c.Kit.Query().Where(kit.ID(kitID)).QueryGoal().Only(ctx)
 	switch {
 	case ent.IsNotFound(err) && statement == "":
 		return nil
 	case ent.IsNotFound(err):
-		return s.Ent.Goal.Create().SetKitID(kitID).SetStatement(statement).Exec(ctx)
+		return c.Goal.Create().SetKitID(kitID).SetStatement(statement).Exec(ctx)
 	case err != nil:
 		return err
 	case statement == "":
-		return s.Ent.Goal.DeleteOne(g).Exec(ctx)
+		return c.Goal.DeleteOne(g).Exec(ctx)
 	default:
 		return g.Update().SetStatement(statement).Exec(ctx)
 	}
 }
 
-// AddSlot adds a blank slot for a block type and returns its key. The type
+// addSlot adds a blank slot for a block type and returns its key. The type
 // decides the outline section.
-func (s *Service) AddSlot(ctx context.Context, kitID, label, blockType string, required bool) (string, error) {
+func (s *Service) addSlot(ctx context.Context, kitID, label, blockType string, required bool) (string, error) {
 	t, ok := blocktypes.Get(blockType)
 	if !ok {
 		return "", fmt.Errorf("unknown block type %q", blockType)
@@ -146,9 +148,9 @@ func (s *Service) AddSlot(ctx context.Context, kitID, label, blockType string, r
 	return key, err
 }
 
-// RemoveSlot deletes a slot and its link. A private block made for the slot
+// removeSlot deletes a slot and its link. A private block made for the slot
 // is deleted with it; library blocks stay in the library.
-func (s *Service) RemoveSlot(ctx context.Context, kitID, slotKey string) error {
+func (s *Service) removeSlot(ctx context.Context, kitID, slotKey string) error {
 	sl, err := s.Ent.Slot.Query().Where(slot.KitID(kitID), slot.Key(slotKey)).WithLink(func(q *ent.BlockLinkQuery) { q.WithBlock() }).Only(ctx)
 	if ent.IsNotFound(err) {
 		return ErrNotFound
@@ -164,26 +166,13 @@ func (s *Service) RemoveSlot(ctx context.Context, kitID, slotKey string) error {
 		if err := tx.BlockLink.DeleteOneID(l.ID).Exec(ctx); err != nil {
 			return rollback(tx, err)
 		}
-		if b := l.Edges.Block; b != nil && b.Visibility == block.VisibilityPrivate {
-			if err := deleteBlock(ctx, tx, b.ID); err != nil {
-				return rollback(tx, err)
-			}
-		}
+		// A block made only for this kit is kept (unlinked, unlisted), so the
+		// kit's history can still bring it back.
 	}
 	if err := tx.Slot.DeleteOneID(sl.ID).Exec(ctx); err != nil {
 		return rollback(tx, err)
 	}
 	return tx.Commit()
-}
-
-func deleteBlock(ctx context.Context, tx *ent.Tx, id string) error {
-	if err := tx.Block.UpdateOneID(id).ClearCurrentVersion().Exec(ctx); err != nil {
-		return err
-	}
-	if _, err := tx.BlockVersion.Delete().Where(blockversionOf(id)).Exec(ctx); err != nil {
-		return err
-	}
-	return tx.Block.DeleteOneID(id).Exec(ctx)
 }
 
 // sectionDefault is the block type a blank in each section is filled with.
@@ -194,9 +183,9 @@ func sectionDefault(section string) string {
 	return blocktypes.RawCapability
 }
 
-// StartCustomBlock fills a blank slot with a new private block, owned by the
+// startCustomBlock fills a blank slot with a new private block, owned by the
 // kit's team and visible only in this kit (origin "custom").
-func (s *Service) StartCustomBlock(ctx context.Context, kitID, slotKey, userID string) error {
+func (s *Service) startCustomBlock(ctx context.Context, kitID, slotKey, userID string) error {
 	sl, err := s.Ent.Slot.Query().Where(slot.KitID(kitID), slot.Key(slotKey)).WithLink().WithKit().Only(ctx)
 	if ent.IsNotFound(err) {
 		return ErrNotFound
@@ -242,10 +231,10 @@ func (s *Service) StartCustomBlock(ctx context.Context, kitID, slotKey, userID s
 	return tx.Commit()
 }
 
-// UpdateLink moves a slot to its block's current version and re-applies the
+// updateLink moves a slot to its block's current version and re-applies the
 // kit's edits on top. Edits whose target the new version removed stay stored
 // and show as conflicts until the next save or a revert (DESIGN.md §2.2).
-func (s *Service) UpdateLink(ctx context.Context, kitID, slotKey string) error {
+func (s *Service) updateLink(ctx context.Context, kitID, slotKey string) error {
 	sl, err := s.Ent.Slot.Query().Where(slot.KitID(kitID), slot.Key(slotKey)).
 		WithLink(func(q *ent.BlockLinkQuery) { q.WithBlock() }).Only(ctx)
 	if ent.IsNotFound(err) {
@@ -308,13 +297,11 @@ func (s *Service) RemoveCheck(ctx context.Context, kitID, checkID string) error 
 	return err
 }
 
-func blockversionOf(blockID string) predicate.BlockVersion { return blockversion.BlockID(blockID) }
-
-// Relink points a filled slot at a different library block (its current
+// relink points a filled slot at a different library block (its current
 // version). The kit's edits belonged to the old block, so they are dropped;
 // save them as a new block first to keep them. A private block left behind
 // is deleted.
-func (s *Service) Relink(ctx context.Context, kitID, slotKey, blockID string) error {
+func (s *Service) relink(ctx context.Context, kitID, slotKey, blockID string) error {
 	sl, err := s.Ent.Slot.Query().Where(slot.KitID(kitID), slot.Key(slotKey)).
 		WithLink(func(q *ent.BlockLinkQuery) { q.WithBlock() }).Only(ctx)
 	if ent.IsNotFound(err) {
@@ -325,7 +312,7 @@ func (s *Service) Relink(ctx context.Context, kitID, slotKey, blockID string) er
 	}
 	l := sl.Edges.Link
 	if l == nil {
-		return s.LinkBlock(ctx, kitID, slotKey, blockID)
+		return s.linkBlock(ctx, kitID, slotKey, blockID)
 	}
 	if l.BlockID == blockID {
 		return nil
@@ -340,8 +327,7 @@ func (s *Service) Relink(ctx context.Context, kitID, slotKey, blockID string) er
 	return s.swapLink(ctx, l, b.ID, *b.CurrentVersionID)
 }
 
-// swapLink moves a link to another block version, clears its edits and
-// deletes the old block when it was private to this kit.
+// swapLink moves a link to another block version and clears its edits.
 func (s *Service) swapLink(ctx context.Context, l *ent.BlockLink, blockID, versionID string) error {
 	tx, err := s.Ent.Tx(ctx)
 	if err != nil {
@@ -351,18 +337,13 @@ func (s *Service) swapLink(ctx context.Context, l *ent.BlockLink, blockID, versi
 		ClearOverrides().SetOverridesHash("").SetRebaseState(blocklink.RebaseStateClean).Exec(ctx); err != nil {
 		return rollback(tx, err)
 	}
-	if old := l.Edges.Block; old != nil && old.Visibility == block.VisibilityPrivate && old.ID != blockID {
-		if err := deleteBlock(ctx, tx, old.ID); err != nil {
-			return rollback(tx, err)
-		}
-	}
 	return tx.Commit()
 }
 
-// SaveAsBlock turns a slot's effective content (the block plus this kit's
+// saveAsBlock turns a slot's effective content (the block plus this kit's
 // edits) into a new shared library block, and links the slot to it with no
 // edits left over.
-func (s *Service) SaveAsBlock(ctx context.Context, kitID, slotKey, name, userID string) (*ent.Block, error) {
+func (s *Service) saveAsBlock(ctx context.Context, kitID, slotKey, name, userID string) (*ent.Block, error) {
 	l, err := s.Load(ctx, kitID)
 	if err != nil {
 		return nil, err

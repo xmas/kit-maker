@@ -36,6 +36,9 @@ type Kit func(*sql.Selector)
 // KitInclude is the predicate function for kitinclude builders.
 type KitInclude func(*sql.Selector)
 
+// KitRevision is the predicate function for kitrevision builders.
+type KitRevision func(*sql.Selector)
+
 // RoleAssignment is the predicate function for roleassignment builders.
 type RoleAssignment func(*sql.Selector)
 

@@ -371,6 +371,20 @@ rev}`, just like a block link one level up.
   slot came from. (A sub-kit with no overrides could instead be referenced
   by image in a set. That's an optimisation for later.)
 
+### 2.5a History: undo everything
+
+Every change to a kit is recorded as a revision: who, when, a one-line
+summary, and a full snapshot (goal, slots, the block versions they link and
+the kit's edits) plus the YAML it compiled to. Any revision can be previewed
+(its YAML against now) and restored, for the whole kit or one slot; a
+restore is itself a revision, so it can be undone. Library blocks already
+keep immutable versions; restoring an old one publishes it as the newest, so
+kits take it like any update. Two words stay distinct in the UI: **Revert
+changes** throws away unsaved edits; **Resync to block** drops the kit's
+saved edits and takes the block's latest version. In the outline a pencil
+means unsaved edits only; a link with an amber dot means linked with saved
+edits.
+
 ### 2.6 The outline is the kit's navigation
 
 Builder layout: outline on the left, the selected slot's editor in the

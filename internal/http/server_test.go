@@ -25,6 +25,7 @@ import (
 	"github.com/docker/kit-maker/internal/ent"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/kit"
 	kmhttp "github.com/docker/kit-maker/internal/http"
 	"github.com/docker/kit-maker/internal/seed"
 	"github.com/docker/kit-maker/internal/testutil"
@@ -178,7 +179,7 @@ func TestServer(t *testing.T) {
 		if err := json.Unmarshal([]byte(body), &page); err != nil {
 			t.Fatalf("decode: %v: %s", err, body)
 		}
-		if page.Component != "Kits/Index" || len(page.Props.Kits) != 1 || page.Props.Kits[0].Blanks != 2 {
+		if page.Component != "Kits/Index" || len(page.Props.Kits) != 2 || page.Props.Kits[0].Blanks != 2 {
 			t.Fatalf("unexpected page: %s", body)
 		}
 	})
@@ -309,6 +310,37 @@ func TestServer(t *testing.T) {
 		}
 	})
 
+	t.Run("polyglot demo kit splits a block across the policy", func(t *testing.T) {
+		_, html := signedIn.get(t, "/kits", nil)
+		k := client.Kit.Query().Where(kit.Slug("polyglot-ci")).OnlyX(context.Background())
+		code, body := signedIn.get(t, "/kits/"+k.ID, map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)})
+		var page struct {
+			Props struct {
+				Compiled struct {
+					Valid bool
+					Error string
+					YAML  string
+					Spans map[string][][2]int
+				} `json:"compiled"`
+			} `json:"props"`
+		}
+		if err := json.Unmarshal([]byte(body), &page); code != 200 || err != nil {
+			t.Fatalf("%d %v", code, err)
+		}
+		c := page.Props.Compiled
+		if !c.Valid {
+			t.Fatalf("polyglot kit is not valid: %s\n%s", c.Error, c.YAML)
+		}
+		// Node has install allow, install deny, runtime allow and runtime deny:
+		// four separate places in the YAML, interleaved with other blocks.
+		if n := len(c.Spans["node"]); n != 4 {
+			t.Errorf("node spans = %d (%v), want 4\n%s", n, c.Spans["node"], c.YAML)
+		}
+		if n := len(c.Spans["acme-internal"]); n != 2 {
+			t.Errorf("acme-internal spans = %d, want 2", n)
+		}
+	})
+
 	t.Run("create a kit and fill it", func(t *testing.T) {
 		_, html := signedIn.get(t, "/kits", nil)
 		hdr := map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)}
@@ -388,6 +420,24 @@ func TestServer(t *testing.T) {
 		eff["runtime"].(map[string]any)["allow"] = append(eff["runtime"].(map[string]any)["allow"].([]any),
 			map[string]any{"label": "Stripe", "hosts": []any{"api.stripe.com"}})
 		b, _ := json.Marshal(map[string]any{"payload": eff})
+
+		// Preview compiles the draft without saving it.
+		res := signedIn.raw(t, "POST", kitURL+"/slots/network-access/preview", string(b), nil)
+		var pv struct {
+			Compiled struct {
+				YAML  string
+				Spans map[string][][2]int
+			}
+		}
+		_ = json.NewDecoder(res.Body).Decode(&pv)
+		res.Body.Close()
+		if res.StatusCode != 200 || !strings.Contains(pv.Compiled.YAML, "api.stripe.com") || !strings.Contains(pv.Compiled.YAML, "1 edit here") {
+			t.Fatalf("preview: %d\n%s", res.StatusCode, pv.Compiled.YAML)
+		}
+		if p := call("GET", kitURL+"/slots/network-access", ""); p.Props.Selected.Edits != 0 {
+			t.Fatalf("preview saved the draft: %+v", p.Props.Selected)
+		}
+
 		p = call("PUT", kitURL+"/slots/network-access", string(b))
 		if p.Props.Selected.Edits != 1 {
 			t.Fatalf("kit edit: %+v", p.Props.Selected)
@@ -459,10 +509,11 @@ func TestServer(t *testing.T) {
 			t.Fatalf("after remove check: %+v", p.Props.Checks)
 		}
 
-		// Removing the custom slot deletes its private block too.
+		// Removing the custom slot keeps its kit-only block (history can bring
+		// it back), unlinked and out of the library.
 		call("DELETE", kitURL+"/slots/stripe-key", "")
-		if client.Block.Query().Where(block.Slug("payments-api-stripe-key")).ExistX(context.Background()) {
-			t.Fatal("private block survived its slot")
+		if !client.Block.Query().Where(block.Slug("payments-api-stripe-key")).ExistX(context.Background()) {
+			t.Fatal("kit-only block was deleted with its slot")
 		}
 
 		// Blocks library: create one and find it in the list.
@@ -473,6 +524,142 @@ func TestServer(t *testing.T) {
 		code, body := signedIn.get(t, "/blocks", hdr)
 		if code != 200 || !strings.Contains(body, `"npm-mirror"`) || strings.Contains(body, "payments-api-stripe-key") {
 			t.Fatalf("blocks index: %d %s", code, body)
+		}
+	})
+
+	t.Run("history: record, restore a slot or the kit, resync", func(t *testing.T) {
+		_, html := signedIn.get(t, "/kits", nil)
+		hdr := map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)}
+		type rev struct {
+			ID, Action, Summary, SlotKey string
+			Seq                          int
+			Slot                         *struct {
+				BlockName string
+				Version   int
+				Overrides []any
+			}
+		}
+		type page struct {
+			URL   string `json:"url"`
+			Props struct {
+				Errors   map[string]string `json:"errors"`
+				Selected *struct {
+					BlockSlug      string
+					Edits, Version int
+					Latest         int
+					Effective      map[string]any
+				} `json:"selected"`
+				Sections []struct{ Items []struct{ Key string } } `json:"sections"`
+				History  []rev                                    `json:"history"`
+			} `json:"props"`
+		}
+		call := func(method, path, body string) page {
+			t.Helper()
+			res := signedIn.raw(t, method, path, body, hdr)
+			defer res.Body.Close()
+			b, _ := io.ReadAll(res.Body)
+			if res.StatusCode != 200 {
+				t.Fatalf("%s %s: %d %s", method, path, res.StatusCode, b)
+			}
+			var p page
+			if err := json.Unmarshal(b, &p); err != nil {
+				t.Fatalf("%s %s: %v", method, path, err)
+			}
+			return p
+		}
+		history := func(kitURL, slot string) []rev {
+			t.Helper()
+			code, body := signedIn.get(t, kitURL+"/history.json?slot="+slot, nil)
+			var out struct{ Revisions []rev }
+			if err := json.Unmarshal([]byte(body), &out); code != 200 || err != nil {
+				t.Fatalf("history: %d %v", code, err)
+			}
+			return out.Revisions
+		}
+		teamID := client.Team.Query().OnlyX(context.Background()).ID
+		egress := client.Block.Query().Where(block.Slug("github-egress")).OnlyX(context.Background())
+
+		kitURL := call("POST", "/kits", `{"teamId":"`+teamID+`","displayName":"History Kit","kind":"mixin"}`).URL
+		if h := history(kitURL, ""); len(h) != 1 || h[0].Action != "create" {
+			t.Fatalf("after create: %+v", h)
+		}
+		created := history(kitURL, "")[0]
+
+		call("POST", kitURL+"/slots/network-access/link", `{"blockId":"`+egress.ID+`"}`)
+		linked := history(kitURL, "")[0]
+		eff := call("GET", kitURL+"/slots/network-access", "").Props.Selected.Effective
+		rt := eff["runtime"].(map[string]any)
+		rt["allow"] = append(rt["allow"].([]any), map[string]any{"label": "Extra", "hosts": []any{"extra.example.com"}})
+		b, _ := json.Marshal(map[string]any{"payload": eff})
+		call("PUT", kitURL+"/slots/network-access", string(b))
+
+		slotHist := history(kitURL, "network-access")
+		if len(slotHist) < 3 || slotHist[0].Action != "edit" || slotHist[0].Slot == nil || len(slotHist[0].Slot.Overrides) != 1 ||
+			!strings.Contains(slotHist[0].Summary, "1 edit") {
+			t.Fatalf("slot history: %+v", slotHist)
+		}
+
+		// The revision's YAML is kept for previews.
+		code, body := signedIn.get(t, kitURL+"/revisions/"+slotHist[0].ID+"/yaml", nil)
+		if code != 200 || !strings.Contains(body, "extra.example.com") {
+			t.Fatalf("revision yaml: %d %s", code, body)
+		}
+
+		// Restore the slot to just after it was linked: the edit is gone.
+		p := call("POST", kitURL+"/revisions/"+linked.ID+"/restore", `{"slotKey":"network-access"}`)
+		if p.Props.Selected == nil || p.Props.Selected.Edits != 0 || p.Props.Selected.BlockSlug != "github-egress" {
+			t.Fatalf("after slot restore: %+v", p.Props.Selected)
+		}
+		// …and back again to the edited state.
+		p = call("POST", kitURL+"/revisions/"+slotHist[0].ID+"/restore", `{"slotKey":"network-access"}`)
+		if p.Props.Selected.Edits != 1 {
+			t.Fatalf("restore forward: %+v", p.Props.Selected)
+		}
+
+		// Resync drops the edits and takes the block's latest version.
+		p = call("POST", kitURL+"/slots/network-access/resync", `{}`)
+		if sel := p.Props.Selected; sel.Edits != 0 || sel.Version != sel.Latest {
+			t.Fatalf("after resync: %+v", sel)
+		}
+		if h := history(kitURL, ""); h[0].Action != "resync" {
+			t.Fatalf("resync not recorded: %+v", h[0])
+		}
+
+		// Restore the whole kit to when it was created: an empty starter slot.
+		p = call("POST", kitURL+"/revisions/"+created.ID+"/restore", `{}`)
+		if !strings.HasSuffix(p.URL, "/history") || len(p.Props.History) == 0 || p.Props.History[0].Action != "restore" {
+			t.Fatalf("after kit restore: %s %+v", p.URL, p.Props.History)
+		}
+		p = call("GET", kitURL+"/slots/network-access", "")
+		if p.Props.Selected.BlockSlug != "" {
+			t.Fatalf("kit restore left the slot filled: %+v", p.Props.Selected)
+		}
+
+		// Blocks: restore an old version as the newest.
+		bp := call("POST", "/blocks", `{"teamId":"`+teamID+`","type":"network-rules","name":"History block"}`)
+		blockURL := bp.URL
+		var bd struct {
+			Props struct {
+				Block struct {
+					Version int
+					Payload map[string]any
+				}
+			}
+		}
+		get := func() {
+			_, body := signedIn.get(t, blockURL, hdr)
+			_ = json.Unmarshal([]byte(body), &bd)
+		}
+		get()
+		v1 := fmt.Sprint(bd.Props.Block.Payload)
+		pl := bd.Props.Block.Payload
+		pl["runtime"].(map[string]any)["allow"] = []any{map[string]any{"label": "x", "hosts": []any{"x.example.com"}}}
+		b, _ = json.Marshal(map[string]any{"payload": pl})
+		call("POST", blockURL+"/versions", string(b))
+		call("POST", blockURL+"/versions/1/restore", `{}`)
+		get()
+		if bd.Props.Block.Version != 3 || fmt.Sprint(bd.Props.Block.Payload) != v1 {
+			t.Fatalf("block restore: v%d %v (want v3 %s)", bd.Props.Block.Version, bd.Props.Block.Payload, v1)
 		}
 	})
 

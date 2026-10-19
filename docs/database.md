@@ -285,6 +285,7 @@ erDiagram
     %% ── Goals, checks, AI ───────────────────────────────────
     kits ||--|| goals : states
     kits ||--o{ checks : "derives"
+    kits ||--o{ kit_revisions : "history"
     checks ||--o{ check_slot : ""
     slots ||--o{ check_slot : "satisfies"
     kits ||--o{ ai_threads : ""
@@ -293,6 +294,18 @@ erDiagram
     ai_suggestions }o--o| blocks : targets
     block_versions }o--o| ai_suggestions : "accepted from"
     teams ||--o{ ai_calls : "spends"
+    kit_revisions {
+        ulid id PK
+        ulid kit_id FK
+        int seq "1, 2, 3… per kit"
+        ulid actor_user_id FK
+        string action "baseline|create|edit|link|relink|unlink|add-slot|remove-slot|update|resync|goal|save-as-block|custom-block|restore"
+        string slot_key "slot the change was about"
+        text summary
+        jsonb snapshot "goal, slots, links, overrides"
+        text yaml "compiled YAML at that point"
+        timestamp created_at
+    }
     goals {
         ulid id PK
         ulid kit_id FK

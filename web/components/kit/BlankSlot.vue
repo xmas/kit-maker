@@ -4,8 +4,6 @@ import { router } from '@inertiajs/vue3'
 import { Link2, Plus, Sparkles } from '@lucide/vue'
 import { slotHref, type Candidate, type SlotDetail } from '@/lib/kit'
 
-// One picker for two jobs: filling an empty slot, and re-linking a filled
-// slot to a different block (mode "relink").
 const props = defineProps<{
   kitId: string
   slot: SlotDetail
@@ -13,37 +11,24 @@ const props = defineProps<{
   inKit: string[]
   canUse: boolean
   canCreate: boolean
-  mode?: 'fill' | 'relink'
 }>()
-const emit = defineEmits<{ cancel: [] }>()
-const relink = computed(() => props.mode === 'relink')
 
 // Blocks this kit already links go last and say so.
 const sorted = computed(() =>
-  [...props.candidates].filter((c) => !relink.value || c.slug !== props.slot.blockSlug).sort((a, b) => Number(props.inKit.includes(a.slug)) - Number(props.inKit.includes(b.slug))),
+  [...props.candidates].sort((a, b) => Number(props.inKit.includes(a.slug)) - Number(props.inKit.includes(b.slug))),
 )
 
 function startNew() {
   router.post(`${slotHref(props.kitId, props.slot.key)}/custom`, {}, { preserveScroll: true })
 }
 function use(c: Candidate) {
-  if (relink.value) {
-    const n = props.slot.edits
-    if (n && !confirm(`Switch to ${c.name}? The ${n} ${n === 1 ? 'edit' : 'edits'} made here belong to ${props.slot.blockName} and will be dropped. Use "Save as new block" first to keep them.`)) return
-    router.post(`${slotHref(props.kitId, props.slot.key)}/relink`, { blockId: c.id }, { preserveScroll: true })
-    return
-  }
   router.post(`${slotHref(props.kitId, props.slot.key)}/link`, { blockId: c.id }, { preserveScroll: true })
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
-    <div v-if="relink" class="flex items-center justify-between gap-2">
-      <p class="text-sm font-medium">Pick a different block for this slot</p>
-      <button type="button" class="rounded-md px-2.5 py-1 text-[13px] text-slate-600 hover:bg-muted" @click="emit('cancel')">Cancel</button>
-    </div>
-    <p v-else class="text-sm text-slate-600">
+    <p class="text-sm text-slate-600">
       This slot is empty. Pick a library block to link it; the kit keeps following the block's new versions, and any
       edits you make here are kept as overrides.
     </p>
@@ -63,14 +48,14 @@ function use(c: Candidate) {
           class="mt-auto inline-flex items-center gap-1.5 self-start rounded-md border border-primary px-2.5 py-1 text-[13px] font-medium text-primary hover:bg-primary/5"
           @click="use(c)"
         >
-          <Link2 class="size-3.5" /> {{ relink ? 'Switch to this block' : 'Use this block' }}
+          <Link2 class="size-3.5" /> Use this block
         </button>
       </article>
     </div>
     <p v-if="!sorted.length" class="rounded-lg border border-dashed bg-background p-4 text-sm text-muted-foreground">
       No library blocks of this type are visible to your teams yet.
     </p>
-    <div v-if="canCreate && !relink" class="flex flex-wrap items-center gap-3 rounded-lg border border-dashed bg-background p-3.5">
+    <div v-if="canCreate" class="flex flex-wrap items-center gap-3 rounded-lg border border-dashed bg-background p-3.5">
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
         <span class="text-sm font-semibold">Nothing fits?</span>
         <span class="text-[13px] text-slate-600">Start a new block just for this kit. You can share it to the library later.</span>
@@ -79,7 +64,7 @@ function use(c: Candidate) {
         <Plus class="size-3.5" /> Start a new block
       </button>
     </div>
-    <p v-if="!relink" class="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <p class="flex items-center gap-1.5 text-xs text-muted-foreground">
       <Sparkles class="size-3.5 text-ai" /> Drafting a new block with AI arrives with the AI client.
     </p>
   </div>

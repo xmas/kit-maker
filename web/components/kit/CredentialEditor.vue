@@ -108,6 +108,7 @@ const input =
                   :disabled="!canEdit"
                   :aria-label="f"
                   class="w-full rounded border-transparent bg-transparent px-1 py-1 font-mono text-[12.5px] hover:border-slate-200 focus:border-primary focus:outline-none"
+                  @input="setField(i, f, ($event.target as HTMLInputElement).value)"
                   @change="setField(i, f, ($event.target as HTMLInputElement).value.trim())"
                 />
               </td>

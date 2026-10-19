@@ -656,6 +656,29 @@ func HasAcceptedBlockVersionsWith(preds ...predicate.BlockVersion) predicate.Use
 	})
 }
 
+// HasKitRevisions applies the HasEdge predicate on the "kit_revisions" edge.
+func HasKitRevisions() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, KitRevisionsTable, KitRevisionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasKitRevisionsWith applies the HasEdge predicate on the "kit_revisions" edge with a given conditions (other predicates).
+func HasKitRevisionsWith(preds ...predicate.KitRevision) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newKitRevisionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(sql.AndPredicates(predicates...))

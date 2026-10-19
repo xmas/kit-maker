@@ -110,11 +110,14 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
 - **HTTP** `internal/http`: chi, `/healthz`, `/readyz` (database, migrations, storage), `/login`,
   `/logout`, `/account/sign-out-everywhere`, the Kits index, new kit (`GET /kits/new`,
   `POST /kits`), the kit builder (`kit.go`: `GET /kits/{id}[/slots/{key}]`, `PUT …/slots/{key}`
-  saves a payload as overrides, `POST …/revert`, `…/link`, `…/unlink`, `…/explain` streams AI text
+  saves a payload as overrides, `POST …/preview` compiles an unsaved draft (JSON, nothing saved),
+  `POST …/revert`, `…/link`, `…/unlink`, `…/explain` streams AI text
   as server-sent events via `sse` in `ai.go`; `kit_edit.go`: goal, add/remove slots, `…/custom`
   starts a block private to the kit, `…/update` moves a link to the block's latest version,
   `…/relink` switches a filled slot to another block, `…/save-as-block` turns block + edits into a
-  new library block, checks)
+  new library block, `…/resync`, checks; `history.go`: `GET /kits/{id}/history` (the History view),
+  `history.json[?slot=]`, `revisions/{rev}/yaml`, `POST revisions/{rev}/restore` with an optional
+  `slotKey`, `POST /blocks/{id}/versions/{n}/restore`)
   and the block library (`blocks.go`: `/blocks`, `/blocks/{id}`, `PUT` details, `POST …/versions`),
   rendered through gonertia. Strict CSP and security headers (`headers.go`); CSRF via `http.CrossOriginProtection`.
 - **RBAC** `internal/authz`: the permission catalogue (`permissions.go`, ~100 keys with scope and a
@@ -132,20 +135,32 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   `pages/Auth/Login.vue`, `pages/Kits/Index.vue`, `pages/Kits/New.vue`, `pages/Blocks/Index.vue`,
   `pages/Blocks/Show.vue` (reuses the kit editors), and the builder `pages/Kits/Show.vue`: outline
   on the left, the slot editor in the middle, the kit YAML on the right with the selected slot's
-  lines highlighted (`compiled.spans`); either sidebar can be hidden (a hidden outline opens as a
+  lines highlighted (`compiled.spans`). While the draft is unsaved the editor fetches a preview as
+  you type and the YAML shows it against the saved version (`lib/diff.ts`): Result (new green,
+  changed amber, removed marked) or Changes (−/+). Saved kit edits show as coloured
+  gutter bars from `compiled.marks`. The network editor marks edited rows (green added, amber
+  changed, red removed) and lists every edit in a callout with a per-edit Undo. The YAML sidebar is resizable (drag its left edge, arrow keys,
+  double-click resets; about 40% wide by default). Either sidebar can be hidden (a hidden outline opens as a
   hover flyout; state in localStorage). Built from
   `components/kit/` (Outline: a tree of every section with each slot shown by its block's name, an add row per
   block type and remove on hover, plus the selection bridge; SlotFrame, NetworkRulesEditor,
   CredentialEditor, RawEditor, BlankSlot, ExplainPanel, YamlPanel, ChecksPanel; prop shapes in
   `lib/kit.ts`). Light theme, Docker blue `#1D63ED`, violet only for AI (`web/styles.css`).
 - **Data** `internal/ent/schema`: teams, users, team_memberships, blocks, block_versions, kits,
-  kit_includes, slots, block_links, goals, checks, ai_calls, integrations, deployment_settings,
+  kit_includes, slots, block_links, goals, checks, kit_revisions, ai_calls, integrations, deployment_settings,
   sessions, role_assignments. Atlas versioned migrations in `migrations/` are embedded and
   applied by `kitmaker migrate` (`internal/dbmigrate`).
 - **Jobs** `internal/jobs`: River on Postgres, one example job, one periodic job.
 - **Blocks** `internal/blocks`: create a block (version 1 from `blocktypes.Starter` unless a
   payload is given), edit name/description, `Publish` a new immutable version (skipped when the
   content, ignoring `_k`, is unchanged), list and detail with history and the kits using it.
+- **History** `internal/kits/history.go`: every kit change goes through `Service.change`, which
+  records a `kit_revisions` row after it (full `Snapshot` of goal, slots, links and overrides, plus
+  the compiled YAML); the first change also records a "Starting point". Public mutators wrap the
+  lowercase implementations. `RestoreKit` / `RestoreSlot` apply a snapshot and are recorded too;
+  `Resync` drops a slot's edits and moves it to the block's latest version. Kit-only blocks are no
+  longer deleted (unlinked and unlisted), so snapshots can bring them back. Library blocks restore
+  an old version as the newest (`blocks.RestoreVersion`).
 - **Kits** `internal/kits`: `Service.Load` resolves a kit's slots (link → block version → apply
   overrides), sets each row's origin, compiles and evaluates checks; `SaveSlot` diffs an edited
   payload against the library version and stores patch ops. `patch/` holds the ops
@@ -153,7 +168,9 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   conflicts). `blocktypes/` registers block types with validation: network-rules, credential,
   raw-capability. `compiler/` merges network blocks into one `network-policy@2`, adds credential
   and raw nodes, writes YAML with a `# slot <key> · <block> vN` comment above each slot's lines
-  (`Output.Spans` gives each slot's line ranges), and validates with
+  (`Output.Spans` gives each slot's line ranges). With `Block.Base` set it also annotates the
+  kit's edits (`# + added in this kit`, `# ~ changed in this kit`, `# - removed in this kit: …`;
+  `Output.Marks` gives the marked lines). It validates with
   `github.com/docker/sandbox-kit-spec/v3/spec` (the package sbx uses). `checks/` evaluates network
   checks against the merged policy (deny wins, then allow, else blocked). `edit.go`: `Create` (goal
   plus a starter "Network access" slot), `UpdateGoal`, `AddSlot` (the block type picks the
@@ -171,7 +188,9 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
 - **Storage** `internal/drivers/storage`: `gocloud.dev/blob` (S3/MinIO, file).
 - **Seed** `internal/seed`: Platform team, the bootstrap Owner, demo blocks (github-egress,
   deny-cloud-metadata, packagist-acme, github-token, packagist-token) and the "Acme Shop" kit with
-  a goal, six checks, two overrides on github-egress and two required blanks (`demo.go`).
+  a goal, six checks, two overrides on github-egress and two required blanks, plus toolchain
+  blocks with install/runtime allow/deny rules and a "Polyglot CI" kit that mixes them, so one
+  block's YAML lines are split across the policy (`demo.go`; created once, then left alone).
   Idempotent; a block gets a new version when its seeded payload changes.
 - **Deploy**: distroless multi-stage `Dockerfile` (non-root, any UID, read-only root fs),
   `deploy/compose` (Postgres+pgvector, MinIO, zot, BuildKit, Mailpit; host ports picked by
@@ -190,5 +209,13 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
 - Every route must go through `s.handle` with a guard; add new permissions to
   `internal/authz/permissions.go` (and the right presets in `roles.go`). Handlers acting on one
   object call `s.allowed(w, r, perm, ownerTeamID)`; list queries filter with `TeamsWith`.
+- UI: the outline is navigation and status indicators only; actions live on the detail page
+  (rare ones in the frame's "⋯" `ActionMenu`). The slot frame is compact and keeps the tables
+  still while editing: one-line header (status chip opens a popover with link details, Save as new
+  block, Resync; `ExplainPopover` floats the AI answer), a fixed-height edits strip whose list
+  opens over the content, and a save bar pinned to the bottom of the screen. Popovers close via
+  `lib/useDismiss.ts`. Every destructive action awaits `confirm()` from
+  `web/lib/confirm.ts` (rendered by `ConfirmDialog` in `AppShell`), never `window.confirm`; the
+  builder also asks before leaving a slot with unsaved edits.
 - Kit semantics come from the spec package. Don't reimplement validation, merging or the
   permission surface.

@@ -190,6 +190,11 @@ func (s *Service) load(ctx context.Context, kitID string, drafts map[string]map[
 				d.Origin = OriginOverridesSubkit
 			}
 			cs.Block = &compiler.Block{Name: b.Name, Slug: b.Slug, Type: b.Type, Version: base.Version, Edits: edits, Payload: eff}
+			// Mark the kit's edits in the YAML (not for a kit-only block,
+			// where everything is the kit's own).
+			if b.Visibility != block.VisibilityPrivate {
+				cs.Block.Base = base.Payload
+			}
 		} else if sl.Required {
 			d.Status = "blank"
 		}
@@ -258,10 +263,10 @@ func (s *Service) usedBy(ctx context.Context, slots []*ent.Slot) (map[string]int
 	return out, nil
 }
 
-// SaveSlot stores the edited effective payload of a filled slot as override
+// saveSlot stores the edited effective payload of a filled slot as override
 // ops on its linked block version: the link stays, and library updates can
 // rebase underneath (DESIGN.md §2.2).
-func (s *Service) SaveSlot(ctx context.Context, kitID, slotKey string, edited map[string]any) (*SlotDetail, error) {
+func (s *Service) saveSlot(ctx context.Context, kitID, slotKey string, edited map[string]any) (*SlotDetail, error) {
 	l, err := s.Load(ctx, kitID)
 	if err != nil {
 		return nil, err
@@ -289,8 +294,8 @@ func (s *Service) SaveSlot(ctx context.Context, kitID, slotKey string, edited ma
 	return d, nil
 }
 
-// RevertSlot drops a slot's overrides, back to the library version.
-func (s *Service) RevertSlot(ctx context.Context, kitID, slotKey string) error {
+// revertSlot drops a slot's overrides, back to the library version.
+func (s *Service) revertSlot(ctx context.Context, kitID, slotKey string) error {
 	l, err := s.Load(ctx, kitID)
 	if err != nil {
 		return err
@@ -346,8 +351,8 @@ func (s *Service) Candidates(ctx context.Context, section string, teamIDs []stri
 	return out, nil
 }
 
-// LinkBlock fills a blank slot with a library block at its current version.
-func (s *Service) LinkBlock(ctx context.Context, kitID, slotKey, blockID string) error {
+// linkBlock fills a blank slot with a library block at its current version.
+func (s *Service) linkBlock(ctx context.Context, kitID, slotKey, blockID string) error {
 	sl, err := s.Ent.Slot.Query().Where(slot.KitID(kitID), slot.Key(slotKey)).WithLink().Only(ctx)
 	if ent.IsNotFound(err) {
 		return ErrNotFound
@@ -380,8 +385,8 @@ func (s *Service) LinkBlock(ctx context.Context, kitID, slotKey, blockID string)
 	return tx.Commit()
 }
 
-// Unlink empties a slot, removing its link and any edits.
-func (s *Service) Unlink(ctx context.Context, kitID, slotKey string) error {
+// unlink empties a slot, removing its link and any edits.
+func (s *Service) unlink(ctx context.Context, kitID, slotKey string) error {
 	sl, err := s.Ent.Slot.Query().Where(slot.KitID(kitID), slot.Key(slotKey)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return ErrNotFound

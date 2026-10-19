@@ -16,6 +16,7 @@ import (
 	"github.com/docker/kit-maker/internal/ent/goal"
 	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/kitinclude"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/slot"
 	"github.com/docker/kit-maker/internal/ent/team"
@@ -35,6 +36,7 @@ type KitQuery struct {
 	withOriginSlots *SlotQuery
 	withGoal        *GoalQuery
 	withChecks      *CheckQuery
+	withRevisions   *KitRevisionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -218,6 +220,28 @@ func (_q *KitQuery) QueryChecks() *CheckQuery {
 			sqlgraph.From(kit.Table, kit.FieldID, selector),
 			sqlgraph.To(check.Table, check.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, kit.ChecksTable, kit.ChecksColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRevisions chains the current query on the "revisions" edge.
+func (_q *KitQuery) QueryRevisions() *KitRevisionQuery {
+	query := (&KitRevisionClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(kit.Table, kit.FieldID, selector),
+			sqlgraph.To(kitrevision.Table, kitrevision.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, kit.RevisionsTable, kit.RevisionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -424,6 +448,7 @@ func (_q *KitQuery) Clone() *KitQuery {
 		withOriginSlots: _q.withOriginSlots.Clone(),
 		withGoal:        _q.withGoal.Clone(),
 		withChecks:      _q.withChecks.Clone(),
+		withRevisions:   _q.withRevisions.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -507,6 +532,17 @@ func (_q *KitQuery) WithChecks(opts ...func(*CheckQuery)) *KitQuery {
 	return _q
 }
 
+// WithRevisions tells the query-builder to eager-load the nodes that are connected to
+// the "revisions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *KitQuery) WithRevisions(opts ...func(*KitRevisionQuery)) *KitQuery {
+	query := (&KitRevisionClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withRevisions = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -585,7 +621,7 @@ func (_q *KitQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Kit, err
 	var (
 		nodes       = []*Kit{}
 		_spec       = _q.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			_q.withTeam != nil,
 			_q.withSlots != nil,
 			_q.withIncludes != nil,
@@ -593,6 +629,7 @@ func (_q *KitQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Kit, err
 			_q.withOriginSlots != nil,
 			_q.withGoal != nil,
 			_q.withChecks != nil,
+			_q.withRevisions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -657,6 +694,13 @@ func (_q *KitQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Kit, err
 		if err := _q.loadChecks(ctx, query, nodes,
 			func(n *Kit) { n.Edges.Checks = []*Check{} },
 			func(n *Kit, e *Check) { n.Edges.Checks = append(n.Edges.Checks, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withRevisions; query != nil {
+		if err := _q.loadRevisions(ctx, query, nodes,
+			func(n *Kit) { n.Edges.Revisions = []*KitRevision{} },
+			func(n *Kit, e *KitRevision) { n.Edges.Revisions = append(n.Edges.Revisions, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -857,6 +901,36 @@ func (_q *KitQuery) loadChecks(ctx context.Context, query *CheckQuery, nodes []*
 	}
 	query.Where(predicate.Check(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(kit.ChecksColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.KitID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "kit_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *KitQuery) loadRevisions(ctx context.Context, query *KitRevisionQuery, nodes []*Kit, init func(*Kit), assign func(*Kit, *KitRevision)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Kit)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(kitrevision.FieldKitID)
+	}
+	query.Where(predicate.KitRevision(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(kit.RevisionsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

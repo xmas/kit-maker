@@ -22,6 +22,7 @@ import (
 	"github.com/docker/kit-maker/internal/ent/integration"
 	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/kitinclude"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/session"
 	"github.com/docker/kit-maker/internal/ent/slot"
@@ -98,6 +99,7 @@ func checkColumn(t, c string) error {
 			integration.Table:       integration.ValidColumn,
 			kit.Table:               kit.ValidColumn,
 			kitinclude.Table:        kitinclude.ValidColumn,
+			kitrevision.Table:       kitrevision.ValidColumn,
 			roleassignment.Table:    roleassignment.ValidColumn,
 			session.Table:           session.ValidColumn,
 			slot.Table:              slot.ValidColumn,

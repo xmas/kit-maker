@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
-import { ArrowLeft, Pencil, Save } from '@lucide/vue'
+import { ArrowLeft, Pencil, RotateCcw, Save } from '@lucide/vue'
 import AppShell from '@/components/AppShell.vue'
+import { confirm } from '@/lib/confirm'
 import CredentialEditor from '@/components/kit/CredentialEditor.vue'
 import NetworkRulesEditor from '@/components/kit/NetworkRulesEditor.vue'
 import RawEditor from '@/components/kit/RawEditor.vue'
@@ -81,6 +82,14 @@ function saveDetails() {
 
 const style = computed(() => sectionStyle[props.block.section] ?? { fg: '#475569', bg: '#F1F3F6', label: '' })
 const behind = computed(() => (props.block.usedIn ?? []).filter((u) => u.version < props.block.version).length)
+async function restoreVersion(n: number) {
+  const ok = await confirm({
+    title: `Restore v${n}?`,
+    message: `v${n}'s content is saved as v${props.block.version + 1}; kits using this block can then update to it.${dirty.value ? ' Your unsaved changes here are thrown away.' : ''}`,
+    confirmLabel: 'Restore',
+  })
+  if (ok) router.post(`/blocks/${props.block.id}/versions/${n}/restore`, {}, { preserveScroll: true })
+}
 function when(iso: string) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
@@ -173,12 +182,22 @@ function when(iso: string) {
 
           <section class="rounded-xl border bg-background px-4 py-3.5">
             <h2 class="mb-2 text-sm font-semibold">Versions</h2>
-            <div v-for="v in block.versions" :key="v.version" class="flex gap-3 border-t border-slate-100 py-2 text-[13px]">
+            <div v-for="v in block.versions" :key="v.version" class="flex items-start gap-3 border-t border-slate-100 py-2 text-[13px]">
               <span class="w-8 shrink-0 font-semibold">v{{ v.version }}</span>
-              <div class="flex min-w-0 flex-col">
+              <div class="flex min-w-0 flex-1 flex-col">
                 <span>{{ v.changelog || '—' }}</span>
                 <span class="text-xs text-muted-foreground">{{ v.by ?? (v.authoredBy === 'ai' ? 'AI' : 'Someone') }} · {{ when(v.createdAt) }}</span>
               </div>
+              <span v-if="v.version === block.version" class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">Current</span>
+              <button
+                v-else-if="can.publish"
+                type="button"
+                class="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[12px] font-medium text-primary hover:bg-primary/5"
+                :title="`Save v${v.version}'s content as v${block.version + 1}`"
+                @click="restoreVersion(v.version)"
+              >
+                <RotateCcw class="size-3" /> Restore
+              </button>
             </div>
           </section>
         </aside>

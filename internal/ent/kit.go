@@ -61,9 +61,11 @@ type KitEdges struct {
 	Goal *Goal `json:"goal,omitempty"`
 	// Checks holds the value of the checks edge.
 	Checks []*Check `json:"checks,omitempty"`
+	// Revisions holds the value of the revisions edge.
+	Revisions []*KitRevision `json:"revisions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // TeamOrErr returns the Team value or an error if the edge
@@ -131,6 +133,15 @@ func (e KitEdges) ChecksOrErr() ([]*Check, error) {
 		return e.Checks, nil
 	}
 	return nil, &NotLoadedError{edge: "checks"}
+}
+
+// RevisionsOrErr returns the Revisions value or an error if the edge
+// was not loaded in eager-loading.
+func (e KitEdges) RevisionsOrErr() ([]*KitRevision, error) {
+	if e.loadedTypes[7] {
+		return e.Revisions, nil
+	}
+	return nil, &NotLoadedError{edge: "revisions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -273,6 +284,11 @@ func (_m *Kit) QueryGoal() *GoalQuery {
 // QueryChecks queries the "checks" edge of the Kit entity.
 func (_m *Kit) QueryChecks() *CheckQuery {
 	return NewKitClient(_m.config).QueryChecks(_m)
+}
+
+// QueryRevisions queries the "revisions" edge of the Kit entity.
+func (_m *Kit) QueryRevisions() *KitRevisionQuery {
+	return NewKitClient(_m.config).QueryRevisions(_m)
 }
 
 // Update returns a builder for updating this Kit.

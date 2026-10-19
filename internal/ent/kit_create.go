@@ -16,6 +16,7 @@ import (
 	"github.com/docker/kit-maker/internal/ent/goal"
 	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/kitinclude"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/slot"
 	"github.com/docker/kit-maker/internal/ent/team"
 )
@@ -247,6 +248,21 @@ func (_c *KitCreate) AddChecks(v ...*Check) *KitCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddCheckIDs(ids...)
+}
+
+// AddRevisionIDs adds the "revisions" edge to the KitRevision entity by IDs.
+func (_c *KitCreate) AddRevisionIDs(ids ...string) *KitCreate {
+	_c.mutation.AddRevisionIDs(ids...)
+	return _c
+}
+
+// AddRevisions adds the "revisions" edges to the KitRevision entity.
+func (_c *KitCreate) AddRevisions(v ...*KitRevision) *KitCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddRevisionIDs(ids...)
 }
 
 // Mutation returns the KitMutation object of the builder.
@@ -533,6 +549,22 @@ func (_c *KitCreate) createSpec() (*Kit, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(check.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.RevisionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   kit.RevisionsTable,
+			Columns: []string{kit.RevisionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

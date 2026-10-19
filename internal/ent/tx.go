@@ -34,6 +34,8 @@ type Tx struct {
 	Kit *KitClient
 	// KitInclude is the client for interacting with the KitInclude builders.
 	KitInclude *KitIncludeClient
+	// KitRevision is the client for interacting with the KitRevision builders.
+	KitRevision *KitRevisionClient
 	// RoleAssignment is the client for interacting with the RoleAssignment builders.
 	RoleAssignment *RoleAssignmentClient
 	// Session is the client for interacting with the Session builders.
@@ -187,6 +189,7 @@ func (tx *Tx) init() {
 	tx.Integration = NewIntegrationClient(tx.config)
 	tx.Kit = NewKitClient(tx.config)
 	tx.KitInclude = NewKitIncludeClient(tx.config)
+	tx.KitRevision = NewKitRevisionClient(tx.config)
 	tx.RoleAssignment = NewRoleAssignmentClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.Slot = NewSlotClient(tx.config)

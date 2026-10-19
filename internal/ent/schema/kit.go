@@ -42,6 +42,7 @@ func (Kit) Edges() []ent.Edge {
 		edge.To("origin_slots", Slot.Type),
 		edge.To("goal", Goal.Type).Unique(),
 		edge.To("checks", Check.Type),
+		edge.To("revisions", KitRevision.Type),
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/docker/kit-maker/internal/ent/integration"
 	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/kitinclude"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/schema"
 	"github.com/docker/kit-maker/internal/ent/session"
@@ -339,6 +340,31 @@ func init() {
 	kitinclude.DefaultID = kitincludeDescID.Default.(func() string)
 	// kitinclude.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	kitinclude.IDValidator = kitincludeDescID.Validators[0].(func(string) error)
+	kitrevisionMixin := schema.KitRevision{}.Mixin()
+	kitrevisionMixinFields0 := kitrevisionMixin[0].Fields()
+	_ = kitrevisionMixinFields0
+	kitrevisionMixinFields1 := kitrevisionMixin[1].Fields()
+	_ = kitrevisionMixinFields1
+	kitrevisionFields := schema.KitRevision{}.Fields()
+	_ = kitrevisionFields
+	// kitrevisionDescCreatedAt is the schema descriptor for created_at field.
+	kitrevisionDescCreatedAt := kitrevisionMixinFields1[0].Descriptor()
+	// kitrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitrevision.DefaultCreatedAt = kitrevisionDescCreatedAt.Default.(func() time.Time)
+	// kitrevisionDescSeq is the schema descriptor for seq field.
+	kitrevisionDescSeq := kitrevisionFields[1].Descriptor()
+	// kitrevision.SeqValidator is a validator for the "seq" field. It is called by the builders before save.
+	kitrevision.SeqValidator = kitrevisionDescSeq.Validators[0].(func(int) error)
+	// kitrevisionDescYaml is the schema descriptor for yaml field.
+	kitrevisionDescYaml := kitrevisionFields[7].Descriptor()
+	// kitrevision.DefaultYaml holds the default value on creation for the yaml field.
+	kitrevision.DefaultYaml = kitrevisionDescYaml.Default.(string)
+	// kitrevisionDescID is the schema descriptor for id field.
+	kitrevisionDescID := kitrevisionMixinFields0[0].Descriptor()
+	// kitrevision.DefaultID holds the default value on creation for the id field.
+	kitrevision.DefaultID = kitrevisionDescID.Default.(func() string)
+	// kitrevision.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	kitrevision.IDValidator = kitrevisionDescID.Validators[0].(func(string) error)
 	roleassignmentMixin := schema.RoleAssignment{}.Mixin()
 	roleassignmentMixinFields0 := roleassignmentMixin[0].Fields()
 	_ = roleassignmentMixinFields0

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	nethttp "net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	inertia "github.com/romsar/gonertia/v2"
@@ -32,7 +33,19 @@ func (s *server) kitShow(w nethttp.ResponseWriter, r *nethttp.Request) {
 		}
 	}
 	sub := authz.SubjectFrom(r.Context())
+	view := "kit"
+	var history []kits.Revision
+	if strings.HasSuffix(r.URL.Path, "/history") {
+		view = "history"
+		var err error
+		if history, err = s.kits().History(r.Context(), kitID, ""); err != nil {
+			s.fail(w, r, "history", err)
+			return
+		}
+	}
 	props := inertia.Props{
+		"view":     view,
+		"history":  history,
 		"kit":      l.Kit,
 		"sections": l.Sections,
 		"compiled": l.Compiled,
@@ -40,13 +53,14 @@ func (s *server) kitShow(w nethttp.ResponseWriter, r *nethttp.Request) {
 		"selected": selected,
 		"types":    blocktypes.All(),
 		"can": map[string]bool{
-			"edit":   sub.Can(authz.KitEdit, l.Kit.TeamID),
-			"revert": sub.Can("link.revert", l.Kit.TeamID),
-			"use":    sub.Can(authz.BlockUse, l.Kit.TeamID),
-			"ai":     sub.Can(authz.AIUse, l.Kit.TeamID),
-			"checks": sub.Can(authz.KitChecksEdit, l.Kit.TeamID),
-			"create": sub.Can(authz.BlockCreate, l.Kit.TeamID),
-			"update": sub.Can(authz.LinkRebaseApply, l.Kit.TeamID),
+			"edit":    sub.Can(authz.KitEdit, l.Kit.TeamID),
+			"revert":  sub.Can("link.revert", l.Kit.TeamID),
+			"use":     sub.Can(authz.BlockUse, l.Kit.TeamID),
+			"ai":      sub.Can(authz.AIUse, l.Kit.TeamID),
+			"checks":  sub.Can(authz.KitChecksEdit, l.Kit.TeamID),
+			"create":  sub.Can(authz.BlockCreate, l.Kit.TeamID),
+			"update":  sub.Can(authz.LinkRebaseApply, l.Kit.TeamID),
+			"history": sub.Can(authz.KitHistoryView, l.Kit.TeamID),
 		},
 	}
 	// Candidates fill a blank or replace the linked block (re-link).

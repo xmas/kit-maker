@@ -1,4 +1,4 @@
-h1:5FBiBoXxPzpQobMvDe+73lK0CvGhmICCIpaLKMgdS7Q=
+h1:O/+j5SUjJ7ttmfGIfUtRwjmzwIOuyclDk95dZ+opvJU=
 20261016000000_extensions.sql h1:ssg+c/Hm1pkAazi5Mqs3FyiqBkiIybXV/XbY/Pryd+U=
 20261017010410_initial.sql h1:jVgCls6sRyWfACAg2gbYpoDJuWcsM6qlQxGBDMH/xng=
 20261017071156_integrations_settings.sql h1:c2i1dYINFR5V9KtPShzD/1875KQ7VFetYNYe8yb13j0=
@@ -6,3 +6,4 @@ h1:5FBiBoXxPzpQobMvDe+73lK0CvGhmICCIpaLKMgdS7Q=
 20261017072303_role_assignments.sql h1:0jEOP6qDY7KdLp2NKJd7D7FzNYXj21ctmuZXB6wjHZY=
 20261017073042_goals_checks.sql h1:yO6kfvizE8lAGvrvwUs0dh7Jz0ehO0LxRrl6tjWIQsc=
 20261017194956_ai_calls.sql h1:3ceukMxn2nf8FKbN99eX91uvxHa8uSszn60i/qpmcrY=
+20261019162306_kit_revisions.sql h1:j8kQ7ilQJOt9KrbZqWsW6UQ8qHwJNOWkngJuT4IJNvw=

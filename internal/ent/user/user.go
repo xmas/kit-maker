@@ -41,6 +41,8 @@ const (
 	EdgeMemberships = "memberships"
 	// EdgeAcceptedBlockVersions holds the string denoting the accepted_block_versions edge name in mutations.
 	EdgeAcceptedBlockVersions = "accepted_block_versions"
+	// EdgeKitRevisions holds the string denoting the kit_revisions edge name in mutations.
+	EdgeKitRevisions = "kit_revisions"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// MembershipsTable is the table that holds the memberships relation/edge.
@@ -57,6 +59,13 @@ const (
 	AcceptedBlockVersionsInverseTable = "block_versions"
 	// AcceptedBlockVersionsColumn is the table column denoting the accepted_block_versions relation/edge.
 	AcceptedBlockVersionsColumn = "accepted_by_user_id"
+	// KitRevisionsTable is the table that holds the kit_revisions relation/edge.
+	KitRevisionsTable = "kit_revisions"
+	// KitRevisionsInverseTable is the table name for the KitRevision entity.
+	// It exists in this package in order to avoid circular dependency with the "kitrevision" package.
+	KitRevisionsInverseTable = "kit_revisions"
+	// KitRevisionsColumn is the table column denoting the kit_revisions relation/edge.
+	KitRevisionsColumn = "actor_user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -225,6 +234,20 @@ func ByAcceptedBlockVersions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOp
 		sqlgraph.OrderByNeighborTerms(s, newAcceptedBlockVersionsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByKitRevisionsCount orders the results by kit_revisions count.
+func ByKitRevisionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newKitRevisionsStep(), opts...)
+	}
+}
+
+// ByKitRevisions orders the results by kit_revisions terms.
+func ByKitRevisions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newKitRevisionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newMembershipsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -237,5 +260,12 @@ func newAcceptedBlockVersionsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AcceptedBlockVersionsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AcceptedBlockVersionsTable, AcceptedBlockVersionsColumn),
+	)
+}
+func newKitRevisionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(KitRevisionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, KitRevisionsTable, KitRevisionsColumn),
 	)
 }

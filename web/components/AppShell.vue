@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { Boxes, LogOut } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 interface AuthUser {
   id: string
@@ -75,5 +76,6 @@ function signOut() {
       </div>
     </header>
     <slot />
+    <ConfirmDialog />
   </div>
 </template>

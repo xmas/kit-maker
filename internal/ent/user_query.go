@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
 	"github.com/docker/kit-maker/internal/ent/user"
@@ -27,6 +28,7 @@ type UserQuery struct {
 	predicates                []predicate.User
 	withMemberships           *TeamMembershipQuery
 	withAcceptedBlockVersions *BlockVersionQuery
+	withKitRevisions          *KitRevisionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,6 +102,28 @@ func (_q *UserQuery) QueryAcceptedBlockVersions() *BlockVersionQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(blockversion.Table, blockversion.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.AcceptedBlockVersionsTable, user.AcceptedBlockVersionsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryKitRevisions chains the current query on the "kit_revisions" edge.
+func (_q *UserQuery) QueryKitRevisions() *KitRevisionQuery {
+	query := (&KitRevisionClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(kitrevision.Table, kitrevision.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.KitRevisionsTable, user.KitRevisionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +325,7 @@ func (_q *UserQuery) Clone() *UserQuery {
 		predicates:                append([]predicate.User{}, _q.predicates...),
 		withMemberships:           _q.withMemberships.Clone(),
 		withAcceptedBlockVersions: _q.withAcceptedBlockVersions.Clone(),
+		withKitRevisions:          _q.withKitRevisions.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -326,6 +351,17 @@ func (_q *UserQuery) WithAcceptedBlockVersions(opts ...func(*BlockVersionQuery))
 		opt(query)
 	}
 	_q.withAcceptedBlockVersions = query
+	return _q
+}
+
+// WithKitRevisions tells the query-builder to eager-load the nodes that are connected to
+// the "kit_revisions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithKitRevisions(opts ...func(*KitRevisionQuery)) *UserQuery {
+	query := (&KitRevisionClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withKitRevisions = query
 	return _q
 }
 
@@ -407,9 +443,10 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withMemberships != nil,
 			_q.withAcceptedBlockVersions != nil,
+			_q.withKitRevisions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -443,6 +480,13 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			func(n *User, e *BlockVersion) {
 				n.Edges.AcceptedBlockVersions = append(n.Edges.AcceptedBlockVersions, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withKitRevisions; query != nil {
+		if err := _q.loadKitRevisions(ctx, query, nodes,
+			func(n *User) { n.Edges.KitRevisions = []*KitRevision{} },
+			func(n *User, e *KitRevision) { n.Edges.KitRevisions = append(n.Edges.KitRevisions, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -507,6 +551,39 @@ func (_q *UserQuery) loadAcceptedBlockVersions(ctx context.Context, query *Block
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "accepted_by_user_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *UserQuery) loadKitRevisions(ctx context.Context, query *KitRevisionQuery, nodes []*User, init func(*User), assign func(*User, *KitRevision)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(kitrevision.FieldActorUserID)
+	}
+	query.Where(predicate.KitRevision(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.KitRevisionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ActorUserID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "actor_user_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "actor_user_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

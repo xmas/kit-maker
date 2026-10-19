@@ -42,6 +42,47 @@ var demoBlocks = []demoBlock{
 	{"packagist-token", "Packagist token", "credential", "Composer auth for the private Packagist, install phase only.", `{"service":"packagist","phase":["install"],"description":"Private Packagist for composer install",
 		"apiKey":{"name":"COMPOSER_TOKEN","proxyManaged":true,"inject":[
 			{"_k":"pk","domain":"repo.packagist.com","scheme":"basic","username":"token"}]}}`},
+
+	// Blocks with rules in both phases and both allow and deny, so one block's
+	// lines end up in several places in the merged network policy.
+	{"node-toolchain", "Node toolchain", "network-rules", "npm installs and reads; no publishing from the sandbox.", `{
+		"install":{
+			"allow":[
+				{"_k":"npm-get","label":"npm installs","hosts":["registry.npmjs.org"],"methods":["GET","HEAD"]},
+				{"_k":"node-dist","label":"Node downloads","hosts":["nodejs.org"],"methods":["GET"],"paths":["/dist/**"]}],
+			"deny":[
+				{"_k":"npm-pub-i","label":"No publishing during install","hosts":["registry.npmjs.org"],"methods":["PUT","DELETE"]}]},
+		"runtime":{
+			"allow":[
+				{"_k":"npm-read","label":"npm reads","hosts":["registry.npmjs.org"],"methods":["GET","HEAD"]}],
+			"deny":[
+				{"_k":"npm-pub","label":"No publishing","hosts":["registry.npmjs.org"],"methods":["PUT","DELETE"]},
+				{"_k":"npm-login","label":"No npm login","hosts":["registry.npmjs.org"],"methods":["POST","PUT"],"paths":["/-/user/**"]}]}}`},
+	{"python-toolchain", "Python toolchain", "network-rules", "pip installs from PyPI; no uploads.", `{
+		"install":{
+			"allow":[
+				{"_k":"pypi","label":"PyPI index","hosts":["pypi.org"],"methods":["GET"]},
+				{"_k":"pyfiles","label":"PyPI files","hosts":["files.pythonhosted.org"],"methods":["GET"]}]},
+		"runtime":{
+			"allow":[
+				{"_k":"pypi-simple","label":"Index reads","hosts":["pypi.org"],"methods":["GET","HEAD"],"paths":["/simple/**"]}],
+			"deny":[
+				{"_k":"pypi-upload","label":"No uploads","hosts":["upload.pypi.org"]}]}}`},
+	{"acme-internal", "Acme internal APIs", "network-rules", "Read and write acme's v1 API; never the admin console or deletes.", `{"runtime":{
+		"allow":[
+			{"_k":"acme-v1","label":"v1 API","hosts":["api.acme.internal"],"methods":["GET","POST","PATCH"],"paths":["/v1/**"]},
+			{"_k":"acme-docs","label":"Internal docs","hosts":["docs.acme.internal"],"methods":["GET"]}],
+		"deny":[
+			{"_k":"acme-del","label":"No deletes","hosts":["api.acme.internal"],"methods":["DELETE"]},
+			{"_k":"acme-admin","label":"No admin console","hosts":["admin.acme.internal"]}]}}`},
+	{"error-reporting", "Error reporting", "network-rules", "Send errors to Sentry; no access to the Sentry dashboard.", `{"runtime":{
+		"allow":[
+			{"_k":"sentry-ingest","label":"Event ingest","hosts":["o42.ingest.sentry.io"],"methods":["POST"],"paths":["/api/**"]}],
+		"deny":[
+			{"_k":"sentry-ui","label":"No dashboard","hosts":["sentry.io"]}]}}`},
+	{"npm-token", "npm token", "credential", "npm auth for installs and reads, injected by the sbx proxy.", `{"service":"npm","phase":["install","runtime"],"description":"npm registry auth",
+		"apiKey":{"name":"NPM_TOKEN","proxyManaged":true,"inject":[
+			{"_k":"npm","domain":"registry.npmjs.org","header":"Authorization","format":"Bearer %s"}]}}`},
 }
 
 type demoSlot struct {
@@ -87,6 +128,9 @@ func demo(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User) error {
 			return fmt.Errorf("block %s: %w", db.slug, err)
 		}
 		blocks[db.slug], versions[db.slug] = b, v
+	}
+	if err := polyglot(ctx, c, t, blocks, versions); err != nil {
+		return fmt.Errorf("polyglot kit: %w", err)
 	}
 
 	k, err := c.Kit.Query().Where(kit.TeamID(t.ID), kit.Slug("acme-shop")).Only(ctx)
@@ -196,4 +240,51 @@ func ensureBlock(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User, d
 		return nil, nil, err
 	}
 	return b, v, nil
+}
+
+// polyglotSlots mixes toolchain blocks so each one's install/runtime and
+// allow/deny rules interleave with the others' in the merged network policy:
+// a slot's lines are split across several places in the YAML.
+var polyglotSlots = []demoSlot{
+	{"node", "Node toolchain", "network", true, "node-toolchain", nil},
+	{"python", "Python toolchain", "network", true, "python-toolchain", nil},
+	{"github", "GitHub egress", "network", true, "github-egress", nil},
+	{"acme-internal", "Acme internal APIs", "network", true, "acme-internal", []patch.Op{
+		{Op: "add", Path: "/runtime/deny", After: "acme-del", Value: map[string]any{"_k": "acme-prod", "label": "No prod writes",
+			"hosts": []any{"api.acme.internal"}, "methods": []any{"POST", "PATCH"}, "paths": []any{"/v1/prod/**"}}},
+	}},
+	{"metadata", "Deny cloud metadata", "network", true, "deny-cloud-metadata", nil},
+	{"errors", "Error reporting", "network", true, "error-reporting", nil},
+	{"npm-token", "npm token", "credentials", true, "npm-token", nil},
+	{"github-token", "GitHub token", "credentials", true, "github-token", nil},
+}
+
+// polyglot seeds the "Polyglot CI" kit once; after that it is the user's.
+func polyglot(ctx context.Context, c *ent.Client, t *ent.Team, blocks map[string]*ent.Block, versions map[string]*ent.BlockVersion) error {
+	exists, err := c.Kit.Query().Where(kit.TeamID(t.ID), kit.Slug("polyglot-ci")).Exist(ctx)
+	if err != nil || exists {
+		return err
+	}
+	// The seed already runs in a transaction (seed.Run).
+	k, err := c.Kit.Create().SetTeam(t).SetSlug("polyglot-ci").SetDisplayName("Polyglot CI").SetKind(kit.KindWorkload).
+		SetDescription("Demo: blocks with install and runtime, allow and deny rules, merged into one policy.").Save(ctx)
+	if err != nil {
+		return err
+	}
+	if err := c.Goal.Create().SetKit(k).SetStatement("A CI agent for acme's Node and Python services. It installs packages, " +
+		"reports errors to Sentry and calls acme's v1 API. It must never publish packages, touch the admin console or write to prod.").Exec(ctx); err != nil {
+		return err
+	}
+	for i, ds := range polyglotSlots {
+		sl, err := c.Slot.Create().SetKit(k).SetKey(ds.key).SetLabel(ds.label).SetSection(ds.section).
+			SetRequired(ds.required).SetState(slot.StateFilled).SetPosition(i).Save(ctx)
+		if err != nil {
+			return fmt.Errorf("slot %s: %w", ds.key, err)
+		}
+		if err := c.BlockLink.Create().SetSlot(sl).SetBlock(blocks[ds.block]).SetBaseVersion(versions[ds.block]).
+			SetOverrides(ds.overrides).SetOverridesHash(patch.Hash(ds.overrides)).Exec(ctx); err != nil {
+			return fmt.Errorf("link %s: %w", ds.key, err)
+		}
+	}
+	return nil
 }
