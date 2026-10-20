@@ -227,11 +227,15 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   The library also gets "Ubuntu 24.04 (public)", a Dockerfile block on the official
   `ubuntu:24.04` image with the platform floor (bash, curl, git, CA store, `agent` uid 1000), for
   workloads that can't use the examples' `dhi.io` bases without a login.
-  Idempotent; a block gets a new version when its seeded payload changes.
+  Idempotent; a block gets a new version when its seeded payload changes. All of this is the
+  starter content every release ships: starter blocks are public (every team sees and can link
+  them), re-seeding on upgrade publishes changed starter blocks as new versions (`starterBlock`),
+  and `kitmaker seed --samples=false` (`KITMAKER_SEED_SAMPLES=false`, Helm `seed.samples`) loads
+  only the bootstrap Owner, team and integrations.
 - **Deploy**: distroless multi-stage `Dockerfile` (non-root, any UID, read-only root fs),
   `deploy/compose` (Postgres+pgvector, MinIO, zot, BuildKit, Mailpit; host ports picked by
-  `ports.sh`), starter Helm chart `deploy/helm/kitmaker` (serve + worker, migrate pre-upgrade job,
-  optional Route).
+  `ports.sh`), starter Helm chart `deploy/helm/kitmaker` (serve + worker, migrate pre-upgrade job, seed
+  post-install/post-upgrade job, optional Route).
 - Not yet: custom roles, AI suggestions (threads, accept/reject), 3-way rebase with conflict
   resolution, included blueprints, forks, sharing a blueprint's private block to the library, typed forms beyond
   network and credential. Admin screens are CLI-only.

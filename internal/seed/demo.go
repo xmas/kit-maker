@@ -225,10 +225,15 @@ func ensureBlock(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User, d
 	b, err := c.Block.Query().Where(block.TeamID(t.ID), block.Slug(db.slug)).WithCurrentVersion().Only(ctx)
 	if ent.IsNotFound(err) {
 		b, err = c.Block.Create().SetTeam(t).SetType(db.typ).SetSlug(db.slug).SetName(db.name).
-			SetDescription(db.description).SetVisibility(block.VisibilityTeam).Save(ctx)
+			SetDescription(db.description).SetVisibility(block.VisibilityPublic).Save(ctx)
 	}
 	if err != nil {
 		return nil, nil, err
+	}
+	if b.Visibility != block.VisibilityPublic { // the starter library is for every team
+		if err := b.Update().SetVisibility(block.VisibilityPublic).Exec(ctx); err != nil {
+			return nil, nil, err
+		}
 	}
 	if cv := b.Edges.CurrentVersion; cv != nil && cv.PayloadHash == hash(payload) {
 		return b, cv, nil

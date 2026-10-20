@@ -150,11 +150,27 @@ func (s *server) slotLink(w nethttp.ResponseWriter, r *nethttp.Request) {
 		nethttp.Error(w, "bad request", nethttp.StatusBadRequest)
 		return
 	}
+	if err := s.usableBlock(r, f.BlockID); err != nil {
+		s.backWithError(w, r, slotURL(blueprintID, slotKey), err)
+		return
+	}
 	if err := s.blueprints().LinkBlock(r.Context(), blueprintID, slotKey, f.BlockID); err != nil {
 		s.backWithError(w, r, slotURL(blueprintID, slotKey), err)
 		return
 	}
 	s.inertia.Redirect(w, r, slotURL(blueprintID, slotKey))
+}
+
+// usableBlock reports whether this person may link a block: public ones
+// (the starter library), or shared blocks of a team they can view. Private
+// blocks belong to one blueprint.
+func (s *server) usableBlock(r *nethttp.Request, blockID string) error {
+	b, err := s.blocks().Get(r.Context(), blockID)
+	if err != nil || b.Visibility == "private" ||
+		(b.Visibility != "public" && !authz.SubjectFrom(r.Context()).Can(authz.BlockView, b.TeamID)) {
+		return errors.New("that block isn't available to you")
+	}
+	return nil
 }
 
 // slotUnlink empties a slot.

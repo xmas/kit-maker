@@ -265,6 +265,10 @@ func (s *server) slotRelink(w nethttp.ResponseWriter, r *nethttp.Request) {
 		nethttp.Error(w, "bad request", nethttp.StatusBadRequest)
 		return
 	}
+	if err := s.usableBlock(r, f.BlockID); err != nil {
+		s.back(w, r, slotURL(blueprintID, slotKey), "payload", err)
+		return
+	}
 	if err := s.blueprints().Relink(r.Context(), blueprintID, slotKey, f.BlockID); err != nil {
 		s.back(w, r, slotURL(blueprintID, slotKey), "payload", err)
 		return

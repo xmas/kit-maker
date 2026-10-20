@@ -254,6 +254,14 @@ func examples(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User) erro
 			return err
 		}
 		if exists {
+			// The blueprint is the user's now, but its starter blocks are
+			// refreshed: made public, and given a new version when this
+			// release changed the example.
+			for _, sl := range ex.Slots {
+				if _, _, err := exampleBlock(ctx, c, t, u, ex, sl, shared); err != nil {
+					return fmt.Errorf("example %s, %s: %w", ex.Name, sl.Label, err)
+				}
+			}
 			continue
 		}
 		kind := blueprint.Kind(ex.Kind)
@@ -304,31 +312,11 @@ func exampleBlock(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User, 
 	}
 	name := ex.DisplayName + " · " + s.Label
 	slug := blocks.Slugify(ex.Name + "-" + s.Label)
-	b, err := c.Block.Query().Where(block.TeamID(t.ID), block.Slug(slug)).WithCurrentVersion().Only(ctx)
-	if err == nil && b.Edges.CurrentVersion != nil {
-		shared[id] = b
-		return b, b.Edges.CurrentVersion, nil
-	}
-	if !ent.IsNotFound(err) && err != nil {
-		return nil, nil, err
-	}
-	payload := s.Payload
-	patch.AssignKeys(payload)
-	b, err = c.Block.Create().SetTeam(t).SetType(s.Type).SetSlug(slug).SetName(name).
-		SetDescription("From the kit spec's " + ex.Name + " example.").SetVisibility(block.VisibilityTeam).Save(ctx)
+	b, v, err := starterBlock(ctx, c, t, u, slug, s.Type, name, "From the kit spec's "+ex.Name+" example.",
+		s.Payload, "converted from the kit spec example "+ex.Name+".", patch.AssignKeys)
 	if err != nil {
 		return nil, nil, err
 	}
-	v, err := c.BlockVersion.Create().SetBlock(b).SetVersion(1).SetPayload(payload).SetPayloadHash(hash(payload)).
-		SetSchemaVersion(SpecVersion).SetChangelog("Converted from the kit spec example " + ex.Name + ".").
-		SetAuthoredBy(blockversion.AuthoredByUser).SetAcceptedBy(u).Save(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	if b, err = b.Update().SetCurrentVersion(v).Save(ctx); err != nil {
-		return nil, nil, err
-	}
-	b.Edges.CurrentVersion = v
 	shared[id] = b
 	return b, v, nil
 }
@@ -377,4 +365,54 @@ func pick(d map[string]any, keys ...string) map[string]any {
 func str(v any) string {
 	s, _ := v.(string)
 	return strings.TrimSpace(s)
+}
+
+// starterBlock creates a starter-library block or refreshes it. Starter
+// blocks are public (every team sees the library), and when a release
+// changes one's content (an updated spec example) it gets a new version;
+// blueprints linking it are then offered the update like any library block.
+func starterBlock(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User, slug, typ, name, description string,
+	payload map[string]any, changelog string, keys func(any)) (*ent.Block, *ent.BlockVersion, error) {
+	b, err := c.Block.Query().Where(block.TeamID(t.ID), block.Slug(slug)).WithCurrentVersion().Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, nil, err
+	}
+	if b == nil {
+		if b, err = c.Block.Create().SetTeam(t).SetType(typ).SetSlug(slug).SetName(name).
+			SetDescription(description).SetVisibility(block.VisibilityPublic).Save(ctx); err != nil {
+			return nil, nil, err
+		}
+	} else if b.Visibility != block.VisibilityPublic {
+		if err := b.Update().SetVisibility(block.VisibilityPublic).Exec(ctx); err != nil {
+			return nil, nil, err
+		}
+	}
+	cv := b.Edges.CurrentVersion
+	if cv != nil && sameContent(cv.Payload, payload) {
+		return b, cv, nil
+	}
+	keys(payload)
+	n := 1
+	if cv != nil {
+		n = cv.Version + 1
+		changelog = "Updated in this release: " + changelog
+	}
+	v, err := c.BlockVersion.Create().SetBlock(b).SetVersion(n).SetPayload(payload).SetPayloadHash(hash(payload)).
+		SetSchemaVersion(SpecVersion).SetChangelog(changelog).
+		SetAuthoredBy(blockversion.AuthoredByUser).SetAcceptedBy(u).Save(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	if b, err = b.Update().SetCurrentVersion(v).Save(ctx); err != nil {
+		return nil, nil, err
+	}
+	b.Edges.CurrentVersion = v
+	return b, v, nil
+}
+
+// sameContent compares payloads without item keys (bookkeeping only).
+func sameContent(a, b map[string]any) bool {
+	x, _ := json.Marshal(patch.Strip(a))
+	y, _ := json.Marshal(patch.Strip(b))
+	return string(x) == string(y)
 }

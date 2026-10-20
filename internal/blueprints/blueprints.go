@@ -341,8 +341,8 @@ func SlotType(sl *ent.Slot) string {
 func (s *Service) Candidates(ctx context.Context, blockType string, teamIDs []string, all bool) ([]Candidate, error) {
 	q := s.Ent.Block.Query().Where(block.Type(blockType), block.VisibilityNEQ(block.VisibilityPrivate)).
 		WithCurrentVersion().WithLinks().Order(ent.Asc(block.FieldName))
-	if !all {
-		q = q.Where(block.TeamIDIn(teamIDs...))
+	if !all { // the teams' own blocks, plus public ones (the starter library)
+		q = q.Where(block.Or(block.TeamIDIn(teamIDs...), block.VisibilityEQ(block.VisibilityPublic)))
 	}
 	bs, err := q.All(ctx)
 	if err != nil {

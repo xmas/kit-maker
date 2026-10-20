@@ -71,19 +71,22 @@ func migrateCmd() *cobra.Command {
 
 func seedCmd() *cobra.Command {
 	var admin string
+	var samples bool
 	c := &cobra.Command{
 		Use:   "seed",
-		Short: "Load a demo team, starter block and demo blueprint",
+		Short: "Create the bootstrap Owner and team, and load the starter blueprints and blocks",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			a, err := open(cmd.Context())
 			if err != nil {
 				return err
 			}
 			defer a.Close()
-			return runSeed(cmd.Context(), a, admin)
+			return runSeed(cmd.Context(), a, admin, samples)
 		},
 	}
 	c.Flags().StringVar(&admin, "admin-email", envOr("KITMAKER_BOOTSTRAP_ADMIN", "admin@kitmaker.local"), "bootstrap owner email")
+	c.Flags().BoolVar(&samples, "samples", os.Getenv("KITMAKER_SEED_SAMPLES") != "false",
+		"load the starter library, spec example and sample blueprints (env KITMAKER_SEED_SAMPLES=false to skip)")
 	return c
 }
 
@@ -106,7 +109,7 @@ func devCmd() *cobra.Command {
 				}
 			}
 			if !noSeed {
-				if err := runSeed(ctx, a, envOr("KITMAKER_BOOTSTRAP_ADMIN", "admin@kitmaker.local")); err != nil {
+				if err := runSeed(ctx, a, envOr("KITMAKER_BOOTSTRAP_ADMIN", "admin@kitmaker.local"), os.Getenv("KITMAKER_SEED_SAMPLES") != "false"); err != nil {
 					return err
 				}
 			}
@@ -182,8 +185,8 @@ func work(ctx context.Context, a *app.App) error {
 	return client.Stop(context.WithoutCancel(ctx))
 }
 
-func runSeed(ctx context.Context, a *app.App, admin string) error {
-	if err := seed.Run(ctx, a.Ent, admin); err != nil {
+func runSeed(ctx context.Context, a *app.App, admin string, samples bool) error {
+	if err := seed.RunWith(ctx, a.Ent, admin, seed.Options{Samples: samples}); err != nil {
 		return fmt.Errorf("seed: %w", err)
 	}
 	if pw := os.Getenv("KITMAKER_BOOTSTRAP_PASSWORD"); pw != "" {

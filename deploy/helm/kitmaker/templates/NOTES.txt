@@ -11,3 +11,10 @@ Kit Maker {{ .Chart.AppVersion }} is installed.
 
 Readiness (/readyz) checks Postgres, object storage and that migrations match
 the image.
+
+{{- if .Values.seed.enabled }}
+
+The seed job created the bootstrap Owner{{ with .Values.config.bootstrapAdmin }} ({{ . }}){{ end }}
+{{- if .Values.seed.samples }} and loaded this release's starter content: the public
+block library, the kit spec examples and sample profile blueprints{{ end }}.
+{{- end }}

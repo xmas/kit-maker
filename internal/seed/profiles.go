@@ -9,8 +9,6 @@ import (
 	"github.com/docker/kit-maker/internal/blueprints/blocktypes"
 	"github.com/docker/kit-maker/internal/blueprints/patch"
 	"github.com/docker/kit-maker/internal/ent"
-	"github.com/docker/kit-maker/internal/ent/block"
-	"github.com/docker/kit-maker/internal/ent/blockversion"
 	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/slot"
 )
@@ -222,35 +220,10 @@ func profileSamples(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User
 	return nil
 }
 
-// sharedBlock returns the library block for slug, creating it (version 1)
-// the first time. Item keys are derived from content, so they're stable.
+// sharedBlock returns the starter library block for pb (see starterBlock).
+// Item keys are derived from content, so they're stable.
 func sharedBlock(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User, pb profileBlock) (*ent.Block, *ent.BlockVersion, error) {
-	b, err := c.Block.Query().Where(block.TeamID(t.ID), block.Slug(pb.slug)).WithCurrentVersion().Only(ctx)
-	if err == nil && b.Edges.CurrentVersion != nil {
-		return b, b.Edges.CurrentVersion, nil
-	}
-	if err != nil && !ent.IsNotFound(err) {
-		return nil, nil, err
-	}
-	payload := pb.payload
-	stableKeys(payload)
-	if b == nil {
-		b, err = c.Block.Create().SetTeam(t).SetType(pb.typ).SetSlug(pb.slug).SetName(pb.name).
-			SetDescription(pb.description).SetVisibility(block.VisibilityTeam).Save(ctx)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	v, err := c.BlockVersion.Create().SetBlock(b).SetVersion(1).SetPayload(payload).SetPayloadHash(hash(payload)).
-		SetSchemaVersion(SpecVersion).SetChangelog("Sample profile library.").
-		SetAuthoredBy(blockversion.AuthoredByUser).SetAcceptedBy(u).Save(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	if b, err = b.Update().SetCurrentVersion(v).Save(ctx); err != nil {
-		return nil, nil, err
-	}
-	return b, v, nil
+	return starterBlock(ctx, c, t, u, pb.slug, pb.typ, pb.name, pb.description, pb.payload, "sample profile library.", stableKeys)
 }
 
 // stableKeys gives list items without one a "_k" derived from their content.

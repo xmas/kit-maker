@@ -1,0 +1,36 @@
+{{- if .Values.seed.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kitmaker.fullname" . }}-seed
+  labels:
+    {{- include "kitmaker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: seed
+  annotations:
+    # After install and every upgrade: creates the bootstrap Owner and team,
+    # default integrations, and (seed.samples) the starter content this
+    # release ships: the public starter block library, every kit spec
+    # example as a blueprint and the sample profile blueprints. Idempotent;
+    # an upgrade publishes changed starter blocks as new versions.
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.seed.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.seed.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "kitmaker.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: seed
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "kitmaker.serviceAccountName" . }}
+      {{- include "kitmaker.podSpecCommon" . | nindent 6 }}
+      containers:
+        - name: seed
+          args: ["seed", "--samples={{ .Values.seed.samples }}"]
+          {{- include "kitmaker.containerCommon" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.seed.resources | nindent 12 }}
+{{- end }}

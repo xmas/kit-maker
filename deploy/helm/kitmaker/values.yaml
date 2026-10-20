@@ -70,6 +70,21 @@ migrate:
     requests: { cpu: 50m, memory: 64Mi }
     limits: { memory: 256Mi }
 
+# Runs after install and every upgrade: the bootstrap Owner (config.bootstrapAdmin;
+# give it a password with KITMAKER_BOOTSTRAP_PASSWORD via extraEnvFrom, or
+# `kitmaker user set-password`), default integrations, and the starter content.
+seed:
+  enabled: true
+  # The starter content this release ships: a public block library, every kit
+  # spec example as a blueprint, and sample profile blueprints. Upgrades
+  # publish changed starter blocks as new versions. false = Owner and team only.
+  samples: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 256Mi }
+
 serviceAccount:
   create: true
   name: ""

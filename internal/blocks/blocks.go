@@ -262,13 +262,14 @@ func summarize(b *ent.Block) Summary {
 	return s
 }
 
-// List returns the shared blocks owned by teamIDs (or every team when all).
-// Private blocks belong to one blueprint and show there instead.
+// List returns the shared blocks owned by teamIDs (or every team when all),
+// plus public blocks (the starter library) from any team. Private blocks
+// belong to one blueprint and show there instead.
 func (s *Service) List(ctx context.Context, teamIDs []string, all bool) ([]Summary, error) {
 	q := s.Ent.Block.Query().Where(block.VisibilityNEQ(block.VisibilityPrivate)).
 		WithTeam().WithCurrentVersion().WithLinks().Order(ent.Asc(block.FieldName))
 	if !all {
-		q = q.Where(block.TeamIDIn(teamIDs...))
+		q = q.Where(block.Or(block.TeamIDIn(teamIDs...), block.VisibilityEQ(block.VisibilityPublic)))
 	}
 	bs, err := q.All(ctx)
 	if err != nil {

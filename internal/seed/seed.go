@@ -23,20 +23,36 @@ import (
 // SpecVersion is the sandbox-kit-spec release the seed payloads target.
 const SpecVersion = "v3.0.0-m.8"
 
-// Run seeds the database. adminEmail is the bootstrap owner.
+// Options choose what a seed loads.
+type Options struct {
+	// Samples loads the starter content that ships with every release: the
+	// starter block library (public to every team), every kit spec example
+	// as a blueprint, the sample profile blueprints and the demos. Re-running
+	// on upgrade refreshes starter blocks whose content changed.
+	Samples bool
+}
+
+// Run seeds the database with the starter content. adminEmail is the
+// bootstrap owner.
 func Run(ctx context.Context, client *ent.Client, adminEmail string) error {
+	return RunWith(ctx, client, adminEmail, Options{Samples: true})
+}
+
+// RunWith seeds the bootstrap team and Owner, and the starter content when
+// opts.Samples is set.
+func RunWith(ctx context.Context, client *ent.Client, adminEmail string, opts Options) error {
 	tx, err := client.Tx(ctx)
 	if err != nil {
 		return err
 	}
-	if err := run(ctx, tx.Client(), adminEmail); err != nil {
+	if err := run(ctx, tx.Client(), adminEmail, opts); err != nil {
 		_ = tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func run(ctx context.Context, c *ent.Client, adminEmail string) error {
+func run(ctx context.Context, c *ent.Client, adminEmail string, opts Options) error {
 	t, err := c.Team.Query().Where(team.Slug("platform")).Only(ctx)
 	if ent.IsNotFound(err) {
 		t, err = c.Team.Create().SetName("Platform").SetSlug("platform").Save(ctx)
@@ -69,6 +85,9 @@ func run(ctx context.Context, c *ent.Client, adminEmail string) error {
 		return err
 	}
 
+	if !opts.Samples {
+		return nil
+	}
 	return demo(ctx, c, t, u)
 }
 

@@ -83,6 +83,11 @@ func (s *server) loadBlock(w nethttp.ResponseWriter, r *nethttp.Request, perm au
 		s.fail(w, r, "load block", err)
 		return nil, false
 	}
+	// A public block (the starter library) is viewable by anyone who can
+	// view blocks somewhere; changing it still needs its owner team's rights.
+	if perm == authz.BlockView && d.Visibility == "public" && authz.SubjectFrom(r.Context()).CanAnywhere(authz.BlockView) {
+		return d, true
+	}
 	if !s.allowed(w, r, perm, d.TeamID) {
 		return nil, false
 	}
