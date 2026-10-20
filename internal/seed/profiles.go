@@ -106,7 +106,29 @@ var profileBlocks = []profileBlock{
 		map[string]any{"directory": "/home/agent", "filename": "AGENTS.md",
 			"content": "Summarise tickets with: impact, timeline, root cause (if known) and next steps. Quote ticket keys. Don't speculate about customers."}},
 	{"host-git-identity", "Host git identity", "git-identity", "Commits carry the developer's own name and email.", map[string]any{}},
+	{"ubuntu-base", "Ubuntu 24.04 (public)", "dockerfile", "The official ubuntu:24.04 image (no Docker Hardened Images login) with the platform floor sbx expects: bash, curl, git, CA certificates and the agent user.",
+		map[string]any{"build": ubuntuBase}},
 }
+
+// ubuntuBase is a workload root filesystem from the official Ubuntu image,
+// which pulls without a login (the spec examples' dhi.io bases need one).
+// It adds the platform floor a workload base should carry (spec §3.5).
+const ubuntuBase = `# syntax=docker/dockerfile:1
+# Official Ubuntu (Docker Official Image), not Docker Hardened Images, so it
+# pulls without a login. Adds the platform floor sbx expects of a workload
+# (kit spec §3.5): bash, curl, git, a CA store, and the non-root agent user
+# (uid 1000, home /home/agent). Ubuntu's own uid-1000 user is replaced.
+FROM ubuntu:24.04
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends bash ca-certificates curl git \
+ && rm -rf /var/lib/apt/lists/* \
+ && userdel --remove ubuntu \
+ && useradd --create-home --uid 1000 --shell /bin/bash agent \
+ && install -d -o agent -g agent /home/agent/workspace
+USER agent
+WORKDIR /home/agent/workspace
+CMD ["bash", "-l"]
+`
 
 type profile struct {
 	slug, name, kind, description, goal string
@@ -186,6 +208,14 @@ func profileSamples(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User
 			}
 			if err := c.BlockLink.Create().SetSlot(sl).SetBlock(b).SetBaseVersion(v).SetOverridesHash(patch.Hash(nil)).Exec(ctx); err != nil {
 				return err
+			}
+		}
+	}
+	// Library blocks no profile uses yet (the Ubuntu base) exist too.
+	for _, pb := range profileBlocks {
+		if demoBlocks[pb.slug] == nil {
+			if _, _, err := sharedBlock(ctx, c, t, u, pb); err != nil {
+				return fmt.Errorf("block %s: %w", pb.slug, err)
 			}
 		}
 	}

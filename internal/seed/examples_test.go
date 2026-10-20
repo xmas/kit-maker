@@ -2,6 +2,7 @@ package seed
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/docker/kit-maker/internal/blueprints/compiler"
@@ -67,5 +68,21 @@ func TestProfilesCompile(t *testing.T) {
 				t.Fatalf("%s %v\n%s", out.Error, out.Problems, out.YAML)
 			}
 		})
+	}
+}
+
+// A workload on the public Ubuntu base block compiles to a valid kit.
+func TestUbuntuBaseWorkload(t *testing.T) {
+	var ub profileBlock
+	for _, b := range profileBlocks {
+		if b.slug == "ubuntu-base" {
+			ub = b
+		}
+	}
+	out := compiler.Compile(compiler.Input{Blueprint: compiler.Blueprint{Slug: "ubuntu", Kind: "workload"}, Slots: []compiler.Slot{
+		{Key: "image", Label: ub.name, Required: true, Block: &compiler.Block{Name: ub.name, Slug: ub.slug, Type: ub.typ, Version: 1, Payload: ub.payload}},
+	}})
+	if !out.Valid || !strings.Contains(out.YAML, "FROM ubuntu:24.04") {
+		t.Fatalf("%s\n%s", out.Error, out.YAML)
 	}
 }
