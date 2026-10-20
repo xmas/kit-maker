@@ -224,6 +224,9 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   (identical parts shared; `examples.go`, `TestExamplesCompile`), and nine sample profile
   blueprints (developer, docs-only, internal-only, isolated, ML research, ops agent, support,
   read-only validation…) are built from shared blocks (`profiles.go`, `TestProfilesCompile`).
+  The library also gets "Ubuntu 24.04 (public)", a Dockerfile block on the official
+  `ubuntu:24.04` image with the platform floor (bash, curl, git, CA store, `agent` uid 1000), for
+  workloads that can't use the examples' `dhi.io` bases without a login.
   Idempotent; a block gets a new version when its seeded payload changes.
 - **Deploy**: distroless multi-stage `Dockerfile` (non-root, any UID, read-only root fs),
   `deploy/compose` (Postgres+pgvector, MinIO, zot, BuildKit, Mailpit; host ports picked by
