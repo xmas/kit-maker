@@ -1,0 +1,4 @@
+# BuildKit trusts the local CA (deploy/compose/certs/ca.pem, from mkcert) when
+# pushing to zot over TLS.
+[registry."zot:5000"]
+  ca = ["/certs/ca.pem"]

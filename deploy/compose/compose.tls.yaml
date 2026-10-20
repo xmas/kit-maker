@@ -1,0 +1,13 @@
+# Serves the local zot registry over HTTPS, so sbx (which pulls kits over
+# HTTPS only, even from localhost) can run published blueprints. The
+# Makefile adds this file when deploy/compose/certs/registry.pem exists
+# (make certs creates it with mkcert); trust the CA once with mkcert -install.
+services:
+  zot:
+    volumes:
+      - ./zot-tls.json:/etc/zot/config.json:ro
+      - ./certs:/certs:ro
+  buildkit:
+    volumes:
+      - ./buildkitd-tls.toml:/etc/buildkit/buildkitd.toml:ro
+      - ./certs:/certs:ro

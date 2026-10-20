@@ -20,7 +20,7 @@ func (AICall) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("team_id").Optional().Nillable(),
 		field.String("user_id").Optional().Nillable(),
-		field.String("kit_id").Optional().Nillable(),
+		field.String("blueprint_id").Optional().Nillable(),
 		field.String("route"),
 		field.String("provider").Comment("integration driver: fake, anthropic, bedrock, vertex"),
 		field.String("model").Optional().Comment("model that answered (may be a fallback)"),

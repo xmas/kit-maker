@@ -23,8 +23,8 @@ type AICall struct {
 	TeamID *string `json:"team_id,omitempty"`
 	// UserID holds the value of the "user_id" field.
 	UserID *string `json:"user_id,omitempty"`
-	// KitID holds the value of the "kit_id" field.
-	KitID *string `json:"kit_id,omitempty"`
+	// BlueprintID holds the value of the "blueprint_id" field.
+	BlueprintID *string `json:"blueprint_id,omitempty"`
 	// Route holds the value of the "route" field.
 	Route string `json:"route,omitempty"`
 	// integration driver: fake, anthropic, bedrock, vertex
@@ -55,7 +55,7 @@ func (*AICall) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case aicall.FieldInputTokens, aicall.FieldOutputTokens, aicall.FieldCacheReadTokens, aicall.FieldCacheWriteTokens, aicall.FieldDurationMs:
 			values[i] = new(sql.NullInt64)
-		case aicall.FieldID, aicall.FieldTeamID, aicall.FieldUserID, aicall.FieldKitID, aicall.FieldRoute, aicall.FieldProvider, aicall.FieldModel, aicall.FieldStatus, aicall.FieldError:
+		case aicall.FieldID, aicall.FieldTeamID, aicall.FieldUserID, aicall.FieldBlueprintID, aicall.FieldRoute, aicall.FieldProvider, aicall.FieldModel, aicall.FieldStatus, aicall.FieldError:
 			values[i] = new(sql.NullString)
 		case aicall.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -100,12 +100,12 @@ func (_m *AICall) assignValues(columns []string, values []any) error {
 				_m.UserID = new(string)
 				*_m.UserID = value.String
 			}
-		case aicall.FieldKitID:
+		case aicall.FieldBlueprintID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field kit_id", values[i])
+				return fmt.Errorf("unexpected type %T for field blueprint_id", values[i])
 			} else if value.Valid {
-				_m.KitID = new(string)
-				*_m.KitID = value.String
+				_m.BlueprintID = new(string)
+				*_m.BlueprintID = value.String
 			}
 		case aicall.FieldRoute:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -216,8 +216,8 @@ func (_m *AICall) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := _m.KitID; v != nil {
-		builder.WriteString("kit_id=")
+	if v := _m.BlueprintID; v != nil {
+		builder.WriteString("blueprint_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

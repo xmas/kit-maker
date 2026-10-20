@@ -22,7 +22,7 @@ function submit() {
         </span>
         <div>
           <h1 class="text-xl font-semibold tracking-tight">Sign in to Kit Maker</h1>
-          <p class="text-sm text-muted-foreground">Build Docker Sandboxes kits from reusable blocks.</p>
+          <p class="text-sm text-muted-foreground">Build blueprints for Docker Sandboxes kits from reusable blocks.</p>
         </div>
       </div>
 

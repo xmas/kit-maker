@@ -1,4 +1,4 @@
-// Package seed loads a demo team, a starter block and one demo kit. It is
+// Package seed loads a demo team, a starter block and one demo blueprint. It is
 // idempotent. The full starter library from the spec examples comes in
 // phase 3.
 package seed

@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/slot"
 )
@@ -36,37 +36,37 @@ func (_u *SlotUpdate) SetUpdatedAt(v time.Time) *SlotUpdate {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *SlotUpdate) SetKitID(v string) *SlotUpdate {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *SlotUpdate) SetBlueprintID(v string) *SlotUpdate {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *SlotUpdate) SetNillableKitID(v *string) *SlotUpdate {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *SlotUpdate) SetNillableBlueprintID(v *string) *SlotUpdate {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
 
-// SetOriginKitID sets the "origin_kit_id" field.
-func (_u *SlotUpdate) SetOriginKitID(v string) *SlotUpdate {
-	_u.mutation.SetOriginKitID(v)
+// SetOriginBlueprintID sets the "origin_blueprint_id" field.
+func (_u *SlotUpdate) SetOriginBlueprintID(v string) *SlotUpdate {
+	_u.mutation.SetOriginBlueprintID(v)
 	return _u
 }
 
-// SetNillableOriginKitID sets the "origin_kit_id" field if the given value is not nil.
-func (_u *SlotUpdate) SetNillableOriginKitID(v *string) *SlotUpdate {
+// SetNillableOriginBlueprintID sets the "origin_blueprint_id" field if the given value is not nil.
+func (_u *SlotUpdate) SetNillableOriginBlueprintID(v *string) *SlotUpdate {
 	if v != nil {
-		_u.SetOriginKitID(*v)
+		_u.SetOriginBlueprintID(*v)
 	}
 	return _u
 }
 
-// ClearOriginKitID clears the value of the "origin_kit_id" field.
-func (_u *SlotUpdate) ClearOriginKitID() *SlotUpdate {
-	_u.mutation.ClearOriginKitID()
+// ClearOriginBlueprintID clears the value of the "origin_blueprint_id" field.
+func (_u *SlotUpdate) ClearOriginBlueprintID() *SlotUpdate {
+	_u.mutation.ClearOriginBlueprintID()
 	return _u
 }
 
@@ -128,6 +128,20 @@ func (_u *SlotUpdate) SetSection(v string) *SlotUpdate {
 func (_u *SlotUpdate) SetNillableSection(v *string) *SlotUpdate {
 	if v != nil {
 		_u.SetSection(*v)
+	}
+	return _u
+}
+
+// SetBlockType sets the "block_type" field.
+func (_u *SlotUpdate) SetBlockType(v string) *SlotUpdate {
+	_u.mutation.SetBlockType(v)
+	return _u
+}
+
+// SetNillableBlockType sets the "block_type" field if the given value is not nil.
+func (_u *SlotUpdate) SetNillableBlockType(v *string) *SlotUpdate {
+	if v != nil {
+		_u.SetBlockType(*v)
 	}
 	return _u
 }
@@ -215,14 +229,14 @@ func (_u *SlotUpdate) ClearGroupName() *SlotUpdate {
 	return _u
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_u *SlotUpdate) SetKit(v *Kit) *SlotUpdate {
-	return _u.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdate) SetBlueprint(v *Blueprint) *SlotUpdate {
+	return _u.SetBlueprintID(v.ID)
 }
 
-// SetOriginKit sets the "origin_kit" edge to the Kit entity.
-func (_u *SlotUpdate) SetOriginKit(v *Kit) *SlotUpdate {
-	return _u.SetOriginKitID(v.ID)
+// SetOriginBlueprint sets the "origin_blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdate) SetOriginBlueprint(v *Blueprint) *SlotUpdate {
+	return _u.SetOriginBlueprintID(v.ID)
 }
 
 // SetOverridesID sets the "overrides" edge to the Slot entity by ID.
@@ -287,15 +301,15 @@ func (_u *SlotUpdate) Mutation() *SlotMutation {
 	return _u.mutation
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (_u *SlotUpdate) ClearKit() *SlotUpdate {
-	_u.mutation.ClearKit()
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdate) ClearBlueprint() *SlotUpdate {
+	_u.mutation.ClearBlueprint()
 	return _u
 }
 
-// ClearOriginKit clears the "origin_kit" edge to the Kit entity.
-func (_u *SlotUpdate) ClearOriginKit() *SlotUpdate {
-	_u.mutation.ClearOriginKit()
+// ClearOriginBlueprint clears the "origin_blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdate) ClearOriginBlueprint() *SlotUpdate {
+	_u.mutation.ClearOriginBlueprint()
 	return _u
 }
 
@@ -370,8 +384,8 @@ func (_u *SlotUpdate) check() error {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Slot.state": %w`, err)}
 		}
 	}
-	if _u.mutation.KitCleared() && len(_u.mutation.KitIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Slot.kit"`)
+	if _u.mutation.BlueprintCleared() && len(_u.mutation.BlueprintIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Slot.blueprint"`)
 	}
 	return nil
 }
@@ -400,6 +414,9 @@ func (_u *SlotUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Section(); ok {
 		_spec.SetField(slot.FieldSection, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.BlockType(); ok {
+		_spec.SetField(slot.FieldBlockType, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(slot.FieldState, field.TypeEnum, value)
 	}
@@ -421,28 +438,28 @@ func (_u *SlotUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.GroupNameCleared() {
 		_spec.ClearField(slot.FieldGroupName, field.TypeString)
 	}
-	if _u.mutation.KitCleared() {
+	if _u.mutation.BlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.KitTable,
-			Columns: []string{slot.KitColumn},
+			Table:   slot.BlueprintTable,
+			Columns: []string{slot.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.KitTable,
-			Columns: []string{slot.KitColumn},
+			Table:   slot.BlueprintTable,
+			Columns: []string{slot.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -450,28 +467,28 @@ func (_u *SlotUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.OriginKitCleared() {
+	if _u.mutation.OriginBlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.OriginKitTable,
-			Columns: []string{slot.OriginKitColumn},
+			Table:   slot.OriginBlueprintTable,
+			Columns: []string{slot.OriginBlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.OriginKitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.OriginBlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.OriginKitTable,
-			Columns: []string{slot.OriginKitColumn},
+			Table:   slot.OriginBlueprintTable,
+			Columns: []string{slot.OriginBlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -592,37 +609,37 @@ func (_u *SlotUpdateOne) SetUpdatedAt(v time.Time) *SlotUpdateOne {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *SlotUpdateOne) SetKitID(v string) *SlotUpdateOne {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *SlotUpdateOne) SetBlueprintID(v string) *SlotUpdateOne {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *SlotUpdateOne) SetNillableKitID(v *string) *SlotUpdateOne {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *SlotUpdateOne) SetNillableBlueprintID(v *string) *SlotUpdateOne {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
 
-// SetOriginKitID sets the "origin_kit_id" field.
-func (_u *SlotUpdateOne) SetOriginKitID(v string) *SlotUpdateOne {
-	_u.mutation.SetOriginKitID(v)
+// SetOriginBlueprintID sets the "origin_blueprint_id" field.
+func (_u *SlotUpdateOne) SetOriginBlueprintID(v string) *SlotUpdateOne {
+	_u.mutation.SetOriginBlueprintID(v)
 	return _u
 }
 
-// SetNillableOriginKitID sets the "origin_kit_id" field if the given value is not nil.
-func (_u *SlotUpdateOne) SetNillableOriginKitID(v *string) *SlotUpdateOne {
+// SetNillableOriginBlueprintID sets the "origin_blueprint_id" field if the given value is not nil.
+func (_u *SlotUpdateOne) SetNillableOriginBlueprintID(v *string) *SlotUpdateOne {
 	if v != nil {
-		_u.SetOriginKitID(*v)
+		_u.SetOriginBlueprintID(*v)
 	}
 	return _u
 }
 
-// ClearOriginKitID clears the value of the "origin_kit_id" field.
-func (_u *SlotUpdateOne) ClearOriginKitID() *SlotUpdateOne {
-	_u.mutation.ClearOriginKitID()
+// ClearOriginBlueprintID clears the value of the "origin_blueprint_id" field.
+func (_u *SlotUpdateOne) ClearOriginBlueprintID() *SlotUpdateOne {
+	_u.mutation.ClearOriginBlueprintID()
 	return _u
 }
 
@@ -684,6 +701,20 @@ func (_u *SlotUpdateOne) SetSection(v string) *SlotUpdateOne {
 func (_u *SlotUpdateOne) SetNillableSection(v *string) *SlotUpdateOne {
 	if v != nil {
 		_u.SetSection(*v)
+	}
+	return _u
+}
+
+// SetBlockType sets the "block_type" field.
+func (_u *SlotUpdateOne) SetBlockType(v string) *SlotUpdateOne {
+	_u.mutation.SetBlockType(v)
+	return _u
+}
+
+// SetNillableBlockType sets the "block_type" field if the given value is not nil.
+func (_u *SlotUpdateOne) SetNillableBlockType(v *string) *SlotUpdateOne {
+	if v != nil {
+		_u.SetBlockType(*v)
 	}
 	return _u
 }
@@ -771,14 +802,14 @@ func (_u *SlotUpdateOne) ClearGroupName() *SlotUpdateOne {
 	return _u
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_u *SlotUpdateOne) SetKit(v *Kit) *SlotUpdateOne {
-	return _u.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdateOne) SetBlueprint(v *Blueprint) *SlotUpdateOne {
+	return _u.SetBlueprintID(v.ID)
 }
 
-// SetOriginKit sets the "origin_kit" edge to the Kit entity.
-func (_u *SlotUpdateOne) SetOriginKit(v *Kit) *SlotUpdateOne {
-	return _u.SetOriginKitID(v.ID)
+// SetOriginBlueprint sets the "origin_blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdateOne) SetOriginBlueprint(v *Blueprint) *SlotUpdateOne {
+	return _u.SetOriginBlueprintID(v.ID)
 }
 
 // SetOverridesID sets the "overrides" edge to the Slot entity by ID.
@@ -843,15 +874,15 @@ func (_u *SlotUpdateOne) Mutation() *SlotMutation {
 	return _u.mutation
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (_u *SlotUpdateOne) ClearKit() *SlotUpdateOne {
-	_u.mutation.ClearKit()
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdateOne) ClearBlueprint() *SlotUpdateOne {
+	_u.mutation.ClearBlueprint()
 	return _u
 }
 
-// ClearOriginKit clears the "origin_kit" edge to the Kit entity.
-func (_u *SlotUpdateOne) ClearOriginKit() *SlotUpdateOne {
-	_u.mutation.ClearOriginKit()
+// ClearOriginBlueprint clears the "origin_blueprint" edge to the Blueprint entity.
+func (_u *SlotUpdateOne) ClearOriginBlueprint() *SlotUpdateOne {
+	_u.mutation.ClearOriginBlueprint()
 	return _u
 }
 
@@ -939,8 +970,8 @@ func (_u *SlotUpdateOne) check() error {
 			return &ValidationError{Name: "state", err: fmt.Errorf(`ent: validator failed for field "Slot.state": %w`, err)}
 		}
 	}
-	if _u.mutation.KitCleared() && len(_u.mutation.KitIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Slot.kit"`)
+	if _u.mutation.BlueprintCleared() && len(_u.mutation.BlueprintIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Slot.blueprint"`)
 	}
 	return nil
 }
@@ -986,6 +1017,9 @@ func (_u *SlotUpdateOne) sqlSave(ctx context.Context) (_node *Slot, err error) {
 	if value, ok := _u.mutation.Section(); ok {
 		_spec.SetField(slot.FieldSection, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.BlockType(); ok {
+		_spec.SetField(slot.FieldBlockType, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.State(); ok {
 		_spec.SetField(slot.FieldState, field.TypeEnum, value)
 	}
@@ -1007,28 +1041,28 @@ func (_u *SlotUpdateOne) sqlSave(ctx context.Context) (_node *Slot, err error) {
 	if _u.mutation.GroupNameCleared() {
 		_spec.ClearField(slot.FieldGroupName, field.TypeString)
 	}
-	if _u.mutation.KitCleared() {
+	if _u.mutation.BlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.KitTable,
-			Columns: []string{slot.KitColumn},
+			Table:   slot.BlueprintTable,
+			Columns: []string{slot.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.KitTable,
-			Columns: []string{slot.KitColumn},
+			Table:   slot.BlueprintTable,
+			Columns: []string{slot.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1036,28 +1070,28 @@ func (_u *SlotUpdateOne) sqlSave(ctx context.Context) (_node *Slot, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.OriginKitCleared() {
+	if _u.mutation.OriginBlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.OriginKitTable,
-			Columns: []string{slot.OriginKitColumn},
+			Table:   slot.OriginBlueprintTable,
+			Columns: []string{slot.OriginBlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.OriginKitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.OriginBlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.OriginKitTable,
-			Columns: []string{slot.OriginKitColumn},
+			Table:   slot.OriginBlueprintTable,
+			Columns: []string{slot.OriginBlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

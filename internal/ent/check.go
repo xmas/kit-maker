@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/check"
-	"github.com/docker/kit-maker/internal/ent/kit"
 )
 
 // Check is the model entity for the Check schema.
@@ -23,8 +23,8 @@ type Check struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// KitID holds the value of the "kit_id" field.
-	KitID string `json:"kit_id,omitempty"`
+	// BlueprintID holds the value of the "blueprint_id" field.
+	BlueprintID string `json:"blueprint_id,omitempty"`
 	// Label holds the value of the "label" field.
 	Label string `json:"label,omitempty"`
 	// Type holds the value of the "type" field.
@@ -45,22 +45,22 @@ type Check struct {
 
 // CheckEdges holds the relations/edges for other nodes in the graph.
 type CheckEdges struct {
-	// Kit holds the value of the kit edge.
-	Kit *Kit `json:"kit,omitempty"`
+	// Blueprint holds the value of the blueprint edge.
+	Blueprint *Blueprint `json:"blueprint,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [1]bool
 }
 
-// KitOrErr returns the Kit value or an error if the edge
+// BlueprintOrErr returns the Blueprint value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e CheckEdges) KitOrErr() (*Kit, error) {
-	if e.Kit != nil {
-		return e.Kit, nil
+func (e CheckEdges) BlueprintOrErr() (*Blueprint, error) {
+	if e.Blueprint != nil {
+		return e.Blueprint, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: kit.Label}
+		return nil, &NotFoundError{label: blueprint.Label}
 	}
-	return nil, &NotLoadedError{edge: "kit"}
+	return nil, &NotLoadedError{edge: "blueprint"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -72,7 +72,7 @@ func (*Check) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case check.FieldPosition:
 			values[i] = new(sql.NullInt64)
-		case check.FieldID, check.FieldKitID, check.FieldLabel, check.FieldType, check.FieldExpect, check.FieldAuthoredBy:
+		case check.FieldID, check.FieldBlueprintID, check.FieldLabel, check.FieldType, check.FieldExpect, check.FieldAuthoredBy:
 			values[i] = new(sql.NullString)
 		case check.FieldCreatedAt, check.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -109,11 +109,11 @@ func (_m *Check) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case check.FieldKitID:
+		case check.FieldBlueprintID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field kit_id", values[i])
+				return fmt.Errorf("unexpected type %T for field blueprint_id", values[i])
 			} else if value.Valid {
-				_m.KitID = value.String
+				_m.BlueprintID = value.String
 			}
 		case check.FieldLabel:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -166,9 +166,9 @@ func (_m *Check) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryKit queries the "kit" edge of the Check entity.
-func (_m *Check) QueryKit() *KitQuery {
-	return NewCheckClient(_m.config).QueryKit(_m)
+// QueryBlueprint queries the "blueprint" edge of the Check entity.
+func (_m *Check) QueryBlueprint() *BlueprintQuery {
+	return NewCheckClient(_m.config).QueryBlueprint(_m)
 }
 
 // Update returns a builder for updating this Check.
@@ -200,8 +200,8 @@ func (_m *Check) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("kit_id=")
-	builder.WriteString(_m.KitID)
+	builder.WriteString("blueprint_id=")
+	builder.WriteString(_m.BlueprintID)
 	builder.WriteString(", ")
 	builder.WriteString("label=")
 	builder.WriteString(_m.Label)

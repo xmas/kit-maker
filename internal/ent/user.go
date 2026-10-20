@@ -51,8 +51,8 @@ type UserEdges struct {
 	Memberships []*TeamMembership `json:"memberships,omitempty"`
 	// AcceptedBlockVersions holds the value of the accepted_block_versions edge.
 	AcceptedBlockVersions []*BlockVersion `json:"accepted_block_versions,omitempty"`
-	// KitRevisions holds the value of the kit_revisions edge.
-	KitRevisions []*KitRevision `json:"kit_revisions,omitempty"`
+	// BlueprintRevisions holds the value of the blueprint_revisions edge.
+	BlueprintRevisions []*BlueprintRevision `json:"blueprint_revisions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [3]bool
@@ -76,13 +76,13 @@ func (e UserEdges) AcceptedBlockVersionsOrErr() ([]*BlockVersion, error) {
 	return nil, &NotLoadedError{edge: "accepted_block_versions"}
 }
 
-// KitRevisionsOrErr returns the KitRevisions value or an error if the edge
+// BlueprintRevisionsOrErr returns the BlueprintRevisions value or an error if the edge
 // was not loaded in eager-loading.
-func (e UserEdges) KitRevisionsOrErr() ([]*KitRevision, error) {
+func (e UserEdges) BlueprintRevisionsOrErr() ([]*BlueprintRevision, error) {
 	if e.loadedTypes[2] {
-		return e.KitRevisions, nil
+		return e.BlueprintRevisions, nil
 	}
-	return nil, &NotLoadedError{edge: "kit_revisions"}
+	return nil, &NotLoadedError{edge: "blueprint_revisions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -211,9 +211,9 @@ func (_m *User) QueryAcceptedBlockVersions() *BlockVersionQuery {
 	return NewUserClient(_m.config).QueryAcceptedBlockVersions(_m)
 }
 
-// QueryKitRevisions queries the "kit_revisions" edge of the User entity.
-func (_m *User) QueryKitRevisions() *KitRevisionQuery {
-	return NewUserClient(_m.config).QueryKitRevisions(_m)
+// QueryBlueprintRevisions queries the "blueprint_revisions" edge of the User entity.
+func (_m *User) QueryBlueprintRevisions() *BlueprintRevisionQuery {
+	return NewUserClient(_m.config).QueryBlueprintRevisions(_m)
 }
 
 // Update returns a builder for updating this User.

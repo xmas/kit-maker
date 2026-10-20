@@ -30,6 +30,7 @@ const (
 	RouteReview       Route = "review"       // rev review, AI approver
 	RouteCurate       Route = "curate"       // library hygiene
 	RouteImport       Route = "import"       // YAML/repo → blocks
+	RouteSearch       Route = "search"       // find blocks by what they do
 	RouteTroubleshoot Route = "troubleshoot" // sbx errors → fix
 )
 
@@ -45,6 +46,7 @@ const (
 var routeEffort = map[Route]Effort{
 	RoutePing:         EffortLow,
 	RouteExplain:      EffortLow,
+	RouteSearch:       EffortLow,
 	RouteAutocomplete: EffortLow,
 	RouteFill:         EffortMedium,
 	RouteEdit:         EffortMedium,
@@ -79,9 +81,9 @@ type Request struct {
 	MaxTokens int64
 
 	// Attribution for usage rows and budgets.
-	TeamID string
-	UserID string
-	KitID  string
+	TeamID      string
+	UserID      string
+	BlueprintID string
 }
 
 func (r Request) maxTokens() int64 {

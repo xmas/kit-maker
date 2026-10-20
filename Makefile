@@ -1,4 +1,8 @@
-COMPOSE := docker compose -f deploy/compose/compose.yaml
+# With certificates from `make certs`, zot serves HTTPS (compose.tls.yaml) so
+# sbx can pull published blueprints from it.
+TLS     := $(wildcard deploy/compose/certs/registry.pem)
+COMPOSE := docker compose -f deploy/compose/compose.yaml $(if $(TLS),-f deploy/compose/compose.tls.yaml)
+export KITMAKER_REGISTRY_INSECURE := $(if $(TLS),false,true)
 CHART   := deploy/helm/kitmaker
 
 # Host ports chosen by deploy/compose/ports.sh (see compose.yaml).
@@ -7,13 +11,15 @@ KITMAKER_PORT  ?= 8080
 POSTGRES_PORT  ?= 5432
 MINIO_PORT     ?= 9000
 ZOT_PORT       ?= 5000
+BUILDKIT_PORT  ?= 1234
 
 DEV_ENV := \
 	KITMAKER_DATABASE_URL="postgres://kitmaker:kitmaker@localhost:$(POSTGRES_PORT)/kitmaker?sslmode=disable" \
 	KITMAKER_STORAGE_URL="s3://kitmaker?endpoint=http://localhost:$(MINIO_PORT)&use_path_style=true&region=us-east-1" \
 	AWS_ACCESS_KEY_ID=kitmaker AWS_SECRET_ACCESS_KEY=kitmaker-secret \
 	KITMAKER_HTTP_ADDR=":$(KITMAKER_PORT)" KITMAKER_BASE_URL="http://localhost:$(KITMAKER_PORT)" \
-	KITMAKER_LOG_FORMAT=text KITMAKER_REGISTRY_URL="localhost:$(ZOT_PORT)"
+	KITMAKER_LOG_FORMAT=text KITMAKER_REGISTRY_URL=zot:5000 KITMAKER_REGISTRY_PULL_HOST="localhost:$(ZOT_PORT)" \
+	KITMAKER_BUILDKIT_ADDR="tcp://127.0.0.1:$(BUILDKIT_PORT)"
 
 # air (live reload for Go), run from the module cache so nothing is installed.
 AIR := go run github.com/air-verse/air@v1.67.3
@@ -27,6 +33,15 @@ help: ## Show targets
 .PHONY: env
 env: ## Create/complete deploy/compose/kitmaker.env (local settings, secrets key, bootstrap password)
 	@sh deploy/compose/env.sh
+
+.PHONY: certs
+certs: ## Serve the local registry over HTTPS (mkcert certificate) so sbx can run published blueprints
+	@command -v mkcert >/dev/null || (echo "install mkcert first: brew install mkcert"; exit 1)
+	@mkdir -p deploy/compose/certs
+	mkcert -cert-file deploy/compose/certs/registry.pem -key-file deploy/compose/certs/registry-key.pem localhost 127.0.0.1 ::1 zot host.docker.internal
+	@cp "$$(mkcert -CAROOT)/rootCA.pem" deploy/compose/certs/ca.pem
+	@echo "Trust the local CA once (asks for your password): mkcert -install"
+	@echo "Then restart the registry and BuildKit: make up (or make dev)"
 
 .PHONY: up
 up: ports env ## Build and start the whole stack in Docker → http://localhost:8080
@@ -51,11 +66,12 @@ logs: ## Follow app logs
 	$(COMPOSE) logs -f kitmaker worker
 
 .PHONY: dev
-dev: ports env web/node_modules ## Hot reload on :8080: air rebuilds Go on save, Vite hot-swaps the UI (Ctrl-C stops)
+dev: ports env web/node_modules ## Hot reload on :8080, signed in as the bootstrap admin: air rebuilds Go, Vite hot-swaps the UI
 	$(COMPOSE) stop kitmaker worker 2>/dev/null || true
 	$(COMPOSE) up -d --wait postgres minio zot buildkit mailpit
 	$(COMPOSE) up minio-init
 	@set -a; . deploy/compose/kitmaker.env; set +a; \
+	: "$${KITMAKER_DEV_USER=$${KITMAKER_BOOTSTRAP_ADMIN:-admin@kitmaker.local}}"; export KITMAKER_DEV_USER; \
 	trap 'kill 0' INT TERM EXIT; \
 	(cd web && npm run dev) & \
 	$(DEV_ENV) $(AIR)

@@ -656,21 +656,21 @@ func HasAcceptedBlockVersionsWith(preds ...predicate.BlockVersion) predicate.Use
 	})
 }
 
-// HasKitRevisions applies the HasEdge predicate on the "kit_revisions" edge.
-func HasKitRevisions() predicate.User {
+// HasBlueprintRevisions applies the HasEdge predicate on the "blueprint_revisions" edge.
+func HasBlueprintRevisions() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, KitRevisionsTable, KitRevisionsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, BlueprintRevisionsTable, BlueprintRevisionsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasKitRevisionsWith applies the HasEdge predicate on the "kit_revisions" edge with a given conditions (other predicates).
-func HasKitRevisionsWith(preds ...predicate.KitRevision) predicate.User {
+// HasBlueprintRevisionsWith applies the HasEdge predicate on the "blueprint_revisions" edge with a given conditions (other predicates).
+func HasBlueprintRevisionsWith(preds ...predicate.BlueprintRevision) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
-		step := newKitRevisionsStep()
+		step := newBlueprintRevisionsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

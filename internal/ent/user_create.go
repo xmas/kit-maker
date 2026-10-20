@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
-	"github.com/docker/kit-maker/internal/ent/kitrevision"
+	"github.com/docker/kit-maker/internal/ent/blueprintrevision"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
 	"github.com/docker/kit-maker/internal/ent/user"
 )
@@ -216,19 +216,19 @@ func (_c *UserCreate) AddAcceptedBlockVersions(v ...*BlockVersion) *UserCreate {
 	return _c.AddAcceptedBlockVersionIDs(ids...)
 }
 
-// AddKitRevisionIDs adds the "kit_revisions" edge to the KitRevision entity by IDs.
-func (_c *UserCreate) AddKitRevisionIDs(ids ...string) *UserCreate {
-	_c.mutation.AddKitRevisionIDs(ids...)
+// AddBlueprintRevisionIDs adds the "blueprint_revisions" edge to the BlueprintRevision entity by IDs.
+func (_c *UserCreate) AddBlueprintRevisionIDs(ids ...string) *UserCreate {
+	_c.mutation.AddBlueprintRevisionIDs(ids...)
 	return _c
 }
 
-// AddKitRevisions adds the "kit_revisions" edges to the KitRevision entity.
-func (_c *UserCreate) AddKitRevisions(v ...*KitRevision) *UserCreate {
+// AddBlueprintRevisions adds the "blueprint_revisions" edges to the BlueprintRevision entity.
+func (_c *UserCreate) AddBlueprintRevisions(v ...*BlueprintRevision) *UserCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddKitRevisionIDs(ids...)
+	return _c.AddBlueprintRevisionIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -453,15 +453,15 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.KitRevisionsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BlueprintRevisionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.KitRevisionsTable,
-			Columns: []string{user.KitRevisionsColumn},
+			Table:   user.BlueprintRevisionsTable,
+			Columns: []string{user.BlueprintRevisionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprintrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

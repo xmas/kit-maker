@@ -55,6 +55,10 @@
 }
 
 @layer base {
+  /* The app header is pinned, so in-page scrolling stops below it. */
+  html {
+    scroll-padding-top: 4.5rem;
+  }
   * {
     @apply border-border outline-ring/50;
   }

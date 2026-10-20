@@ -3,14 +3,14 @@
   "answers": [
     {
       "match": "network-rules",
-      "text": "(Fake AI) This block is a set of network rules. Allow rules open hosts to the sandbox; a host with no methods allows any request, so adding methods and paths bounds it. Deny rules win over allow rules. In this kit the rules are merged with the other network blocks into one network-policy@2 capability, and the goal checks on the right show which requests the merged policy lets through."
+      "text": "(Fake AI) This block is a set of network rules. Allow rules open hosts to the sandbox; a host with no methods allows any request, so adding methods and paths bounds it. Deny rules win over allow rules. In this blueprint the rules are merged with the other network blocks into one network-policy@2 capability, and the goal checks on the right show which requests the merged policy lets through."
     },
     {
       "match": "credential",
       "text": "(Fake AI) This block declares a credential. The sandbox only sees a placeholder in the env var; the sbx proxy adds the real secret to requests for the inject domains listed here. Each inject domain also needs an allow rule in a network block, or requests never leave the sandbox."
     },
     {
-      "text": "(Fake AI) This block contributes one capability to the kit. Its payload is passed to the compiler as is, and the spec package validates it when the kit compiles."
+      "text": "(Fake AI) This block contributes one capability to the blueprint. Its payload is passed to the compiler as is, and the spec package validates it when the blueprint compiles."
     }
   ]
 }

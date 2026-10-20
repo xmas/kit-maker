@@ -32,8 +32,8 @@ const (
 	EdgeMemberships = "memberships"
 	// EdgeBlocks holds the string denoting the blocks edge name in mutations.
 	EdgeBlocks = "blocks"
-	// EdgeKits holds the string denoting the kits edge name in mutations.
-	EdgeKits = "kits"
+	// EdgeBlueprints holds the string denoting the blueprints edge name in mutations.
+	EdgeBlueprints = "blueprints"
 	// Table holds the table name of the team in the database.
 	Table = "teams"
 	// ParentTable is the table that holds the parent relation/edge.
@@ -58,13 +58,13 @@ const (
 	BlocksInverseTable = "blocks"
 	// BlocksColumn is the table column denoting the blocks relation/edge.
 	BlocksColumn = "team_id"
-	// KitsTable is the table that holds the kits relation/edge.
-	KitsTable = "kits"
-	// KitsInverseTable is the table name for the Kit entity.
-	// It exists in this package in order to avoid circular dependency with the "kit" package.
-	KitsInverseTable = "kits"
-	// KitsColumn is the table column denoting the kits relation/edge.
-	KitsColumn = "team_id"
+	// BlueprintsTable is the table that holds the blueprints relation/edge.
+	BlueprintsTable = "blueprints"
+	// BlueprintsInverseTable is the table name for the Blueprint entity.
+	// It exists in this package in order to avoid circular dependency with the "blueprint" package.
+	BlueprintsInverseTable = "blueprints"
+	// BlueprintsColumn is the table column denoting the blueprints relation/edge.
+	BlueprintsColumn = "team_id"
 )
 
 // Columns holds all SQL columns for team fields.
@@ -186,17 +186,17 @@ func ByBlocks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByKitsCount orders the results by kits count.
-func ByKitsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByBlueprintsCount orders the results by blueprints count.
+func ByBlueprintsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newKitsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newBlueprintsStep(), opts...)
 	}
 }
 
-// ByKits orders the results by kits terms.
-func ByKits(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByBlueprints orders the results by blueprints terms.
+func ByBlueprints(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newKitsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newBlueprintsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newParentStep() *sqlgraph.Step {
@@ -227,10 +227,10 @@ func newBlocksStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, BlocksTable, BlocksColumn),
 	)
 }
-func newKitsStep() *sqlgraph.Step {
+func newBlueprintsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(KitsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, KitsTable, KitsColumn),
+		sqlgraph.To(BlueprintsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BlueprintsTable, BlueprintsColumn),
 	)
 }

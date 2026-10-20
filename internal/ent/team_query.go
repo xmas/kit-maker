@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/block"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/team"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
@@ -30,7 +30,7 @@ type TeamQuery struct {
 	withChildren    *TeamQuery
 	withMemberships *TeamMembershipQuery
 	withBlocks      *BlockQuery
-	withKits        *KitQuery
+	withBlueprints  *BlueprintQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -155,9 +155,9 @@ func (_q *TeamQuery) QueryBlocks() *BlockQuery {
 	return query
 }
 
-// QueryKits chains the current query on the "kits" edge.
-func (_q *TeamQuery) QueryKits() *KitQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// QueryBlueprints chains the current query on the "blueprints" edge.
+func (_q *TeamQuery) QueryBlueprints() *BlueprintQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -168,8 +168,8 @@ func (_q *TeamQuery) QueryKits() *KitQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(team.Table, team.FieldID, selector),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, team.KitsTable, team.KitsColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, team.BlueprintsTable, team.BlueprintsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -373,7 +373,7 @@ func (_q *TeamQuery) Clone() *TeamQuery {
 		withChildren:    _q.withChildren.Clone(),
 		withMemberships: _q.withMemberships.Clone(),
 		withBlocks:      _q.withBlocks.Clone(),
-		withKits:        _q.withKits.Clone(),
+		withBlueprints:  _q.withBlueprints.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -424,14 +424,14 @@ func (_q *TeamQuery) WithBlocks(opts ...func(*BlockQuery)) *TeamQuery {
 	return _q
 }
 
-// WithKits tells the query-builder to eager-load the nodes that are connected to
-// the "kits" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *TeamQuery) WithKits(opts ...func(*KitQuery)) *TeamQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// WithBlueprints tells the query-builder to eager-load the nodes that are connected to
+// the "blueprints" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TeamQuery) WithBlueprints(opts ...func(*BlueprintQuery)) *TeamQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withKits = query
+	_q.withBlueprints = query
 	return _q
 }
 
@@ -518,7 +518,7 @@ func (_q *TeamQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Team, e
 			_q.withChildren != nil,
 			_q.withMemberships != nil,
 			_q.withBlocks != nil,
-			_q.withKits != nil,
+			_q.withBlueprints != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -566,10 +566,10 @@ func (_q *TeamQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Team, e
 			return nil, err
 		}
 	}
-	if query := _q.withKits; query != nil {
-		if err := _q.loadKits(ctx, query, nodes,
-			func(n *Team) { n.Edges.Kits = []*Kit{} },
-			func(n *Team, e *Kit) { n.Edges.Kits = append(n.Edges.Kits, e) }); err != nil {
+	if query := _q.withBlueprints; query != nil {
+		if err := _q.loadBlueprints(ctx, query, nodes,
+			func(n *Team) { n.Edges.Blueprints = []*Blueprint{} },
+			func(n *Team, e *Blueprint) { n.Edges.Blueprints = append(n.Edges.Blueprints, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -701,7 +701,7 @@ func (_q *TeamQuery) loadBlocks(ctx context.Context, query *BlockQuery, nodes []
 	}
 	return nil
 }
-func (_q *TeamQuery) loadKits(ctx context.Context, query *KitQuery, nodes []*Team, init func(*Team), assign func(*Team, *Kit)) error {
+func (_q *TeamQuery) loadBlueprints(ctx context.Context, query *BlueprintQuery, nodes []*Team, init func(*Team), assign func(*Team, *Blueprint)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Team)
 	for i := range nodes {
@@ -712,10 +712,10 @@ func (_q *TeamQuery) loadKits(ctx context.Context, query *KitQuery, nodes []*Tea
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(kit.FieldTeamID)
+		query.ctx.AppendFieldOnce(blueprint.FieldTeamID)
 	}
-	query.Where(predicate.Kit(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(team.KitsColumn), fks...))
+	query.Where(predicate.Blueprint(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(team.BlueprintsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

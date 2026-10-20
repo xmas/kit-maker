@@ -11,17 +11,19 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 	"github.com/docker/kit-maker/internal/ent/aicall"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
+	"github.com/docker/kit-maker/internal/ent/blueprintinclude"
+	"github.com/docker/kit-maker/internal/ent/blueprintrevision"
+	"github.com/docker/kit-maker/internal/ent/blueprintversion"
 	"github.com/docker/kit-maker/internal/ent/check"
 	"github.com/docker/kit-maker/internal/ent/deploymentsetting"
 	"github.com/docker/kit-maker/internal/ent/goal"
 	"github.com/docker/kit-maker/internal/ent/integration"
-	"github.com/docker/kit-maker/internal/ent/kit"
-	"github.com/docker/kit-maker/internal/ent/kitinclude"
-	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/session"
@@ -29,7 +31,6 @@ import (
 	"github.com/docker/kit-maker/internal/ent/team"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
 	"github.com/docker/kit-maker/internal/ent/user"
-	"github.com/docker/kit-maker/internal/kits/patch"
 	pgvector "github.com/pgvector/pgvector-go"
 )
 
@@ -46,13 +47,14 @@ const (
 	TypeBlock             = "Block"
 	TypeBlockLink         = "BlockLink"
 	TypeBlockVersion      = "BlockVersion"
+	TypeBlueprint         = "Blueprint"
+	TypeBlueprintInclude  = "BlueprintInclude"
+	TypeBlueprintRevision = "BlueprintRevision"
+	TypeBlueprintVersion  = "BlueprintVersion"
 	TypeCheck             = "Check"
 	TypeDeploymentSetting = "DeploymentSetting"
 	TypeGoal              = "Goal"
 	TypeIntegration       = "Integration"
-	TypeKit               = "Kit"
-	TypeKitInclude        = "KitInclude"
-	TypeKitRevision       = "KitRevision"
 	TypeRoleAssignment    = "RoleAssignment"
 	TypeSession           = "Session"
 	TypeSlot              = "Slot"
@@ -70,7 +72,7 @@ type AICallMutation struct {
 	created_at            *time.Time
 	team_id               *string
 	user_id               *string
-	kit_id                *string
+	blueprint_id          *string
 	route                 *string
 	provider              *string
 	model                 *string
@@ -330,53 +332,53 @@ func (m *AICallMutation) ResetUserID() {
 	delete(m.clearedFields, aicall.FieldUserID)
 }
 
-// SetKitID sets the "kit_id" field.
-func (m *AICallMutation) SetKitID(s string) {
-	m.kit_id = &s
+// SetBlueprintID sets the "blueprint_id" field.
+func (m *AICallMutation) SetBlueprintID(s string) {
+	m.blueprint_id = &s
 }
 
-// KitID returns the value of the "kit_id" field in the mutation.
-func (m *AICallMutation) KitID() (r string, exists bool) {
-	v := m.kit_id
+// BlueprintID returns the value of the "blueprint_id" field in the mutation.
+func (m *AICallMutation) BlueprintID() (r string, exists bool) {
+	v := m.blueprint_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldKitID returns the old "kit_id" field's value of the AICall entity.
+// OldBlueprintID returns the old "blueprint_id" field's value of the AICall entity.
 // If the AICall object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *AICallMutation) OldKitID(ctx context.Context) (v *string, err error) {
+func (m *AICallMutation) OldBlueprintID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
+		return v, errors.New("OldBlueprintID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKitID requires an ID field in the mutation")
+		return v, errors.New("OldBlueprintID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
+		return v, fmt.Errorf("querying old value for OldBlueprintID: %w", err)
 	}
-	return oldValue.KitID, nil
+	return oldValue.BlueprintID, nil
 }
 
-// ClearKitID clears the value of the "kit_id" field.
-func (m *AICallMutation) ClearKitID() {
-	m.kit_id = nil
-	m.clearedFields[aicall.FieldKitID] = struct{}{}
+// ClearBlueprintID clears the value of the "blueprint_id" field.
+func (m *AICallMutation) ClearBlueprintID() {
+	m.blueprint_id = nil
+	m.clearedFields[aicall.FieldBlueprintID] = struct{}{}
 }
 
-// KitIDCleared returns if the "kit_id" field was cleared in this mutation.
-func (m *AICallMutation) KitIDCleared() bool {
-	_, ok := m.clearedFields[aicall.FieldKitID]
+// BlueprintIDCleared returns if the "blueprint_id" field was cleared in this mutation.
+func (m *AICallMutation) BlueprintIDCleared() bool {
+	_, ok := m.clearedFields[aicall.FieldBlueprintID]
 	return ok
 }
 
-// ResetKitID resets all changes to the "kit_id" field.
-func (m *AICallMutation) ResetKitID() {
-	m.kit_id = nil
-	delete(m.clearedFields, aicall.FieldKitID)
+// ResetBlueprintID resets all changes to the "blueprint_id" field.
+func (m *AICallMutation) ResetBlueprintID() {
+	m.blueprint_id = nil
+	delete(m.clearedFields, aicall.FieldBlueprintID)
 }
 
 // SetRoute sets the "route" field.
@@ -909,8 +911,8 @@ func (m *AICallMutation) Fields() []string {
 	if m.user_id != nil {
 		fields = append(fields, aicall.FieldUserID)
 	}
-	if m.kit_id != nil {
-		fields = append(fields, aicall.FieldKitID)
+	if m.blueprint_id != nil {
+		fields = append(fields, aicall.FieldBlueprintID)
 	}
 	if m.route != nil {
 		fields = append(fields, aicall.FieldRoute)
@@ -956,8 +958,8 @@ func (m *AICallMutation) Field(name string) (ent.Value, bool) {
 		return m.TeamID()
 	case aicall.FieldUserID:
 		return m.UserID()
-	case aicall.FieldKitID:
-		return m.KitID()
+	case aicall.FieldBlueprintID:
+		return m.BlueprintID()
 	case aicall.FieldRoute:
 		return m.Route()
 	case aicall.FieldProvider:
@@ -993,8 +995,8 @@ func (m *AICallMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldTeamID(ctx)
 	case aicall.FieldUserID:
 		return m.OldUserID(ctx)
-	case aicall.FieldKitID:
-		return m.OldKitID(ctx)
+	case aicall.FieldBlueprintID:
+		return m.OldBlueprintID(ctx)
 	case aicall.FieldRoute:
 		return m.OldRoute(ctx)
 	case aicall.FieldProvider:
@@ -1045,12 +1047,12 @@ func (m *AICallMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUserID(v)
 		return nil
-	case aicall.FieldKitID:
+	case aicall.FieldBlueprintID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetKitID(v)
+		m.SetBlueprintID(v)
 		return nil
 	case aicall.FieldRoute:
 		v, ok := value.(string)
@@ -1221,8 +1223,8 @@ func (m *AICallMutation) ClearedFields() []string {
 	if m.FieldCleared(aicall.FieldUserID) {
 		fields = append(fields, aicall.FieldUserID)
 	}
-	if m.FieldCleared(aicall.FieldKitID) {
-		fields = append(fields, aicall.FieldKitID)
+	if m.FieldCleared(aicall.FieldBlueprintID) {
+		fields = append(fields, aicall.FieldBlueprintID)
 	}
 	if m.FieldCleared(aicall.FieldModel) {
 		fields = append(fields, aicall.FieldModel)
@@ -1250,8 +1252,8 @@ func (m *AICallMutation) ClearField(name string) error {
 	case aicall.FieldUserID:
 		m.ClearUserID()
 		return nil
-	case aicall.FieldKitID:
-		m.ClearKitID()
+	case aicall.FieldBlueprintID:
+		m.ClearBlueprintID()
 		return nil
 	case aicall.FieldModel:
 		m.ClearModel()
@@ -1276,8 +1278,8 @@ func (m *AICallMutation) ResetField(name string) error {
 	case aicall.FieldUserID:
 		m.ResetUserID()
 		return nil
-	case aicall.FieldKitID:
-		m.ResetKitID()
+	case aicall.FieldBlueprintID:
+		m.ResetBlueprintID()
 		return nil
 	case aicall.FieldRoute:
 		m.ResetRoute()
@@ -5558,27 +5560,4118 @@ func (m *BlockVersionMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown BlockVersion edge %s", name)
 }
 
+// BlueprintMutation represents an operation that mutates the Blueprint nodes in the graph.
+type BlueprintMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *string
+	created_at           *time.Time
+	updated_at           *time.Time
+	slug                 *string
+	display_name         *string
+	description          *string
+	kind                 *blueprint.Kind
+	image_repository     *string
+	network_preset       *string
+	registration_enabled *bool
+	clearedFields        map[string]struct{}
+	team                 *string
+	clearedteam          bool
+	slots                map[string]struct{}
+	removedslots         map[string]struct{}
+	clearedslots         bool
+	includes             map[string]struct{}
+	removedincludes      map[string]struct{}
+	clearedincludes      bool
+	included_by          map[string]struct{}
+	removedincluded_by   map[string]struct{}
+	clearedincluded_by   bool
+	origin_slots         map[string]struct{}
+	removedorigin_slots  map[string]struct{}
+	clearedorigin_slots  bool
+	goal                 *string
+	clearedgoal          bool
+	checks               map[string]struct{}
+	removedchecks        map[string]struct{}
+	clearedchecks        bool
+	revisions            map[string]struct{}
+	removedrevisions     map[string]struct{}
+	clearedrevisions     bool
+	versions             map[string]struct{}
+	removedversions      map[string]struct{}
+	clearedversions      bool
+	done                 bool
+	oldValue             func(context.Context) (*Blueprint, error)
+	predicates           []predicate.Blueprint
+}
+
+var _ ent.Mutation = (*BlueprintMutation)(nil)
+
+// blueprintOption allows management of the mutation configuration using functional options.
+type blueprintOption func(*BlueprintMutation)
+
+// newBlueprintMutation creates new mutation for the Blueprint entity.
+func newBlueprintMutation(c config, op Op, opts ...blueprintOption) *BlueprintMutation {
+	m := &BlueprintMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBlueprint,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBlueprintID sets the ID field of the mutation.
+func withBlueprintID(id string) blueprintOption {
+	return func(m *BlueprintMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Blueprint
+		)
+		m.oldValue = func(ctx context.Context) (*Blueprint, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Blueprint.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBlueprint sets the old Blueprint of the mutation.
+func withBlueprint(node *Blueprint) blueprintOption {
+	return func(m *BlueprintMutation) {
+		m.oldValue = func(context.Context) (*Blueprint, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BlueprintMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BlueprintMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Blueprint entities.
+func (m *BlueprintMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BlueprintMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BlueprintMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Blueprint.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BlueprintMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BlueprintMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BlueprintMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BlueprintMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BlueprintMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BlueprintMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetTeamID sets the "team_id" field.
+func (m *BlueprintMutation) SetTeamID(s string) {
+	m.team = &s
+}
+
+// TeamID returns the value of the "team_id" field in the mutation.
+func (m *BlueprintMutation) TeamID() (r string, exists bool) {
+	v := m.team
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTeamID returns the old "team_id" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldTeamID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTeamID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTeamID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTeamID: %w", err)
+	}
+	return oldValue.TeamID, nil
+}
+
+// ResetTeamID resets all changes to the "team_id" field.
+func (m *BlueprintMutation) ResetTeamID() {
+	m.team = nil
+}
+
+// SetSlug sets the "slug" field.
+func (m *BlueprintMutation) SetSlug(s string) {
+	m.slug = &s
+}
+
+// Slug returns the value of the "slug" field in the mutation.
+func (m *BlueprintMutation) Slug() (r string, exists bool) {
+	v := m.slug
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlug returns the old "slug" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldSlug(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlug is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlug requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
+	}
+	return oldValue.Slug, nil
+}
+
+// ResetSlug resets all changes to the "slug" field.
+func (m *BlueprintMutation) ResetSlug() {
+	m.slug = nil
+}
+
+// SetDisplayName sets the "display_name" field.
+func (m *BlueprintMutation) SetDisplayName(s string) {
+	m.display_name = &s
+}
+
+// DisplayName returns the value of the "display_name" field in the mutation.
+func (m *BlueprintMutation) DisplayName() (r string, exists bool) {
+	v := m.display_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayName returns the old "display_name" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldDisplayName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayName: %w", err)
+	}
+	return oldValue.DisplayName, nil
+}
+
+// ResetDisplayName resets all changes to the "display_name" field.
+func (m *BlueprintMutation) ResetDisplayName() {
+	m.display_name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *BlueprintMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *BlueprintMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *BlueprintMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *BlueprintMutation) SetKind(b blueprint.Kind) {
+	m.kind = &b
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *BlueprintMutation) Kind() (r blueprint.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldKind(ctx context.Context) (v blueprint.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *BlueprintMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetImageRepository sets the "image_repository" field.
+func (m *BlueprintMutation) SetImageRepository(s string) {
+	m.image_repository = &s
+}
+
+// ImageRepository returns the value of the "image_repository" field in the mutation.
+func (m *BlueprintMutation) ImageRepository() (r string, exists bool) {
+	v := m.image_repository
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImageRepository returns the old "image_repository" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldImageRepository(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImageRepository is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImageRepository requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImageRepository: %w", err)
+	}
+	return oldValue.ImageRepository, nil
+}
+
+// ClearImageRepository clears the value of the "image_repository" field.
+func (m *BlueprintMutation) ClearImageRepository() {
+	m.image_repository = nil
+	m.clearedFields[blueprint.FieldImageRepository] = struct{}{}
+}
+
+// ImageRepositoryCleared returns if the "image_repository" field was cleared in this mutation.
+func (m *BlueprintMutation) ImageRepositoryCleared() bool {
+	_, ok := m.clearedFields[blueprint.FieldImageRepository]
+	return ok
+}
+
+// ResetImageRepository resets all changes to the "image_repository" field.
+func (m *BlueprintMutation) ResetImageRepository() {
+	m.image_repository = nil
+	delete(m.clearedFields, blueprint.FieldImageRepository)
+}
+
+// SetNetworkPreset sets the "network_preset" field.
+func (m *BlueprintMutation) SetNetworkPreset(s string) {
+	m.network_preset = &s
+}
+
+// NetworkPreset returns the value of the "network_preset" field in the mutation.
+func (m *BlueprintMutation) NetworkPreset() (r string, exists bool) {
+	v := m.network_preset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNetworkPreset returns the old "network_preset" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldNetworkPreset(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNetworkPreset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNetworkPreset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNetworkPreset: %w", err)
+	}
+	return oldValue.NetworkPreset, nil
+}
+
+// ClearNetworkPreset clears the value of the "network_preset" field.
+func (m *BlueprintMutation) ClearNetworkPreset() {
+	m.network_preset = nil
+	m.clearedFields[blueprint.FieldNetworkPreset] = struct{}{}
+}
+
+// NetworkPresetCleared returns if the "network_preset" field was cleared in this mutation.
+func (m *BlueprintMutation) NetworkPresetCleared() bool {
+	_, ok := m.clearedFields[blueprint.FieldNetworkPreset]
+	return ok
+}
+
+// ResetNetworkPreset resets all changes to the "network_preset" field.
+func (m *BlueprintMutation) ResetNetworkPreset() {
+	m.network_preset = nil
+	delete(m.clearedFields, blueprint.FieldNetworkPreset)
+}
+
+// SetRegistrationEnabled sets the "registration_enabled" field.
+func (m *BlueprintMutation) SetRegistrationEnabled(b bool) {
+	m.registration_enabled = &b
+}
+
+// RegistrationEnabled returns the value of the "registration_enabled" field in the mutation.
+func (m *BlueprintMutation) RegistrationEnabled() (r bool, exists bool) {
+	v := m.registration_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRegistrationEnabled returns the old "registration_enabled" field's value of the Blueprint entity.
+// If the Blueprint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintMutation) OldRegistrationEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRegistrationEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRegistrationEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRegistrationEnabled: %w", err)
+	}
+	return oldValue.RegistrationEnabled, nil
+}
+
+// ResetRegistrationEnabled resets all changes to the "registration_enabled" field.
+func (m *BlueprintMutation) ResetRegistrationEnabled() {
+	m.registration_enabled = nil
+}
+
+// ClearTeam clears the "team" edge to the Team entity.
+func (m *BlueprintMutation) ClearTeam() {
+	m.clearedteam = true
+	m.clearedFields[blueprint.FieldTeamID] = struct{}{}
+}
+
+// TeamCleared reports if the "team" edge to the Team entity was cleared.
+func (m *BlueprintMutation) TeamCleared() bool {
+	return m.clearedteam
+}
+
+// TeamIDs returns the "team" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TeamID instead. It exists only for internal usage by the builders.
+func (m *BlueprintMutation) TeamIDs() (ids []string) {
+	if id := m.team; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTeam resets all changes to the "team" edge.
+func (m *BlueprintMutation) ResetTeam() {
+	m.team = nil
+	m.clearedteam = false
+}
+
+// AddSlotIDs adds the "slots" edge to the Slot entity by ids.
+func (m *BlueprintMutation) AddSlotIDs(ids ...string) {
+	if m.slots == nil {
+		m.slots = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.slots[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSlots clears the "slots" edge to the Slot entity.
+func (m *BlueprintMutation) ClearSlots() {
+	m.clearedslots = true
+}
+
+// SlotsCleared reports if the "slots" edge to the Slot entity was cleared.
+func (m *BlueprintMutation) SlotsCleared() bool {
+	return m.clearedslots
+}
+
+// RemoveSlotIDs removes the "slots" edge to the Slot entity by IDs.
+func (m *BlueprintMutation) RemoveSlotIDs(ids ...string) {
+	if m.removedslots == nil {
+		m.removedslots = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.slots, ids[i])
+		m.removedslots[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSlots returns the removed IDs of the "slots" edge to the Slot entity.
+func (m *BlueprintMutation) RemovedSlotsIDs() (ids []string) {
+	for id := range m.removedslots {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SlotsIDs returns the "slots" edge IDs in the mutation.
+func (m *BlueprintMutation) SlotsIDs() (ids []string) {
+	for id := range m.slots {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSlots resets all changes to the "slots" edge.
+func (m *BlueprintMutation) ResetSlots() {
+	m.slots = nil
+	m.clearedslots = false
+	m.removedslots = nil
+}
+
+// AddIncludeIDs adds the "includes" edge to the BlueprintInclude entity by ids.
+func (m *BlueprintMutation) AddIncludeIDs(ids ...string) {
+	if m.includes == nil {
+		m.includes = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.includes[ids[i]] = struct{}{}
+	}
+}
+
+// ClearIncludes clears the "includes" edge to the BlueprintInclude entity.
+func (m *BlueprintMutation) ClearIncludes() {
+	m.clearedincludes = true
+}
+
+// IncludesCleared reports if the "includes" edge to the BlueprintInclude entity was cleared.
+func (m *BlueprintMutation) IncludesCleared() bool {
+	return m.clearedincludes
+}
+
+// RemoveIncludeIDs removes the "includes" edge to the BlueprintInclude entity by IDs.
+func (m *BlueprintMutation) RemoveIncludeIDs(ids ...string) {
+	if m.removedincludes == nil {
+		m.removedincludes = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.includes, ids[i])
+		m.removedincludes[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedIncludes returns the removed IDs of the "includes" edge to the BlueprintInclude entity.
+func (m *BlueprintMutation) RemovedIncludesIDs() (ids []string) {
+	for id := range m.removedincludes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// IncludesIDs returns the "includes" edge IDs in the mutation.
+func (m *BlueprintMutation) IncludesIDs() (ids []string) {
+	for id := range m.includes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetIncludes resets all changes to the "includes" edge.
+func (m *BlueprintMutation) ResetIncludes() {
+	m.includes = nil
+	m.clearedincludes = false
+	m.removedincludes = nil
+}
+
+// AddIncludedByIDs adds the "included_by" edge to the BlueprintInclude entity by ids.
+func (m *BlueprintMutation) AddIncludedByIDs(ids ...string) {
+	if m.included_by == nil {
+		m.included_by = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.included_by[ids[i]] = struct{}{}
+	}
+}
+
+// ClearIncludedBy clears the "included_by" edge to the BlueprintInclude entity.
+func (m *BlueprintMutation) ClearIncludedBy() {
+	m.clearedincluded_by = true
+}
+
+// IncludedByCleared reports if the "included_by" edge to the BlueprintInclude entity was cleared.
+func (m *BlueprintMutation) IncludedByCleared() bool {
+	return m.clearedincluded_by
+}
+
+// RemoveIncludedByIDs removes the "included_by" edge to the BlueprintInclude entity by IDs.
+func (m *BlueprintMutation) RemoveIncludedByIDs(ids ...string) {
+	if m.removedincluded_by == nil {
+		m.removedincluded_by = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.included_by, ids[i])
+		m.removedincluded_by[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedIncludedBy returns the removed IDs of the "included_by" edge to the BlueprintInclude entity.
+func (m *BlueprintMutation) RemovedIncludedByIDs() (ids []string) {
+	for id := range m.removedincluded_by {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// IncludedByIDs returns the "included_by" edge IDs in the mutation.
+func (m *BlueprintMutation) IncludedByIDs() (ids []string) {
+	for id := range m.included_by {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetIncludedBy resets all changes to the "included_by" edge.
+func (m *BlueprintMutation) ResetIncludedBy() {
+	m.included_by = nil
+	m.clearedincluded_by = false
+	m.removedincluded_by = nil
+}
+
+// AddOriginSlotIDs adds the "origin_slots" edge to the Slot entity by ids.
+func (m *BlueprintMutation) AddOriginSlotIDs(ids ...string) {
+	if m.origin_slots == nil {
+		m.origin_slots = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.origin_slots[ids[i]] = struct{}{}
+	}
+}
+
+// ClearOriginSlots clears the "origin_slots" edge to the Slot entity.
+func (m *BlueprintMutation) ClearOriginSlots() {
+	m.clearedorigin_slots = true
+}
+
+// OriginSlotsCleared reports if the "origin_slots" edge to the Slot entity was cleared.
+func (m *BlueprintMutation) OriginSlotsCleared() bool {
+	return m.clearedorigin_slots
+}
+
+// RemoveOriginSlotIDs removes the "origin_slots" edge to the Slot entity by IDs.
+func (m *BlueprintMutation) RemoveOriginSlotIDs(ids ...string) {
+	if m.removedorigin_slots == nil {
+		m.removedorigin_slots = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.origin_slots, ids[i])
+		m.removedorigin_slots[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedOriginSlots returns the removed IDs of the "origin_slots" edge to the Slot entity.
+func (m *BlueprintMutation) RemovedOriginSlotsIDs() (ids []string) {
+	for id := range m.removedorigin_slots {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// OriginSlotsIDs returns the "origin_slots" edge IDs in the mutation.
+func (m *BlueprintMutation) OriginSlotsIDs() (ids []string) {
+	for id := range m.origin_slots {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetOriginSlots resets all changes to the "origin_slots" edge.
+func (m *BlueprintMutation) ResetOriginSlots() {
+	m.origin_slots = nil
+	m.clearedorigin_slots = false
+	m.removedorigin_slots = nil
+}
+
+// SetGoalID sets the "goal" edge to the Goal entity by id.
+func (m *BlueprintMutation) SetGoalID(id string) {
+	m.goal = &id
+}
+
+// ClearGoal clears the "goal" edge to the Goal entity.
+func (m *BlueprintMutation) ClearGoal() {
+	m.clearedgoal = true
+}
+
+// GoalCleared reports if the "goal" edge to the Goal entity was cleared.
+func (m *BlueprintMutation) GoalCleared() bool {
+	return m.clearedgoal
+}
+
+// GoalID returns the "goal" edge ID in the mutation.
+func (m *BlueprintMutation) GoalID() (id string, exists bool) {
+	if m.goal != nil {
+		return *m.goal, true
+	}
+	return
+}
+
+// GoalIDs returns the "goal" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GoalID instead. It exists only for internal usage by the builders.
+func (m *BlueprintMutation) GoalIDs() (ids []string) {
+	if id := m.goal; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGoal resets all changes to the "goal" edge.
+func (m *BlueprintMutation) ResetGoal() {
+	m.goal = nil
+	m.clearedgoal = false
+}
+
+// AddCheckIDs adds the "checks" edge to the Check entity by ids.
+func (m *BlueprintMutation) AddCheckIDs(ids ...string) {
+	if m.checks == nil {
+		m.checks = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.checks[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChecks clears the "checks" edge to the Check entity.
+func (m *BlueprintMutation) ClearChecks() {
+	m.clearedchecks = true
+}
+
+// ChecksCleared reports if the "checks" edge to the Check entity was cleared.
+func (m *BlueprintMutation) ChecksCleared() bool {
+	return m.clearedchecks
+}
+
+// RemoveCheckIDs removes the "checks" edge to the Check entity by IDs.
+func (m *BlueprintMutation) RemoveCheckIDs(ids ...string) {
+	if m.removedchecks == nil {
+		m.removedchecks = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.checks, ids[i])
+		m.removedchecks[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChecks returns the removed IDs of the "checks" edge to the Check entity.
+func (m *BlueprintMutation) RemovedChecksIDs() (ids []string) {
+	for id := range m.removedchecks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChecksIDs returns the "checks" edge IDs in the mutation.
+func (m *BlueprintMutation) ChecksIDs() (ids []string) {
+	for id := range m.checks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChecks resets all changes to the "checks" edge.
+func (m *BlueprintMutation) ResetChecks() {
+	m.checks = nil
+	m.clearedchecks = false
+	m.removedchecks = nil
+}
+
+// AddRevisionIDs adds the "revisions" edge to the BlueprintRevision entity by ids.
+func (m *BlueprintMutation) AddRevisionIDs(ids ...string) {
+	if m.revisions == nil {
+		m.revisions = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.revisions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRevisions clears the "revisions" edge to the BlueprintRevision entity.
+func (m *BlueprintMutation) ClearRevisions() {
+	m.clearedrevisions = true
+}
+
+// RevisionsCleared reports if the "revisions" edge to the BlueprintRevision entity was cleared.
+func (m *BlueprintMutation) RevisionsCleared() bool {
+	return m.clearedrevisions
+}
+
+// RemoveRevisionIDs removes the "revisions" edge to the BlueprintRevision entity by IDs.
+func (m *BlueprintMutation) RemoveRevisionIDs(ids ...string) {
+	if m.removedrevisions == nil {
+		m.removedrevisions = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.revisions, ids[i])
+		m.removedrevisions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRevisions returns the removed IDs of the "revisions" edge to the BlueprintRevision entity.
+func (m *BlueprintMutation) RemovedRevisionsIDs() (ids []string) {
+	for id := range m.removedrevisions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RevisionsIDs returns the "revisions" edge IDs in the mutation.
+func (m *BlueprintMutation) RevisionsIDs() (ids []string) {
+	for id := range m.revisions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRevisions resets all changes to the "revisions" edge.
+func (m *BlueprintMutation) ResetRevisions() {
+	m.revisions = nil
+	m.clearedrevisions = false
+	m.removedrevisions = nil
+}
+
+// AddVersionIDs adds the "versions" edge to the BlueprintVersion entity by ids.
+func (m *BlueprintMutation) AddVersionIDs(ids ...string) {
+	if m.versions == nil {
+		m.versions = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.versions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearVersions clears the "versions" edge to the BlueprintVersion entity.
+func (m *BlueprintMutation) ClearVersions() {
+	m.clearedversions = true
+}
+
+// VersionsCleared reports if the "versions" edge to the BlueprintVersion entity was cleared.
+func (m *BlueprintMutation) VersionsCleared() bool {
+	return m.clearedversions
+}
+
+// RemoveVersionIDs removes the "versions" edge to the BlueprintVersion entity by IDs.
+func (m *BlueprintMutation) RemoveVersionIDs(ids ...string) {
+	if m.removedversions == nil {
+		m.removedversions = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.versions, ids[i])
+		m.removedversions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedVersions returns the removed IDs of the "versions" edge to the BlueprintVersion entity.
+func (m *BlueprintMutation) RemovedVersionsIDs() (ids []string) {
+	for id := range m.removedversions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// VersionsIDs returns the "versions" edge IDs in the mutation.
+func (m *BlueprintMutation) VersionsIDs() (ids []string) {
+	for id := range m.versions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetVersions resets all changes to the "versions" edge.
+func (m *BlueprintMutation) ResetVersions() {
+	m.versions = nil
+	m.clearedversions = false
+	m.removedversions = nil
+}
+
+// Where appends a list predicates to the BlueprintMutation builder.
+func (m *BlueprintMutation) Where(ps ...predicate.Blueprint) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BlueprintMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BlueprintMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Blueprint, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BlueprintMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BlueprintMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Blueprint).
+func (m *BlueprintMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BlueprintMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.created_at != nil {
+		fields = append(fields, blueprint.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, blueprint.FieldUpdatedAt)
+	}
+	if m.team != nil {
+		fields = append(fields, blueprint.FieldTeamID)
+	}
+	if m.slug != nil {
+		fields = append(fields, blueprint.FieldSlug)
+	}
+	if m.display_name != nil {
+		fields = append(fields, blueprint.FieldDisplayName)
+	}
+	if m.description != nil {
+		fields = append(fields, blueprint.FieldDescription)
+	}
+	if m.kind != nil {
+		fields = append(fields, blueprint.FieldKind)
+	}
+	if m.image_repository != nil {
+		fields = append(fields, blueprint.FieldImageRepository)
+	}
+	if m.network_preset != nil {
+		fields = append(fields, blueprint.FieldNetworkPreset)
+	}
+	if m.registration_enabled != nil {
+		fields = append(fields, blueprint.FieldRegistrationEnabled)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BlueprintMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case blueprint.FieldCreatedAt:
+		return m.CreatedAt()
+	case blueprint.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case blueprint.FieldTeamID:
+		return m.TeamID()
+	case blueprint.FieldSlug:
+		return m.Slug()
+	case blueprint.FieldDisplayName:
+		return m.DisplayName()
+	case blueprint.FieldDescription:
+		return m.Description()
+	case blueprint.FieldKind:
+		return m.Kind()
+	case blueprint.FieldImageRepository:
+		return m.ImageRepository()
+	case blueprint.FieldNetworkPreset:
+		return m.NetworkPreset()
+	case blueprint.FieldRegistrationEnabled:
+		return m.RegistrationEnabled()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BlueprintMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case blueprint.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case blueprint.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case blueprint.FieldTeamID:
+		return m.OldTeamID(ctx)
+	case blueprint.FieldSlug:
+		return m.OldSlug(ctx)
+	case blueprint.FieldDisplayName:
+		return m.OldDisplayName(ctx)
+	case blueprint.FieldDescription:
+		return m.OldDescription(ctx)
+	case blueprint.FieldKind:
+		return m.OldKind(ctx)
+	case blueprint.FieldImageRepository:
+		return m.OldImageRepository(ctx)
+	case blueprint.FieldNetworkPreset:
+		return m.OldNetworkPreset(ctx)
+	case blueprint.FieldRegistrationEnabled:
+		return m.OldRegistrationEnabled(ctx)
+	}
+	return nil, fmt.Errorf("unknown Blueprint field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case blueprint.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case blueprint.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case blueprint.FieldTeamID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTeamID(v)
+		return nil
+	case blueprint.FieldSlug:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlug(v)
+		return nil
+	case blueprint.FieldDisplayName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayName(v)
+		return nil
+	case blueprint.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case blueprint.FieldKind:
+		v, ok := value.(blueprint.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case blueprint.FieldImageRepository:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImageRepository(v)
+		return nil
+	case blueprint.FieldNetworkPreset:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNetworkPreset(v)
+		return nil
+	case blueprint.FieldRegistrationEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRegistrationEnabled(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Blueprint field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BlueprintMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BlueprintMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Blueprint numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BlueprintMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(blueprint.FieldImageRepository) {
+		fields = append(fields, blueprint.FieldImageRepository)
+	}
+	if m.FieldCleared(blueprint.FieldNetworkPreset) {
+		fields = append(fields, blueprint.FieldNetworkPreset)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BlueprintMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BlueprintMutation) ClearField(name string) error {
+	switch name {
+	case blueprint.FieldImageRepository:
+		m.ClearImageRepository()
+		return nil
+	case blueprint.FieldNetworkPreset:
+		m.ClearNetworkPreset()
+		return nil
+	}
+	return fmt.Errorf("unknown Blueprint nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BlueprintMutation) ResetField(name string) error {
+	switch name {
+	case blueprint.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case blueprint.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case blueprint.FieldTeamID:
+		m.ResetTeamID()
+		return nil
+	case blueprint.FieldSlug:
+		m.ResetSlug()
+		return nil
+	case blueprint.FieldDisplayName:
+		m.ResetDisplayName()
+		return nil
+	case blueprint.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case blueprint.FieldKind:
+		m.ResetKind()
+		return nil
+	case blueprint.FieldImageRepository:
+		m.ResetImageRepository()
+		return nil
+	case blueprint.FieldNetworkPreset:
+		m.ResetNetworkPreset()
+		return nil
+	case blueprint.FieldRegistrationEnabled:
+		m.ResetRegistrationEnabled()
+		return nil
+	}
+	return fmt.Errorf("unknown Blueprint field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BlueprintMutation) AddedEdges() []string {
+	edges := make([]string, 0, 9)
+	if m.team != nil {
+		edges = append(edges, blueprint.EdgeTeam)
+	}
+	if m.slots != nil {
+		edges = append(edges, blueprint.EdgeSlots)
+	}
+	if m.includes != nil {
+		edges = append(edges, blueprint.EdgeIncludes)
+	}
+	if m.included_by != nil {
+		edges = append(edges, blueprint.EdgeIncludedBy)
+	}
+	if m.origin_slots != nil {
+		edges = append(edges, blueprint.EdgeOriginSlots)
+	}
+	if m.goal != nil {
+		edges = append(edges, blueprint.EdgeGoal)
+	}
+	if m.checks != nil {
+		edges = append(edges, blueprint.EdgeChecks)
+	}
+	if m.revisions != nil {
+		edges = append(edges, blueprint.EdgeRevisions)
+	}
+	if m.versions != nil {
+		edges = append(edges, blueprint.EdgeVersions)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BlueprintMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case blueprint.EdgeTeam:
+		if id := m.team; id != nil {
+			return []ent.Value{*id}
+		}
+	case blueprint.EdgeSlots:
+		ids := make([]ent.Value, 0, len(m.slots))
+		for id := range m.slots {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeIncludes:
+		ids := make([]ent.Value, 0, len(m.includes))
+		for id := range m.includes {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeIncludedBy:
+		ids := make([]ent.Value, 0, len(m.included_by))
+		for id := range m.included_by {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeOriginSlots:
+		ids := make([]ent.Value, 0, len(m.origin_slots))
+		for id := range m.origin_slots {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeGoal:
+		if id := m.goal; id != nil {
+			return []ent.Value{*id}
+		}
+	case blueprint.EdgeChecks:
+		ids := make([]ent.Value, 0, len(m.checks))
+		for id := range m.checks {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeRevisions:
+		ids := make([]ent.Value, 0, len(m.revisions))
+		for id := range m.revisions {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeVersions:
+		ids := make([]ent.Value, 0, len(m.versions))
+		for id := range m.versions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BlueprintMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 9)
+	if m.removedslots != nil {
+		edges = append(edges, blueprint.EdgeSlots)
+	}
+	if m.removedincludes != nil {
+		edges = append(edges, blueprint.EdgeIncludes)
+	}
+	if m.removedincluded_by != nil {
+		edges = append(edges, blueprint.EdgeIncludedBy)
+	}
+	if m.removedorigin_slots != nil {
+		edges = append(edges, blueprint.EdgeOriginSlots)
+	}
+	if m.removedchecks != nil {
+		edges = append(edges, blueprint.EdgeChecks)
+	}
+	if m.removedrevisions != nil {
+		edges = append(edges, blueprint.EdgeRevisions)
+	}
+	if m.removedversions != nil {
+		edges = append(edges, blueprint.EdgeVersions)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BlueprintMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case blueprint.EdgeSlots:
+		ids := make([]ent.Value, 0, len(m.removedslots))
+		for id := range m.removedslots {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeIncludes:
+		ids := make([]ent.Value, 0, len(m.removedincludes))
+		for id := range m.removedincludes {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeIncludedBy:
+		ids := make([]ent.Value, 0, len(m.removedincluded_by))
+		for id := range m.removedincluded_by {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeOriginSlots:
+		ids := make([]ent.Value, 0, len(m.removedorigin_slots))
+		for id := range m.removedorigin_slots {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeChecks:
+		ids := make([]ent.Value, 0, len(m.removedchecks))
+		for id := range m.removedchecks {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeRevisions:
+		ids := make([]ent.Value, 0, len(m.removedrevisions))
+		for id := range m.removedrevisions {
+			ids = append(ids, id)
+		}
+		return ids
+	case blueprint.EdgeVersions:
+		ids := make([]ent.Value, 0, len(m.removedversions))
+		for id := range m.removedversions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BlueprintMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 9)
+	if m.clearedteam {
+		edges = append(edges, blueprint.EdgeTeam)
+	}
+	if m.clearedslots {
+		edges = append(edges, blueprint.EdgeSlots)
+	}
+	if m.clearedincludes {
+		edges = append(edges, blueprint.EdgeIncludes)
+	}
+	if m.clearedincluded_by {
+		edges = append(edges, blueprint.EdgeIncludedBy)
+	}
+	if m.clearedorigin_slots {
+		edges = append(edges, blueprint.EdgeOriginSlots)
+	}
+	if m.clearedgoal {
+		edges = append(edges, blueprint.EdgeGoal)
+	}
+	if m.clearedchecks {
+		edges = append(edges, blueprint.EdgeChecks)
+	}
+	if m.clearedrevisions {
+		edges = append(edges, blueprint.EdgeRevisions)
+	}
+	if m.clearedversions {
+		edges = append(edges, blueprint.EdgeVersions)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BlueprintMutation) EdgeCleared(name string) bool {
+	switch name {
+	case blueprint.EdgeTeam:
+		return m.clearedteam
+	case blueprint.EdgeSlots:
+		return m.clearedslots
+	case blueprint.EdgeIncludes:
+		return m.clearedincludes
+	case blueprint.EdgeIncludedBy:
+		return m.clearedincluded_by
+	case blueprint.EdgeOriginSlots:
+		return m.clearedorigin_slots
+	case blueprint.EdgeGoal:
+		return m.clearedgoal
+	case blueprint.EdgeChecks:
+		return m.clearedchecks
+	case blueprint.EdgeRevisions:
+		return m.clearedrevisions
+	case blueprint.EdgeVersions:
+		return m.clearedversions
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BlueprintMutation) ClearEdge(name string) error {
+	switch name {
+	case blueprint.EdgeTeam:
+		m.ClearTeam()
+		return nil
+	case blueprint.EdgeGoal:
+		m.ClearGoal()
+		return nil
+	}
+	return fmt.Errorf("unknown Blueprint unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BlueprintMutation) ResetEdge(name string) error {
+	switch name {
+	case blueprint.EdgeTeam:
+		m.ResetTeam()
+		return nil
+	case blueprint.EdgeSlots:
+		m.ResetSlots()
+		return nil
+	case blueprint.EdgeIncludes:
+		m.ResetIncludes()
+		return nil
+	case blueprint.EdgeIncludedBy:
+		m.ResetIncludedBy()
+		return nil
+	case blueprint.EdgeOriginSlots:
+		m.ResetOriginSlots()
+		return nil
+	case blueprint.EdgeGoal:
+		m.ResetGoal()
+		return nil
+	case blueprint.EdgeChecks:
+		m.ResetChecks()
+		return nil
+	case blueprint.EdgeRevisions:
+		m.ResetRevisions()
+		return nil
+	case blueprint.EdgeVersions:
+		m.ResetVersions()
+		return nil
+	}
+	return fmt.Errorf("unknown Blueprint edge %s", name)
+}
+
+// BlueprintIncludeMutation represents an operation that mutates the BlueprintInclude nodes in the graph.
+type BlueprintIncludeMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *string
+	created_at             *time.Time
+	updated_at             *time.Time
+	track                  *blueprintinclude.Track
+	pinned_version_id      *string
+	position               *int
+	addposition            *int
+	clearedFields          map[string]struct{}
+	blueprint              *string
+	clearedblueprint       bool
+	child_blueprint        *string
+	clearedchild_blueprint bool
+	done                   bool
+	oldValue               func(context.Context) (*BlueprintInclude, error)
+	predicates             []predicate.BlueprintInclude
+}
+
+var _ ent.Mutation = (*BlueprintIncludeMutation)(nil)
+
+// blueprintincludeOption allows management of the mutation configuration using functional options.
+type blueprintincludeOption func(*BlueprintIncludeMutation)
+
+// newBlueprintIncludeMutation creates new mutation for the BlueprintInclude entity.
+func newBlueprintIncludeMutation(c config, op Op, opts ...blueprintincludeOption) *BlueprintIncludeMutation {
+	m := &BlueprintIncludeMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBlueprintInclude,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBlueprintIncludeID sets the ID field of the mutation.
+func withBlueprintIncludeID(id string) blueprintincludeOption {
+	return func(m *BlueprintIncludeMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BlueprintInclude
+		)
+		m.oldValue = func(ctx context.Context) (*BlueprintInclude, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BlueprintInclude.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBlueprintInclude sets the old BlueprintInclude of the mutation.
+func withBlueprintInclude(node *BlueprintInclude) blueprintincludeOption {
+	return func(m *BlueprintIncludeMutation) {
+		m.oldValue = func(context.Context) (*BlueprintInclude, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BlueprintIncludeMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BlueprintIncludeMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BlueprintInclude entities.
+func (m *BlueprintIncludeMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BlueprintIncludeMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BlueprintIncludeMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BlueprintInclude.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BlueprintIncludeMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BlueprintIncludeMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BlueprintInclude entity.
+// If the BlueprintInclude object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintIncludeMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BlueprintIncludeMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BlueprintIncludeMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BlueprintIncludeMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BlueprintInclude entity.
+// If the BlueprintInclude object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintIncludeMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BlueprintIncludeMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetBlueprintID sets the "blueprint_id" field.
+func (m *BlueprintIncludeMutation) SetBlueprintID(s string) {
+	m.blueprint = &s
+}
+
+// BlueprintID returns the value of the "blueprint_id" field in the mutation.
+func (m *BlueprintIncludeMutation) BlueprintID() (r string, exists bool) {
+	v := m.blueprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBlueprintID returns the old "blueprint_id" field's value of the BlueprintInclude entity.
+// If the BlueprintInclude object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintIncludeMutation) OldBlueprintID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBlueprintID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBlueprintID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBlueprintID: %w", err)
+	}
+	return oldValue.BlueprintID, nil
+}
+
+// ResetBlueprintID resets all changes to the "blueprint_id" field.
+func (m *BlueprintIncludeMutation) ResetBlueprintID() {
+	m.blueprint = nil
+}
+
+// SetChildBlueprintID sets the "child_blueprint_id" field.
+func (m *BlueprintIncludeMutation) SetChildBlueprintID(s string) {
+	m.child_blueprint = &s
+}
+
+// ChildBlueprintID returns the value of the "child_blueprint_id" field in the mutation.
+func (m *BlueprintIncludeMutation) ChildBlueprintID() (r string, exists bool) {
+	v := m.child_blueprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChildBlueprintID returns the old "child_blueprint_id" field's value of the BlueprintInclude entity.
+// If the BlueprintInclude object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintIncludeMutation) OldChildBlueprintID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChildBlueprintID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChildBlueprintID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChildBlueprintID: %w", err)
+	}
+	return oldValue.ChildBlueprintID, nil
+}
+
+// ResetChildBlueprintID resets all changes to the "child_blueprint_id" field.
+func (m *BlueprintIncludeMutation) ResetChildBlueprintID() {
+	m.child_blueprint = nil
+}
+
+// SetTrack sets the "track" field.
+func (m *BlueprintIncludeMutation) SetTrack(b blueprintinclude.Track) {
+	m.track = &b
+}
+
+// Track returns the value of the "track" field in the mutation.
+func (m *BlueprintIncludeMutation) Track() (r blueprintinclude.Track, exists bool) {
+	v := m.track
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrack returns the old "track" field's value of the BlueprintInclude entity.
+// If the BlueprintInclude object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintIncludeMutation) OldTrack(ctx context.Context) (v blueprintinclude.Track, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrack is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrack requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrack: %w", err)
+	}
+	return oldValue.Track, nil
+}
+
+// ResetTrack resets all changes to the "track" field.
+func (m *BlueprintIncludeMutation) ResetTrack() {
+	m.track = nil
+}
+
+// SetPinnedVersionID sets the "pinned_version_id" field.
+func (m *BlueprintIncludeMutation) SetPinnedVersionID(s string) {
+	m.pinned_version_id = &s
+}
+
+// PinnedVersionID returns the value of the "pinned_version_id" field in the mutation.
+func (m *BlueprintIncludeMutation) PinnedVersionID() (r string, exists bool) {
+	v := m.pinned_version_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPinnedVersionID returns the old "pinned_version_id" field's value of the BlueprintInclude entity.
+// If the BlueprintInclude object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintIncludeMutation) OldPinnedVersionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPinnedVersionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPinnedVersionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPinnedVersionID: %w", err)
+	}
+	return oldValue.PinnedVersionID, nil
+}
+
+// ClearPinnedVersionID clears the value of the "pinned_version_id" field.
+func (m *BlueprintIncludeMutation) ClearPinnedVersionID() {
+	m.pinned_version_id = nil
+	m.clearedFields[blueprintinclude.FieldPinnedVersionID] = struct{}{}
+}
+
+// PinnedVersionIDCleared returns if the "pinned_version_id" field was cleared in this mutation.
+func (m *BlueprintIncludeMutation) PinnedVersionIDCleared() bool {
+	_, ok := m.clearedFields[blueprintinclude.FieldPinnedVersionID]
+	return ok
+}
+
+// ResetPinnedVersionID resets all changes to the "pinned_version_id" field.
+func (m *BlueprintIncludeMutation) ResetPinnedVersionID() {
+	m.pinned_version_id = nil
+	delete(m.clearedFields, blueprintinclude.FieldPinnedVersionID)
+}
+
+// SetPosition sets the "position" field.
+func (m *BlueprintIncludeMutation) SetPosition(i int) {
+	m.position = &i
+	m.addposition = nil
+}
+
+// Position returns the value of the "position" field in the mutation.
+func (m *BlueprintIncludeMutation) Position() (r int, exists bool) {
+	v := m.position
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPosition returns the old "position" field's value of the BlueprintInclude entity.
+// If the BlueprintInclude object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintIncludeMutation) OldPosition(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPosition is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPosition requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPosition: %w", err)
+	}
+	return oldValue.Position, nil
+}
+
+// AddPosition adds i to the "position" field.
+func (m *BlueprintIncludeMutation) AddPosition(i int) {
+	if m.addposition != nil {
+		*m.addposition += i
+	} else {
+		m.addposition = &i
+	}
+}
+
+// AddedPosition returns the value that was added to the "position" field in this mutation.
+func (m *BlueprintIncludeMutation) AddedPosition() (r int, exists bool) {
+	v := m.addposition
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPosition resets all changes to the "position" field.
+func (m *BlueprintIncludeMutation) ResetPosition() {
+	m.position = nil
+	m.addposition = nil
+}
+
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (m *BlueprintIncludeMutation) ClearBlueprint() {
+	m.clearedblueprint = true
+	m.clearedFields[blueprintinclude.FieldBlueprintID] = struct{}{}
+}
+
+// BlueprintCleared reports if the "blueprint" edge to the Blueprint entity was cleared.
+func (m *BlueprintIncludeMutation) BlueprintCleared() bool {
+	return m.clearedblueprint
+}
+
+// BlueprintIDs returns the "blueprint" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BlueprintID instead. It exists only for internal usage by the builders.
+func (m *BlueprintIncludeMutation) BlueprintIDs() (ids []string) {
+	if id := m.blueprint; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBlueprint resets all changes to the "blueprint" edge.
+func (m *BlueprintIncludeMutation) ResetBlueprint() {
+	m.blueprint = nil
+	m.clearedblueprint = false
+}
+
+// ClearChildBlueprint clears the "child_blueprint" edge to the Blueprint entity.
+func (m *BlueprintIncludeMutation) ClearChildBlueprint() {
+	m.clearedchild_blueprint = true
+	m.clearedFields[blueprintinclude.FieldChildBlueprintID] = struct{}{}
+}
+
+// ChildBlueprintCleared reports if the "child_blueprint" edge to the Blueprint entity was cleared.
+func (m *BlueprintIncludeMutation) ChildBlueprintCleared() bool {
+	return m.clearedchild_blueprint
+}
+
+// ChildBlueprintIDs returns the "child_blueprint" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChildBlueprintID instead. It exists only for internal usage by the builders.
+func (m *BlueprintIncludeMutation) ChildBlueprintIDs() (ids []string) {
+	if id := m.child_blueprint; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetChildBlueprint resets all changes to the "child_blueprint" edge.
+func (m *BlueprintIncludeMutation) ResetChildBlueprint() {
+	m.child_blueprint = nil
+	m.clearedchild_blueprint = false
+}
+
+// Where appends a list predicates to the BlueprintIncludeMutation builder.
+func (m *BlueprintIncludeMutation) Where(ps ...predicate.BlueprintInclude) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BlueprintIncludeMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BlueprintIncludeMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BlueprintInclude, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BlueprintIncludeMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BlueprintIncludeMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BlueprintInclude).
+func (m *BlueprintIncludeMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BlueprintIncludeMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.created_at != nil {
+		fields = append(fields, blueprintinclude.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, blueprintinclude.FieldUpdatedAt)
+	}
+	if m.blueprint != nil {
+		fields = append(fields, blueprintinclude.FieldBlueprintID)
+	}
+	if m.child_blueprint != nil {
+		fields = append(fields, blueprintinclude.FieldChildBlueprintID)
+	}
+	if m.track != nil {
+		fields = append(fields, blueprintinclude.FieldTrack)
+	}
+	if m.pinned_version_id != nil {
+		fields = append(fields, blueprintinclude.FieldPinnedVersionID)
+	}
+	if m.position != nil {
+		fields = append(fields, blueprintinclude.FieldPosition)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BlueprintIncludeMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case blueprintinclude.FieldCreatedAt:
+		return m.CreatedAt()
+	case blueprintinclude.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case blueprintinclude.FieldBlueprintID:
+		return m.BlueprintID()
+	case blueprintinclude.FieldChildBlueprintID:
+		return m.ChildBlueprintID()
+	case blueprintinclude.FieldTrack:
+		return m.Track()
+	case blueprintinclude.FieldPinnedVersionID:
+		return m.PinnedVersionID()
+	case blueprintinclude.FieldPosition:
+		return m.Position()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BlueprintIncludeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case blueprintinclude.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case blueprintinclude.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case blueprintinclude.FieldBlueprintID:
+		return m.OldBlueprintID(ctx)
+	case blueprintinclude.FieldChildBlueprintID:
+		return m.OldChildBlueprintID(ctx)
+	case blueprintinclude.FieldTrack:
+		return m.OldTrack(ctx)
+	case blueprintinclude.FieldPinnedVersionID:
+		return m.OldPinnedVersionID(ctx)
+	case blueprintinclude.FieldPosition:
+		return m.OldPosition(ctx)
+	}
+	return nil, fmt.Errorf("unknown BlueprintInclude field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintIncludeMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case blueprintinclude.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case blueprintinclude.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case blueprintinclude.FieldBlueprintID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBlueprintID(v)
+		return nil
+	case blueprintinclude.FieldChildBlueprintID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChildBlueprintID(v)
+		return nil
+	case blueprintinclude.FieldTrack:
+		v, ok := value.(blueprintinclude.Track)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrack(v)
+		return nil
+	case blueprintinclude.FieldPinnedVersionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPinnedVersionID(v)
+		return nil
+	case blueprintinclude.FieldPosition:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPosition(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintInclude field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BlueprintIncludeMutation) AddedFields() []string {
+	var fields []string
+	if m.addposition != nil {
+		fields = append(fields, blueprintinclude.FieldPosition)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BlueprintIncludeMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case blueprintinclude.FieldPosition:
+		return m.AddedPosition()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintIncludeMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case blueprintinclude.FieldPosition:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPosition(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintInclude numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BlueprintIncludeMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(blueprintinclude.FieldPinnedVersionID) {
+		fields = append(fields, blueprintinclude.FieldPinnedVersionID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BlueprintIncludeMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BlueprintIncludeMutation) ClearField(name string) error {
+	switch name {
+	case blueprintinclude.FieldPinnedVersionID:
+		m.ClearPinnedVersionID()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintInclude nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BlueprintIncludeMutation) ResetField(name string) error {
+	switch name {
+	case blueprintinclude.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case blueprintinclude.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case blueprintinclude.FieldBlueprintID:
+		m.ResetBlueprintID()
+		return nil
+	case blueprintinclude.FieldChildBlueprintID:
+		m.ResetChildBlueprintID()
+		return nil
+	case blueprintinclude.FieldTrack:
+		m.ResetTrack()
+		return nil
+	case blueprintinclude.FieldPinnedVersionID:
+		m.ResetPinnedVersionID()
+		return nil
+	case blueprintinclude.FieldPosition:
+		m.ResetPosition()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintInclude field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BlueprintIncludeMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.blueprint != nil {
+		edges = append(edges, blueprintinclude.EdgeBlueprint)
+	}
+	if m.child_blueprint != nil {
+		edges = append(edges, blueprintinclude.EdgeChildBlueprint)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BlueprintIncludeMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case blueprintinclude.EdgeBlueprint:
+		if id := m.blueprint; id != nil {
+			return []ent.Value{*id}
+		}
+	case blueprintinclude.EdgeChildBlueprint:
+		if id := m.child_blueprint; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BlueprintIncludeMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BlueprintIncludeMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BlueprintIncludeMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedblueprint {
+		edges = append(edges, blueprintinclude.EdgeBlueprint)
+	}
+	if m.clearedchild_blueprint {
+		edges = append(edges, blueprintinclude.EdgeChildBlueprint)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BlueprintIncludeMutation) EdgeCleared(name string) bool {
+	switch name {
+	case blueprintinclude.EdgeBlueprint:
+		return m.clearedblueprint
+	case blueprintinclude.EdgeChildBlueprint:
+		return m.clearedchild_blueprint
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BlueprintIncludeMutation) ClearEdge(name string) error {
+	switch name {
+	case blueprintinclude.EdgeBlueprint:
+		m.ClearBlueprint()
+		return nil
+	case blueprintinclude.EdgeChildBlueprint:
+		m.ClearChildBlueprint()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintInclude unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BlueprintIncludeMutation) ResetEdge(name string) error {
+	switch name {
+	case blueprintinclude.EdgeBlueprint:
+		m.ResetBlueprint()
+		return nil
+	case blueprintinclude.EdgeChildBlueprint:
+		m.ResetChildBlueprint()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintInclude edge %s", name)
+}
+
+// BlueprintRevisionMutation represents an operation that mutates the BlueprintRevision nodes in the graph.
+type BlueprintRevisionMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	created_at       *time.Time
+	seq              *int
+	addseq           *int
+	action           *string
+	slot_key         *string
+	summary          *string
+	snapshot         *map[string]interface{}
+	yaml             *string
+	clearedFields    map[string]struct{}
+	blueprint        *string
+	clearedblueprint bool
+	actor            *string
+	clearedactor     bool
+	done             bool
+	oldValue         func(context.Context) (*BlueprintRevision, error)
+	predicates       []predicate.BlueprintRevision
+}
+
+var _ ent.Mutation = (*BlueprintRevisionMutation)(nil)
+
+// blueprintrevisionOption allows management of the mutation configuration using functional options.
+type blueprintrevisionOption func(*BlueprintRevisionMutation)
+
+// newBlueprintRevisionMutation creates new mutation for the BlueprintRevision entity.
+func newBlueprintRevisionMutation(c config, op Op, opts ...blueprintrevisionOption) *BlueprintRevisionMutation {
+	m := &BlueprintRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBlueprintRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBlueprintRevisionID sets the ID field of the mutation.
+func withBlueprintRevisionID(id string) blueprintrevisionOption {
+	return func(m *BlueprintRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BlueprintRevision
+		)
+		m.oldValue = func(ctx context.Context) (*BlueprintRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BlueprintRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBlueprintRevision sets the old BlueprintRevision of the mutation.
+func withBlueprintRevision(node *BlueprintRevision) blueprintrevisionOption {
+	return func(m *BlueprintRevisionMutation) {
+		m.oldValue = func(context.Context) (*BlueprintRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BlueprintRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BlueprintRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BlueprintRevision entities.
+func (m *BlueprintRevisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BlueprintRevisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BlueprintRevisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BlueprintRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BlueprintRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BlueprintRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BlueprintRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetBlueprintID sets the "blueprint_id" field.
+func (m *BlueprintRevisionMutation) SetBlueprintID(s string) {
+	m.blueprint = &s
+}
+
+// BlueprintID returns the value of the "blueprint_id" field in the mutation.
+func (m *BlueprintRevisionMutation) BlueprintID() (r string, exists bool) {
+	v := m.blueprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBlueprintID returns the old "blueprint_id" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldBlueprintID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBlueprintID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBlueprintID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBlueprintID: %w", err)
+	}
+	return oldValue.BlueprintID, nil
+}
+
+// ResetBlueprintID resets all changes to the "blueprint_id" field.
+func (m *BlueprintRevisionMutation) ResetBlueprintID() {
+	m.blueprint = nil
+}
+
+// SetSeq sets the "seq" field.
+func (m *BlueprintRevisionMutation) SetSeq(i int) {
+	m.seq = &i
+	m.addseq = nil
+}
+
+// Seq returns the value of the "seq" field in the mutation.
+func (m *BlueprintRevisionMutation) Seq() (r int, exists bool) {
+	v := m.seq
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSeq returns the old "seq" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldSeq(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSeq is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSeq requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSeq: %w", err)
+	}
+	return oldValue.Seq, nil
+}
+
+// AddSeq adds i to the "seq" field.
+func (m *BlueprintRevisionMutation) AddSeq(i int) {
+	if m.addseq != nil {
+		*m.addseq += i
+	} else {
+		m.addseq = &i
+	}
+}
+
+// AddedSeq returns the value that was added to the "seq" field in this mutation.
+func (m *BlueprintRevisionMutation) AddedSeq() (r int, exists bool) {
+	v := m.addseq
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSeq resets all changes to the "seq" field.
+func (m *BlueprintRevisionMutation) ResetSeq() {
+	m.seq = nil
+	m.addseq = nil
+}
+
+// SetActorUserID sets the "actor_user_id" field.
+func (m *BlueprintRevisionMutation) SetActorUserID(s string) {
+	m.actor = &s
+}
+
+// ActorUserID returns the value of the "actor_user_id" field in the mutation.
+func (m *BlueprintRevisionMutation) ActorUserID() (r string, exists bool) {
+	v := m.actor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorUserID returns the old "actor_user_id" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldActorUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorUserID: %w", err)
+	}
+	return oldValue.ActorUserID, nil
+}
+
+// ClearActorUserID clears the value of the "actor_user_id" field.
+func (m *BlueprintRevisionMutation) ClearActorUserID() {
+	m.actor = nil
+	m.clearedFields[blueprintrevision.FieldActorUserID] = struct{}{}
+}
+
+// ActorUserIDCleared returns if the "actor_user_id" field was cleared in this mutation.
+func (m *BlueprintRevisionMutation) ActorUserIDCleared() bool {
+	_, ok := m.clearedFields[blueprintrevision.FieldActorUserID]
+	return ok
+}
+
+// ResetActorUserID resets all changes to the "actor_user_id" field.
+func (m *BlueprintRevisionMutation) ResetActorUserID() {
+	m.actor = nil
+	delete(m.clearedFields, blueprintrevision.FieldActorUserID)
+}
+
+// SetAction sets the "action" field.
+func (m *BlueprintRevisionMutation) SetAction(s string) {
+	m.action = &s
+}
+
+// Action returns the value of the "action" field in the mutation.
+func (m *BlueprintRevisionMutation) Action() (r string, exists bool) {
+	v := m.action
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAction returns the old "action" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldAction(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAction is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAction requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAction: %w", err)
+	}
+	return oldValue.Action, nil
+}
+
+// ResetAction resets all changes to the "action" field.
+func (m *BlueprintRevisionMutation) ResetAction() {
+	m.action = nil
+}
+
+// SetSlotKey sets the "slot_key" field.
+func (m *BlueprintRevisionMutation) SetSlotKey(s string) {
+	m.slot_key = &s
+}
+
+// SlotKey returns the value of the "slot_key" field in the mutation.
+func (m *BlueprintRevisionMutation) SlotKey() (r string, exists bool) {
+	v := m.slot_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlotKey returns the old "slot_key" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldSlotKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlotKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlotKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlotKey: %w", err)
+	}
+	return oldValue.SlotKey, nil
+}
+
+// ClearSlotKey clears the value of the "slot_key" field.
+func (m *BlueprintRevisionMutation) ClearSlotKey() {
+	m.slot_key = nil
+	m.clearedFields[blueprintrevision.FieldSlotKey] = struct{}{}
+}
+
+// SlotKeyCleared returns if the "slot_key" field was cleared in this mutation.
+func (m *BlueprintRevisionMutation) SlotKeyCleared() bool {
+	_, ok := m.clearedFields[blueprintrevision.FieldSlotKey]
+	return ok
+}
+
+// ResetSlotKey resets all changes to the "slot_key" field.
+func (m *BlueprintRevisionMutation) ResetSlotKey() {
+	m.slot_key = nil
+	delete(m.clearedFields, blueprintrevision.FieldSlotKey)
+}
+
+// SetSummary sets the "summary" field.
+func (m *BlueprintRevisionMutation) SetSummary(s string) {
+	m.summary = &s
+}
+
+// Summary returns the value of the "summary" field in the mutation.
+func (m *BlueprintRevisionMutation) Summary() (r string, exists bool) {
+	v := m.summary
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSummary returns the old "summary" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldSummary(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSummary is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSummary requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSummary: %w", err)
+	}
+	return oldValue.Summary, nil
+}
+
+// ResetSummary resets all changes to the "summary" field.
+func (m *BlueprintRevisionMutation) ResetSummary() {
+	m.summary = nil
+}
+
+// SetSnapshot sets the "snapshot" field.
+func (m *BlueprintRevisionMutation) SetSnapshot(value map[string]interface{}) {
+	m.snapshot = &value
+}
+
+// Snapshot returns the value of the "snapshot" field in the mutation.
+func (m *BlueprintRevisionMutation) Snapshot() (r map[string]interface{}, exists bool) {
+	v := m.snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshot returns the old "snapshot" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldSnapshot(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
+	}
+	return oldValue.Snapshot, nil
+}
+
+// ResetSnapshot resets all changes to the "snapshot" field.
+func (m *BlueprintRevisionMutation) ResetSnapshot() {
+	m.snapshot = nil
+}
+
+// SetYaml sets the "yaml" field.
+func (m *BlueprintRevisionMutation) SetYaml(s string) {
+	m.yaml = &s
+}
+
+// Yaml returns the value of the "yaml" field in the mutation.
+func (m *BlueprintRevisionMutation) Yaml() (r string, exists bool) {
+	v := m.yaml
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldYaml returns the old "yaml" field's value of the BlueprintRevision entity.
+// If the BlueprintRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintRevisionMutation) OldYaml(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldYaml is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldYaml requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldYaml: %w", err)
+	}
+	return oldValue.Yaml, nil
+}
+
+// ResetYaml resets all changes to the "yaml" field.
+func (m *BlueprintRevisionMutation) ResetYaml() {
+	m.yaml = nil
+}
+
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (m *BlueprintRevisionMutation) ClearBlueprint() {
+	m.clearedblueprint = true
+	m.clearedFields[blueprintrevision.FieldBlueprintID] = struct{}{}
+}
+
+// BlueprintCleared reports if the "blueprint" edge to the Blueprint entity was cleared.
+func (m *BlueprintRevisionMutation) BlueprintCleared() bool {
+	return m.clearedblueprint
+}
+
+// BlueprintIDs returns the "blueprint" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BlueprintID instead. It exists only for internal usage by the builders.
+func (m *BlueprintRevisionMutation) BlueprintIDs() (ids []string) {
+	if id := m.blueprint; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBlueprint resets all changes to the "blueprint" edge.
+func (m *BlueprintRevisionMutation) ResetBlueprint() {
+	m.blueprint = nil
+	m.clearedblueprint = false
+}
+
+// SetActorID sets the "actor" edge to the User entity by id.
+func (m *BlueprintRevisionMutation) SetActorID(id string) {
+	m.actor = &id
+}
+
+// ClearActor clears the "actor" edge to the User entity.
+func (m *BlueprintRevisionMutation) ClearActor() {
+	m.clearedactor = true
+	m.clearedFields[blueprintrevision.FieldActorUserID] = struct{}{}
+}
+
+// ActorCleared reports if the "actor" edge to the User entity was cleared.
+func (m *BlueprintRevisionMutation) ActorCleared() bool {
+	return m.ActorUserIDCleared() || m.clearedactor
+}
+
+// ActorID returns the "actor" edge ID in the mutation.
+func (m *BlueprintRevisionMutation) ActorID() (id string, exists bool) {
+	if m.actor != nil {
+		return *m.actor, true
+	}
+	return
+}
+
+// ActorIDs returns the "actor" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ActorID instead. It exists only for internal usage by the builders.
+func (m *BlueprintRevisionMutation) ActorIDs() (ids []string) {
+	if id := m.actor; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetActor resets all changes to the "actor" edge.
+func (m *BlueprintRevisionMutation) ResetActor() {
+	m.actor = nil
+	m.clearedactor = false
+}
+
+// Where appends a list predicates to the BlueprintRevisionMutation builder.
+func (m *BlueprintRevisionMutation) Where(ps ...predicate.BlueprintRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BlueprintRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BlueprintRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BlueprintRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BlueprintRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BlueprintRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BlueprintRevision).
+func (m *BlueprintRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BlueprintRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.created_at != nil {
+		fields = append(fields, blueprintrevision.FieldCreatedAt)
+	}
+	if m.blueprint != nil {
+		fields = append(fields, blueprintrevision.FieldBlueprintID)
+	}
+	if m.seq != nil {
+		fields = append(fields, blueprintrevision.FieldSeq)
+	}
+	if m.actor != nil {
+		fields = append(fields, blueprintrevision.FieldActorUserID)
+	}
+	if m.action != nil {
+		fields = append(fields, blueprintrevision.FieldAction)
+	}
+	if m.slot_key != nil {
+		fields = append(fields, blueprintrevision.FieldSlotKey)
+	}
+	if m.summary != nil {
+		fields = append(fields, blueprintrevision.FieldSummary)
+	}
+	if m.snapshot != nil {
+		fields = append(fields, blueprintrevision.FieldSnapshot)
+	}
+	if m.yaml != nil {
+		fields = append(fields, blueprintrevision.FieldYaml)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BlueprintRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case blueprintrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	case blueprintrevision.FieldBlueprintID:
+		return m.BlueprintID()
+	case blueprintrevision.FieldSeq:
+		return m.Seq()
+	case blueprintrevision.FieldActorUserID:
+		return m.ActorUserID()
+	case blueprintrevision.FieldAction:
+		return m.Action()
+	case blueprintrevision.FieldSlotKey:
+		return m.SlotKey()
+	case blueprintrevision.FieldSummary:
+		return m.Summary()
+	case blueprintrevision.FieldSnapshot:
+		return m.Snapshot()
+	case blueprintrevision.FieldYaml:
+		return m.Yaml()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BlueprintRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case blueprintrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case blueprintrevision.FieldBlueprintID:
+		return m.OldBlueprintID(ctx)
+	case blueprintrevision.FieldSeq:
+		return m.OldSeq(ctx)
+	case blueprintrevision.FieldActorUserID:
+		return m.OldActorUserID(ctx)
+	case blueprintrevision.FieldAction:
+		return m.OldAction(ctx)
+	case blueprintrevision.FieldSlotKey:
+		return m.OldSlotKey(ctx)
+	case blueprintrevision.FieldSummary:
+		return m.OldSummary(ctx)
+	case blueprintrevision.FieldSnapshot:
+		return m.OldSnapshot(ctx)
+	case blueprintrevision.FieldYaml:
+		return m.OldYaml(ctx)
+	}
+	return nil, fmt.Errorf("unknown BlueprintRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case blueprintrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case blueprintrevision.FieldBlueprintID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBlueprintID(v)
+		return nil
+	case blueprintrevision.FieldSeq:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSeq(v)
+		return nil
+	case blueprintrevision.FieldActorUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorUserID(v)
+		return nil
+	case blueprintrevision.FieldAction:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAction(v)
+		return nil
+	case blueprintrevision.FieldSlotKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlotKey(v)
+		return nil
+	case blueprintrevision.FieldSummary:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSummary(v)
+		return nil
+	case blueprintrevision.FieldSnapshot:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshot(v)
+		return nil
+	case blueprintrevision.FieldYaml:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetYaml(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BlueprintRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addseq != nil {
+		fields = append(fields, blueprintrevision.FieldSeq)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BlueprintRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case blueprintrevision.FieldSeq:
+		return m.AddedSeq()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case blueprintrevision.FieldSeq:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSeq(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BlueprintRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(blueprintrevision.FieldActorUserID) {
+		fields = append(fields, blueprintrevision.FieldActorUserID)
+	}
+	if m.FieldCleared(blueprintrevision.FieldSlotKey) {
+		fields = append(fields, blueprintrevision.FieldSlotKey)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BlueprintRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BlueprintRevisionMutation) ClearField(name string) error {
+	switch name {
+	case blueprintrevision.FieldActorUserID:
+		m.ClearActorUserID()
+		return nil
+	case blueprintrevision.FieldSlotKey:
+		m.ClearSlotKey()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BlueprintRevisionMutation) ResetField(name string) error {
+	switch name {
+	case blueprintrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case blueprintrevision.FieldBlueprintID:
+		m.ResetBlueprintID()
+		return nil
+	case blueprintrevision.FieldSeq:
+		m.ResetSeq()
+		return nil
+	case blueprintrevision.FieldActorUserID:
+		m.ResetActorUserID()
+		return nil
+	case blueprintrevision.FieldAction:
+		m.ResetAction()
+		return nil
+	case blueprintrevision.FieldSlotKey:
+		m.ResetSlotKey()
+		return nil
+	case blueprintrevision.FieldSummary:
+		m.ResetSummary()
+		return nil
+	case blueprintrevision.FieldSnapshot:
+		m.ResetSnapshot()
+		return nil
+	case blueprintrevision.FieldYaml:
+		m.ResetYaml()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BlueprintRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.blueprint != nil {
+		edges = append(edges, blueprintrevision.EdgeBlueprint)
+	}
+	if m.actor != nil {
+		edges = append(edges, blueprintrevision.EdgeActor)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BlueprintRevisionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case blueprintrevision.EdgeBlueprint:
+		if id := m.blueprint; id != nil {
+			return []ent.Value{*id}
+		}
+	case blueprintrevision.EdgeActor:
+		if id := m.actor; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BlueprintRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BlueprintRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BlueprintRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedblueprint {
+		edges = append(edges, blueprintrevision.EdgeBlueprint)
+	}
+	if m.clearedactor {
+		edges = append(edges, blueprintrevision.EdgeActor)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BlueprintRevisionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case blueprintrevision.EdgeBlueprint:
+		return m.clearedblueprint
+	case blueprintrevision.EdgeActor:
+		return m.clearedactor
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BlueprintRevisionMutation) ClearEdge(name string) error {
+	switch name {
+	case blueprintrevision.EdgeBlueprint:
+		m.ClearBlueprint()
+		return nil
+	case blueprintrevision.EdgeActor:
+		m.ClearActor()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BlueprintRevisionMutation) ResetEdge(name string) error {
+	switch name {
+	case blueprintrevision.EdgeBlueprint:
+		m.ResetBlueprint()
+		return nil
+	case blueprintrevision.EdgeActor:
+		m.ResetActor()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintRevision edge %s", name)
+}
+
+// BlueprintVersionMutation represents an operation that mutates the BlueprintVersion nodes in the graph.
+type BlueprintVersionMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	created_at       *time.Time
+	version          *int
+	addversion       *int
+	repository       *string
+	digest           *string
+	yaml             *string
+	published_by     *string
+	clearedFields    map[string]struct{}
+	blueprint        *string
+	clearedblueprint bool
+	done             bool
+	oldValue         func(context.Context) (*BlueprintVersion, error)
+	predicates       []predicate.BlueprintVersion
+}
+
+var _ ent.Mutation = (*BlueprintVersionMutation)(nil)
+
+// blueprintversionOption allows management of the mutation configuration using functional options.
+type blueprintversionOption func(*BlueprintVersionMutation)
+
+// newBlueprintVersionMutation creates new mutation for the BlueprintVersion entity.
+func newBlueprintVersionMutation(c config, op Op, opts ...blueprintversionOption) *BlueprintVersionMutation {
+	m := &BlueprintVersionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBlueprintVersion,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBlueprintVersionID sets the ID field of the mutation.
+func withBlueprintVersionID(id string) blueprintversionOption {
+	return func(m *BlueprintVersionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BlueprintVersion
+		)
+		m.oldValue = func(ctx context.Context) (*BlueprintVersion, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BlueprintVersion.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBlueprintVersion sets the old BlueprintVersion of the mutation.
+func withBlueprintVersion(node *BlueprintVersion) blueprintversionOption {
+	return func(m *BlueprintVersionMutation) {
+		m.oldValue = func(context.Context) (*BlueprintVersion, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BlueprintVersionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BlueprintVersionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BlueprintVersion entities.
+func (m *BlueprintVersionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BlueprintVersionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BlueprintVersionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BlueprintVersion.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BlueprintVersionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BlueprintVersionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BlueprintVersion entity.
+// If the BlueprintVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintVersionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BlueprintVersionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetBlueprintID sets the "blueprint_id" field.
+func (m *BlueprintVersionMutation) SetBlueprintID(s string) {
+	m.blueprint = &s
+}
+
+// BlueprintID returns the value of the "blueprint_id" field in the mutation.
+func (m *BlueprintVersionMutation) BlueprintID() (r string, exists bool) {
+	v := m.blueprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBlueprintID returns the old "blueprint_id" field's value of the BlueprintVersion entity.
+// If the BlueprintVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintVersionMutation) OldBlueprintID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBlueprintID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBlueprintID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBlueprintID: %w", err)
+	}
+	return oldValue.BlueprintID, nil
+}
+
+// ResetBlueprintID resets all changes to the "blueprint_id" field.
+func (m *BlueprintVersionMutation) ResetBlueprintID() {
+	m.blueprint = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *BlueprintVersionMutation) SetVersion(i int) {
+	m.version = &i
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *BlueprintVersionMutation) Version() (r int, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the BlueprintVersion entity.
+// If the BlueprintVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintVersionMutation) OldVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds i to the "version" field.
+func (m *BlueprintVersionMutation) AddVersion(i int) {
+	if m.addversion != nil {
+		*m.addversion += i
+	} else {
+		m.addversion = &i
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *BlueprintVersionMutation) AddedVersion() (r int, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *BlueprintVersionMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
+}
+
+// SetRepository sets the "repository" field.
+func (m *BlueprintVersionMutation) SetRepository(s string) {
+	m.repository = &s
+}
+
+// Repository returns the value of the "repository" field in the mutation.
+func (m *BlueprintVersionMutation) Repository() (r string, exists bool) {
+	v := m.repository
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRepository returns the old "repository" field's value of the BlueprintVersion entity.
+// If the BlueprintVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintVersionMutation) OldRepository(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRepository is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRepository requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRepository: %w", err)
+	}
+	return oldValue.Repository, nil
+}
+
+// ResetRepository resets all changes to the "repository" field.
+func (m *BlueprintVersionMutation) ResetRepository() {
+	m.repository = nil
+}
+
+// SetDigest sets the "digest" field.
+func (m *BlueprintVersionMutation) SetDigest(s string) {
+	m.digest = &s
+}
+
+// Digest returns the value of the "digest" field in the mutation.
+func (m *BlueprintVersionMutation) Digest() (r string, exists bool) {
+	v := m.digest
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDigest returns the old "digest" field's value of the BlueprintVersion entity.
+// If the BlueprintVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintVersionMutation) OldDigest(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDigest is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDigest requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDigest: %w", err)
+	}
+	return oldValue.Digest, nil
+}
+
+// ResetDigest resets all changes to the "digest" field.
+func (m *BlueprintVersionMutation) ResetDigest() {
+	m.digest = nil
+}
+
+// SetYaml sets the "yaml" field.
+func (m *BlueprintVersionMutation) SetYaml(s string) {
+	m.yaml = &s
+}
+
+// Yaml returns the value of the "yaml" field in the mutation.
+func (m *BlueprintVersionMutation) Yaml() (r string, exists bool) {
+	v := m.yaml
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldYaml returns the old "yaml" field's value of the BlueprintVersion entity.
+// If the BlueprintVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintVersionMutation) OldYaml(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldYaml is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldYaml requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldYaml: %w", err)
+	}
+	return oldValue.Yaml, nil
+}
+
+// ResetYaml resets all changes to the "yaml" field.
+func (m *BlueprintVersionMutation) ResetYaml() {
+	m.yaml = nil
+}
+
+// SetPublishedBy sets the "published_by" field.
+func (m *BlueprintVersionMutation) SetPublishedBy(s string) {
+	m.published_by = &s
+}
+
+// PublishedBy returns the value of the "published_by" field in the mutation.
+func (m *BlueprintVersionMutation) PublishedBy() (r string, exists bool) {
+	v := m.published_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPublishedBy returns the old "published_by" field's value of the BlueprintVersion entity.
+// If the BlueprintVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BlueprintVersionMutation) OldPublishedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPublishedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPublishedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPublishedBy: %w", err)
+	}
+	return oldValue.PublishedBy, nil
+}
+
+// ClearPublishedBy clears the value of the "published_by" field.
+func (m *BlueprintVersionMutation) ClearPublishedBy() {
+	m.published_by = nil
+	m.clearedFields[blueprintversion.FieldPublishedBy] = struct{}{}
+}
+
+// PublishedByCleared returns if the "published_by" field was cleared in this mutation.
+func (m *BlueprintVersionMutation) PublishedByCleared() bool {
+	_, ok := m.clearedFields[blueprintversion.FieldPublishedBy]
+	return ok
+}
+
+// ResetPublishedBy resets all changes to the "published_by" field.
+func (m *BlueprintVersionMutation) ResetPublishedBy() {
+	m.published_by = nil
+	delete(m.clearedFields, blueprintversion.FieldPublishedBy)
+}
+
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (m *BlueprintVersionMutation) ClearBlueprint() {
+	m.clearedblueprint = true
+	m.clearedFields[blueprintversion.FieldBlueprintID] = struct{}{}
+}
+
+// BlueprintCleared reports if the "blueprint" edge to the Blueprint entity was cleared.
+func (m *BlueprintVersionMutation) BlueprintCleared() bool {
+	return m.clearedblueprint
+}
+
+// BlueprintIDs returns the "blueprint" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BlueprintID instead. It exists only for internal usage by the builders.
+func (m *BlueprintVersionMutation) BlueprintIDs() (ids []string) {
+	if id := m.blueprint; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBlueprint resets all changes to the "blueprint" edge.
+func (m *BlueprintVersionMutation) ResetBlueprint() {
+	m.blueprint = nil
+	m.clearedblueprint = false
+}
+
+// Where appends a list predicates to the BlueprintVersionMutation builder.
+func (m *BlueprintVersionMutation) Where(ps ...predicate.BlueprintVersion) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BlueprintVersionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BlueprintVersionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BlueprintVersion, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BlueprintVersionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BlueprintVersionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BlueprintVersion).
+func (m *BlueprintVersionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BlueprintVersionMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.created_at != nil {
+		fields = append(fields, blueprintversion.FieldCreatedAt)
+	}
+	if m.blueprint != nil {
+		fields = append(fields, blueprintversion.FieldBlueprintID)
+	}
+	if m.version != nil {
+		fields = append(fields, blueprintversion.FieldVersion)
+	}
+	if m.repository != nil {
+		fields = append(fields, blueprintversion.FieldRepository)
+	}
+	if m.digest != nil {
+		fields = append(fields, blueprintversion.FieldDigest)
+	}
+	if m.yaml != nil {
+		fields = append(fields, blueprintversion.FieldYaml)
+	}
+	if m.published_by != nil {
+		fields = append(fields, blueprintversion.FieldPublishedBy)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BlueprintVersionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case blueprintversion.FieldCreatedAt:
+		return m.CreatedAt()
+	case blueprintversion.FieldBlueprintID:
+		return m.BlueprintID()
+	case blueprintversion.FieldVersion:
+		return m.Version()
+	case blueprintversion.FieldRepository:
+		return m.Repository()
+	case blueprintversion.FieldDigest:
+		return m.Digest()
+	case blueprintversion.FieldYaml:
+		return m.Yaml()
+	case blueprintversion.FieldPublishedBy:
+		return m.PublishedBy()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BlueprintVersionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case blueprintversion.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case blueprintversion.FieldBlueprintID:
+		return m.OldBlueprintID(ctx)
+	case blueprintversion.FieldVersion:
+		return m.OldVersion(ctx)
+	case blueprintversion.FieldRepository:
+		return m.OldRepository(ctx)
+	case blueprintversion.FieldDigest:
+		return m.OldDigest(ctx)
+	case blueprintversion.FieldYaml:
+		return m.OldYaml(ctx)
+	case blueprintversion.FieldPublishedBy:
+		return m.OldPublishedBy(ctx)
+	}
+	return nil, fmt.Errorf("unknown BlueprintVersion field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintVersionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case blueprintversion.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case blueprintversion.FieldBlueprintID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBlueprintID(v)
+		return nil
+	case blueprintversion.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	case blueprintversion.FieldRepository:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRepository(v)
+		return nil
+	case blueprintversion.FieldDigest:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDigest(v)
+		return nil
+	case blueprintversion.FieldYaml:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetYaml(v)
+		return nil
+	case blueprintversion.FieldPublishedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPublishedBy(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintVersion field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BlueprintVersionMutation) AddedFields() []string {
+	var fields []string
+	if m.addversion != nil {
+		fields = append(fields, blueprintversion.FieldVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BlueprintVersionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case blueprintversion.FieldVersion:
+		return m.AddedVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BlueprintVersionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case blueprintversion.FieldVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintVersion numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BlueprintVersionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(blueprintversion.FieldPublishedBy) {
+		fields = append(fields, blueprintversion.FieldPublishedBy)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BlueprintVersionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BlueprintVersionMutation) ClearField(name string) error {
+	switch name {
+	case blueprintversion.FieldPublishedBy:
+		m.ClearPublishedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintVersion nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BlueprintVersionMutation) ResetField(name string) error {
+	switch name {
+	case blueprintversion.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case blueprintversion.FieldBlueprintID:
+		m.ResetBlueprintID()
+		return nil
+	case blueprintversion.FieldVersion:
+		m.ResetVersion()
+		return nil
+	case blueprintversion.FieldRepository:
+		m.ResetRepository()
+		return nil
+	case blueprintversion.FieldDigest:
+		m.ResetDigest()
+		return nil
+	case blueprintversion.FieldYaml:
+		m.ResetYaml()
+		return nil
+	case blueprintversion.FieldPublishedBy:
+		m.ResetPublishedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintVersion field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BlueprintVersionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.blueprint != nil {
+		edges = append(edges, blueprintversion.EdgeBlueprint)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BlueprintVersionMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case blueprintversion.EdgeBlueprint:
+		if id := m.blueprint; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BlueprintVersionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BlueprintVersionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BlueprintVersionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedblueprint {
+		edges = append(edges, blueprintversion.EdgeBlueprint)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BlueprintVersionMutation) EdgeCleared(name string) bool {
+	switch name {
+	case blueprintversion.EdgeBlueprint:
+		return m.clearedblueprint
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BlueprintVersionMutation) ClearEdge(name string) error {
+	switch name {
+	case blueprintversion.EdgeBlueprint:
+		m.ClearBlueprint()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintVersion unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BlueprintVersionMutation) ResetEdge(name string) error {
+	switch name {
+	case blueprintversion.EdgeBlueprint:
+		m.ResetBlueprint()
+		return nil
+	}
+	return fmt.Errorf("unknown BlueprintVersion edge %s", name)
+}
+
 // CheckMutation represents an operation that mutates the Check nodes in the graph.
 type CheckMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	label         *string
-	_type         *check.Type
-	spec          *map[string]interface{}
-	expect        *check.Expect
-	position      *int
-	addposition   *int
-	authored_by   *check.AuthoredBy
-	clearedFields map[string]struct{}
-	kit           *string
-	clearedkit    bool
-	done          bool
-	oldValue      func(context.Context) (*Check, error)
-	predicates    []predicate.Check
+	op               Op
+	typ              string
+	id               *string
+	created_at       *time.Time
+	updated_at       *time.Time
+	label            *string
+	_type            *check.Type
+	spec             *map[string]interface{}
+	expect           *check.Expect
+	position         *int
+	addposition      *int
+	authored_by      *check.AuthoredBy
+	clearedFields    map[string]struct{}
+	blueprint        *string
+	clearedblueprint bool
+	done             bool
+	oldValue         func(context.Context) (*Check, error)
+	predicates       []predicate.Check
 }
 
 var _ ent.Mutation = (*CheckMutation)(nil)
@@ -5757,40 +9850,40 @@ func (m *CheckMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetKitID sets the "kit_id" field.
-func (m *CheckMutation) SetKitID(s string) {
-	m.kit = &s
+// SetBlueprintID sets the "blueprint_id" field.
+func (m *CheckMutation) SetBlueprintID(s string) {
+	m.blueprint = &s
 }
 
-// KitID returns the value of the "kit_id" field in the mutation.
-func (m *CheckMutation) KitID() (r string, exists bool) {
-	v := m.kit
+// BlueprintID returns the value of the "blueprint_id" field in the mutation.
+func (m *CheckMutation) BlueprintID() (r string, exists bool) {
+	v := m.blueprint
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldKitID returns the old "kit_id" field's value of the Check entity.
+// OldBlueprintID returns the old "blueprint_id" field's value of the Check entity.
 // If the Check object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CheckMutation) OldKitID(ctx context.Context) (v string, err error) {
+func (m *CheckMutation) OldBlueprintID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
+		return v, errors.New("OldBlueprintID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKitID requires an ID field in the mutation")
+		return v, errors.New("OldBlueprintID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
+		return v, fmt.Errorf("querying old value for OldBlueprintID: %w", err)
 	}
-	return oldValue.KitID, nil
+	return oldValue.BlueprintID, nil
 }
 
-// ResetKitID resets all changes to the "kit_id" field.
-func (m *CheckMutation) ResetKitID() {
-	m.kit = nil
+// ResetBlueprintID resets all changes to the "blueprint_id" field.
+func (m *CheckMutation) ResetBlueprintID() {
+	m.blueprint = nil
 }
 
 // SetLabel sets the "label" field.
@@ -6029,31 +10122,31 @@ func (m *CheckMutation) ResetAuthoredBy() {
 	m.authored_by = nil
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (m *CheckMutation) ClearKit() {
-	m.clearedkit = true
-	m.clearedFields[check.FieldKitID] = struct{}{}
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (m *CheckMutation) ClearBlueprint() {
+	m.clearedblueprint = true
+	m.clearedFields[check.FieldBlueprintID] = struct{}{}
 }
 
-// KitCleared reports if the "kit" edge to the Kit entity was cleared.
-func (m *CheckMutation) KitCleared() bool {
-	return m.clearedkit
+// BlueprintCleared reports if the "blueprint" edge to the Blueprint entity was cleared.
+func (m *CheckMutation) BlueprintCleared() bool {
+	return m.clearedblueprint
 }
 
-// KitIDs returns the "kit" edge IDs in the mutation.
+// BlueprintIDs returns the "blueprint" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// KitID instead. It exists only for internal usage by the builders.
-func (m *CheckMutation) KitIDs() (ids []string) {
-	if id := m.kit; id != nil {
+// BlueprintID instead. It exists only for internal usage by the builders.
+func (m *CheckMutation) BlueprintIDs() (ids []string) {
+	if id := m.blueprint; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetKit resets all changes to the "kit" edge.
-func (m *CheckMutation) ResetKit() {
-	m.kit = nil
-	m.clearedkit = false
+// ResetBlueprint resets all changes to the "blueprint" edge.
+func (m *CheckMutation) ResetBlueprint() {
+	m.blueprint = nil
+	m.clearedblueprint = false
 }
 
 // Where appends a list predicates to the CheckMutation builder.
@@ -6097,8 +10190,8 @@ func (m *CheckMutation) Fields() []string {
 	if m.updated_at != nil {
 		fields = append(fields, check.FieldUpdatedAt)
 	}
-	if m.kit != nil {
-		fields = append(fields, check.FieldKitID)
+	if m.blueprint != nil {
+		fields = append(fields, check.FieldBlueprintID)
 	}
 	if m.label != nil {
 		fields = append(fields, check.FieldLabel)
@@ -6130,8 +10223,8 @@ func (m *CheckMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case check.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case check.FieldKitID:
-		return m.KitID()
+	case check.FieldBlueprintID:
+		return m.BlueprintID()
 	case check.FieldLabel:
 		return m.Label()
 	case check.FieldType:
@@ -6157,8 +10250,8 @@ func (m *CheckMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldCreatedAt(ctx)
 	case check.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case check.FieldKitID:
-		return m.OldKitID(ctx)
+	case check.FieldBlueprintID:
+		return m.OldBlueprintID(ctx)
 	case check.FieldLabel:
 		return m.OldLabel(ctx)
 	case check.FieldType:
@@ -6194,12 +10287,12 @@ func (m *CheckMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case check.FieldKitID:
+	case check.FieldBlueprintID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetKitID(v)
+		m.SetBlueprintID(v)
 		return nil
 	case check.FieldLabel:
 		v, ok := value.(string)
@@ -6313,8 +10406,8 @@ func (m *CheckMutation) ResetField(name string) error {
 	case check.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case check.FieldKitID:
-		m.ResetKitID()
+	case check.FieldBlueprintID:
+		m.ResetBlueprintID()
 		return nil
 	case check.FieldLabel:
 		m.ResetLabel()
@@ -6341,8 +10434,8 @@ func (m *CheckMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CheckMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
-	if m.kit != nil {
-		edges = append(edges, check.EdgeKit)
+	if m.blueprint != nil {
+		edges = append(edges, check.EdgeBlueprint)
 	}
 	return edges
 }
@@ -6351,8 +10444,8 @@ func (m *CheckMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *CheckMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case check.EdgeKit:
-		if id := m.kit; id != nil {
+	case check.EdgeBlueprint:
+		if id := m.blueprint; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -6374,8 +10467,8 @@ func (m *CheckMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CheckMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
-	if m.clearedkit {
-		edges = append(edges, check.EdgeKit)
+	if m.clearedblueprint {
+		edges = append(edges, check.EdgeBlueprint)
 	}
 	return edges
 }
@@ -6384,8 +10477,8 @@ func (m *CheckMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *CheckMutation) EdgeCleared(name string) bool {
 	switch name {
-	case check.EdgeKit:
-		return m.clearedkit
+	case check.EdgeBlueprint:
+		return m.clearedblueprint
 	}
 	return false
 }
@@ -6394,8 +10487,8 @@ func (m *CheckMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *CheckMutation) ClearEdge(name string) error {
 	switch name {
-	case check.EdgeKit:
-		m.ClearKit()
+	case check.EdgeBlueprint:
+		m.ClearBlueprint()
 		return nil
 	}
 	return fmt.Errorf("unknown Check unique edge %s", name)
@@ -6405,8 +10498,8 @@ func (m *CheckMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *CheckMutation) ResetEdge(name string) error {
 	switch name {
-	case check.EdgeKit:
-		m.ResetKit()
+	case check.EdgeBlueprint:
+		m.ResetBlueprint()
 		return nil
 	}
 	return fmt.Errorf("unknown Check edge %s", name)
@@ -6801,19 +10894,19 @@ func (m *DeploymentSettingMutation) ResetEdge(name string) error {
 // GoalMutation represents an operation that mutates the Goal nodes in the graph.
 type GoalMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	statement     *string
-	sources       *map[string]interface{}
-	clearedFields map[string]struct{}
-	kit           *string
-	clearedkit    bool
-	done          bool
-	oldValue      func(context.Context) (*Goal, error)
-	predicates    []predicate.Goal
+	op               Op
+	typ              string
+	id               *string
+	created_at       *time.Time
+	updated_at       *time.Time
+	statement        *string
+	sources          *map[string]interface{}
+	clearedFields    map[string]struct{}
+	blueprint        *string
+	clearedblueprint bool
+	done             bool
+	oldValue         func(context.Context) (*Goal, error)
+	predicates       []predicate.Goal
 }
 
 var _ ent.Mutation = (*GoalMutation)(nil)
@@ -6992,40 +11085,40 @@ func (m *GoalMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetKitID sets the "kit_id" field.
-func (m *GoalMutation) SetKitID(s string) {
-	m.kit = &s
+// SetBlueprintID sets the "blueprint_id" field.
+func (m *GoalMutation) SetBlueprintID(s string) {
+	m.blueprint = &s
 }
 
-// KitID returns the value of the "kit_id" field in the mutation.
-func (m *GoalMutation) KitID() (r string, exists bool) {
-	v := m.kit
+// BlueprintID returns the value of the "blueprint_id" field in the mutation.
+func (m *GoalMutation) BlueprintID() (r string, exists bool) {
+	v := m.blueprint
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldKitID returns the old "kit_id" field's value of the Goal entity.
+// OldBlueprintID returns the old "blueprint_id" field's value of the Goal entity.
 // If the Goal object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GoalMutation) OldKitID(ctx context.Context) (v string, err error) {
+func (m *GoalMutation) OldBlueprintID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
+		return v, errors.New("OldBlueprintID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKitID requires an ID field in the mutation")
+		return v, errors.New("OldBlueprintID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
+		return v, fmt.Errorf("querying old value for OldBlueprintID: %w", err)
 	}
-	return oldValue.KitID, nil
+	return oldValue.BlueprintID, nil
 }
 
-// ResetKitID resets all changes to the "kit_id" field.
-func (m *GoalMutation) ResetKitID() {
-	m.kit = nil
+// ResetBlueprintID resets all changes to the "blueprint_id" field.
+func (m *GoalMutation) ResetBlueprintID() {
+	m.blueprint = nil
 }
 
 // SetStatement sets the "statement" field.
@@ -7113,31 +11206,31 @@ func (m *GoalMutation) ResetSources() {
 	delete(m.clearedFields, goal.FieldSources)
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (m *GoalMutation) ClearKit() {
-	m.clearedkit = true
-	m.clearedFields[goal.FieldKitID] = struct{}{}
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (m *GoalMutation) ClearBlueprint() {
+	m.clearedblueprint = true
+	m.clearedFields[goal.FieldBlueprintID] = struct{}{}
 }
 
-// KitCleared reports if the "kit" edge to the Kit entity was cleared.
-func (m *GoalMutation) KitCleared() bool {
-	return m.clearedkit
+// BlueprintCleared reports if the "blueprint" edge to the Blueprint entity was cleared.
+func (m *GoalMutation) BlueprintCleared() bool {
+	return m.clearedblueprint
 }
 
-// KitIDs returns the "kit" edge IDs in the mutation.
+// BlueprintIDs returns the "blueprint" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// KitID instead. It exists only for internal usage by the builders.
-func (m *GoalMutation) KitIDs() (ids []string) {
-	if id := m.kit; id != nil {
+// BlueprintID instead. It exists only for internal usage by the builders.
+func (m *GoalMutation) BlueprintIDs() (ids []string) {
+	if id := m.blueprint; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetKit resets all changes to the "kit" edge.
-func (m *GoalMutation) ResetKit() {
-	m.kit = nil
-	m.clearedkit = false
+// ResetBlueprint resets all changes to the "blueprint" edge.
+func (m *GoalMutation) ResetBlueprint() {
+	m.blueprint = nil
+	m.clearedblueprint = false
 }
 
 // Where appends a list predicates to the GoalMutation builder.
@@ -7181,8 +11274,8 @@ func (m *GoalMutation) Fields() []string {
 	if m.updated_at != nil {
 		fields = append(fields, goal.FieldUpdatedAt)
 	}
-	if m.kit != nil {
-		fields = append(fields, goal.FieldKitID)
+	if m.blueprint != nil {
+		fields = append(fields, goal.FieldBlueprintID)
 	}
 	if m.statement != nil {
 		fields = append(fields, goal.FieldStatement)
@@ -7202,8 +11295,8 @@ func (m *GoalMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case goal.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case goal.FieldKitID:
-		return m.KitID()
+	case goal.FieldBlueprintID:
+		return m.BlueprintID()
 	case goal.FieldStatement:
 		return m.Statement()
 	case goal.FieldSources:
@@ -7221,8 +11314,8 @@ func (m *GoalMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldCreatedAt(ctx)
 	case goal.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case goal.FieldKitID:
-		return m.OldKitID(ctx)
+	case goal.FieldBlueprintID:
+		return m.OldBlueprintID(ctx)
 	case goal.FieldStatement:
 		return m.OldStatement(ctx)
 	case goal.FieldSources:
@@ -7250,12 +11343,12 @@ func (m *GoalMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case goal.FieldKitID:
+	case goal.FieldBlueprintID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetKitID(v)
+		m.SetBlueprintID(v)
 		return nil
 	case goal.FieldStatement:
 		v, ok := value.(string)
@@ -7335,8 +11428,8 @@ func (m *GoalMutation) ResetField(name string) error {
 	case goal.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case goal.FieldKitID:
-		m.ResetKitID()
+	case goal.FieldBlueprintID:
+		m.ResetBlueprintID()
 		return nil
 	case goal.FieldStatement:
 		m.ResetStatement()
@@ -7351,8 +11444,8 @@ func (m *GoalMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GoalMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
-	if m.kit != nil {
-		edges = append(edges, goal.EdgeKit)
+	if m.blueprint != nil {
+		edges = append(edges, goal.EdgeBlueprint)
 	}
 	return edges
 }
@@ -7361,8 +11454,8 @@ func (m *GoalMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *GoalMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case goal.EdgeKit:
-		if id := m.kit; id != nil {
+	case goal.EdgeBlueprint:
+		if id := m.blueprint; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -7384,8 +11477,8 @@ func (m *GoalMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GoalMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
-	if m.clearedkit {
-		edges = append(edges, goal.EdgeKit)
+	if m.clearedblueprint {
+		edges = append(edges, goal.EdgeBlueprint)
 	}
 	return edges
 }
@@ -7394,8 +11487,8 @@ func (m *GoalMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *GoalMutation) EdgeCleared(name string) bool {
 	switch name {
-	case goal.EdgeKit:
-		return m.clearedkit
+	case goal.EdgeBlueprint:
+		return m.clearedblueprint
 	}
 	return false
 }
@@ -7404,8 +11497,8 @@ func (m *GoalMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *GoalMutation) ClearEdge(name string) error {
 	switch name {
-	case goal.EdgeKit:
-		m.ClearKit()
+	case goal.EdgeBlueprint:
+		m.ClearBlueprint()
 		return nil
 	}
 	return fmt.Errorf("unknown Goal unique edge %s", name)
@@ -7415,8 +11508,8 @@ func (m *GoalMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *GoalMutation) ResetEdge(name string) error {
 	switch name {
-	case goal.EdgeKit:
-		m.ResetKit()
+	case goal.EdgeBlueprint:
+		m.ResetBlueprint()
 		return nil
 	}
 	return fmt.Errorf("unknown Goal edge %s", name)
@@ -8206,3246 +12299,6 @@ func (m *IntegrationMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *IntegrationMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Integration edge %s", name)
-}
-
-// KitMutation represents an operation that mutates the Kit nodes in the graph.
-type KitMutation struct {
-	config
-	op                   Op
-	typ                  string
-	id                   *string
-	created_at           *time.Time
-	updated_at           *time.Time
-	slug                 *string
-	display_name         *string
-	description          *string
-	kind                 *kit.Kind
-	image_repository     *string
-	network_preset       *string
-	registration_enabled *bool
-	clearedFields        map[string]struct{}
-	team                 *string
-	clearedteam          bool
-	slots                map[string]struct{}
-	removedslots         map[string]struct{}
-	clearedslots         bool
-	includes             map[string]struct{}
-	removedincludes      map[string]struct{}
-	clearedincludes      bool
-	included_by          map[string]struct{}
-	removedincluded_by   map[string]struct{}
-	clearedincluded_by   bool
-	origin_slots         map[string]struct{}
-	removedorigin_slots  map[string]struct{}
-	clearedorigin_slots  bool
-	goal                 *string
-	clearedgoal          bool
-	checks               map[string]struct{}
-	removedchecks        map[string]struct{}
-	clearedchecks        bool
-	revisions            map[string]struct{}
-	removedrevisions     map[string]struct{}
-	clearedrevisions     bool
-	done                 bool
-	oldValue             func(context.Context) (*Kit, error)
-	predicates           []predicate.Kit
-}
-
-var _ ent.Mutation = (*KitMutation)(nil)
-
-// kitOption allows management of the mutation configuration using functional options.
-type kitOption func(*KitMutation)
-
-// newKitMutation creates new mutation for the Kit entity.
-func newKitMutation(c config, op Op, opts ...kitOption) *KitMutation {
-	m := &KitMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeKit,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withKitID sets the ID field of the mutation.
-func withKitID(id string) kitOption {
-	return func(m *KitMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *Kit
-		)
-		m.oldValue = func(ctx context.Context) (*Kit, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().Kit.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withKit sets the old Kit of the mutation.
-func withKit(node *Kit) kitOption {
-	return func(m *KitMutation) {
-		m.oldValue = func(context.Context) (*Kit, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m KitMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m KitMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of Kit entities.
-func (m *KitMutation) SetID(id string) {
-	m.id = &id
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *KitMutation) ID() (id string, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *KitMutation) IDs(ctx context.Context) ([]string, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []string{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().Kit.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *KitMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *KitMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *KitMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *KitMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *KitMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *KitMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetTeamID sets the "team_id" field.
-func (m *KitMutation) SetTeamID(s string) {
-	m.team = &s
-}
-
-// TeamID returns the value of the "team_id" field in the mutation.
-func (m *KitMutation) TeamID() (r string, exists bool) {
-	v := m.team
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTeamID returns the old "team_id" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldTeamID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTeamID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTeamID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTeamID: %w", err)
-	}
-	return oldValue.TeamID, nil
-}
-
-// ResetTeamID resets all changes to the "team_id" field.
-func (m *KitMutation) ResetTeamID() {
-	m.team = nil
-}
-
-// SetSlug sets the "slug" field.
-func (m *KitMutation) SetSlug(s string) {
-	m.slug = &s
-}
-
-// Slug returns the value of the "slug" field in the mutation.
-func (m *KitMutation) Slug() (r string, exists bool) {
-	v := m.slug
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSlug returns the old "slug" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldSlug(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSlug is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSlug requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSlug: %w", err)
-	}
-	return oldValue.Slug, nil
-}
-
-// ResetSlug resets all changes to the "slug" field.
-func (m *KitMutation) ResetSlug() {
-	m.slug = nil
-}
-
-// SetDisplayName sets the "display_name" field.
-func (m *KitMutation) SetDisplayName(s string) {
-	m.display_name = &s
-}
-
-// DisplayName returns the value of the "display_name" field in the mutation.
-func (m *KitMutation) DisplayName() (r string, exists bool) {
-	v := m.display_name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDisplayName returns the old "display_name" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldDisplayName(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDisplayName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDisplayName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDisplayName: %w", err)
-	}
-	return oldValue.DisplayName, nil
-}
-
-// ResetDisplayName resets all changes to the "display_name" field.
-func (m *KitMutation) ResetDisplayName() {
-	m.display_name = nil
-}
-
-// SetDescription sets the "description" field.
-func (m *KitMutation) SetDescription(s string) {
-	m.description = &s
-}
-
-// Description returns the value of the "description" field in the mutation.
-func (m *KitMutation) Description() (r string, exists bool) {
-	v := m.description
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDescription returns the old "description" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldDescription(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDescription requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
-	}
-	return oldValue.Description, nil
-}
-
-// ResetDescription resets all changes to the "description" field.
-func (m *KitMutation) ResetDescription() {
-	m.description = nil
-}
-
-// SetKind sets the "kind" field.
-func (m *KitMutation) SetKind(k kit.Kind) {
-	m.kind = &k
-}
-
-// Kind returns the value of the "kind" field in the mutation.
-func (m *KitMutation) Kind() (r kit.Kind, exists bool) {
-	v := m.kind
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldKind returns the old "kind" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldKind(ctx context.Context) (v kit.Kind, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKind is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKind requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKind: %w", err)
-	}
-	return oldValue.Kind, nil
-}
-
-// ResetKind resets all changes to the "kind" field.
-func (m *KitMutation) ResetKind() {
-	m.kind = nil
-}
-
-// SetImageRepository sets the "image_repository" field.
-func (m *KitMutation) SetImageRepository(s string) {
-	m.image_repository = &s
-}
-
-// ImageRepository returns the value of the "image_repository" field in the mutation.
-func (m *KitMutation) ImageRepository() (r string, exists bool) {
-	v := m.image_repository
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldImageRepository returns the old "image_repository" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldImageRepository(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldImageRepository is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldImageRepository requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldImageRepository: %w", err)
-	}
-	return oldValue.ImageRepository, nil
-}
-
-// ClearImageRepository clears the value of the "image_repository" field.
-func (m *KitMutation) ClearImageRepository() {
-	m.image_repository = nil
-	m.clearedFields[kit.FieldImageRepository] = struct{}{}
-}
-
-// ImageRepositoryCleared returns if the "image_repository" field was cleared in this mutation.
-func (m *KitMutation) ImageRepositoryCleared() bool {
-	_, ok := m.clearedFields[kit.FieldImageRepository]
-	return ok
-}
-
-// ResetImageRepository resets all changes to the "image_repository" field.
-func (m *KitMutation) ResetImageRepository() {
-	m.image_repository = nil
-	delete(m.clearedFields, kit.FieldImageRepository)
-}
-
-// SetNetworkPreset sets the "network_preset" field.
-func (m *KitMutation) SetNetworkPreset(s string) {
-	m.network_preset = &s
-}
-
-// NetworkPreset returns the value of the "network_preset" field in the mutation.
-func (m *KitMutation) NetworkPreset() (r string, exists bool) {
-	v := m.network_preset
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNetworkPreset returns the old "network_preset" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldNetworkPreset(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNetworkPreset is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNetworkPreset requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNetworkPreset: %w", err)
-	}
-	return oldValue.NetworkPreset, nil
-}
-
-// ClearNetworkPreset clears the value of the "network_preset" field.
-func (m *KitMutation) ClearNetworkPreset() {
-	m.network_preset = nil
-	m.clearedFields[kit.FieldNetworkPreset] = struct{}{}
-}
-
-// NetworkPresetCleared returns if the "network_preset" field was cleared in this mutation.
-func (m *KitMutation) NetworkPresetCleared() bool {
-	_, ok := m.clearedFields[kit.FieldNetworkPreset]
-	return ok
-}
-
-// ResetNetworkPreset resets all changes to the "network_preset" field.
-func (m *KitMutation) ResetNetworkPreset() {
-	m.network_preset = nil
-	delete(m.clearedFields, kit.FieldNetworkPreset)
-}
-
-// SetRegistrationEnabled sets the "registration_enabled" field.
-func (m *KitMutation) SetRegistrationEnabled(b bool) {
-	m.registration_enabled = &b
-}
-
-// RegistrationEnabled returns the value of the "registration_enabled" field in the mutation.
-func (m *KitMutation) RegistrationEnabled() (r bool, exists bool) {
-	v := m.registration_enabled
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldRegistrationEnabled returns the old "registration_enabled" field's value of the Kit entity.
-// If the Kit object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitMutation) OldRegistrationEnabled(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRegistrationEnabled is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRegistrationEnabled requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRegistrationEnabled: %w", err)
-	}
-	return oldValue.RegistrationEnabled, nil
-}
-
-// ResetRegistrationEnabled resets all changes to the "registration_enabled" field.
-func (m *KitMutation) ResetRegistrationEnabled() {
-	m.registration_enabled = nil
-}
-
-// ClearTeam clears the "team" edge to the Team entity.
-func (m *KitMutation) ClearTeam() {
-	m.clearedteam = true
-	m.clearedFields[kit.FieldTeamID] = struct{}{}
-}
-
-// TeamCleared reports if the "team" edge to the Team entity was cleared.
-func (m *KitMutation) TeamCleared() bool {
-	return m.clearedteam
-}
-
-// TeamIDs returns the "team" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// TeamID instead. It exists only for internal usage by the builders.
-func (m *KitMutation) TeamIDs() (ids []string) {
-	if id := m.team; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetTeam resets all changes to the "team" edge.
-func (m *KitMutation) ResetTeam() {
-	m.team = nil
-	m.clearedteam = false
-}
-
-// AddSlotIDs adds the "slots" edge to the Slot entity by ids.
-func (m *KitMutation) AddSlotIDs(ids ...string) {
-	if m.slots == nil {
-		m.slots = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.slots[ids[i]] = struct{}{}
-	}
-}
-
-// ClearSlots clears the "slots" edge to the Slot entity.
-func (m *KitMutation) ClearSlots() {
-	m.clearedslots = true
-}
-
-// SlotsCleared reports if the "slots" edge to the Slot entity was cleared.
-func (m *KitMutation) SlotsCleared() bool {
-	return m.clearedslots
-}
-
-// RemoveSlotIDs removes the "slots" edge to the Slot entity by IDs.
-func (m *KitMutation) RemoveSlotIDs(ids ...string) {
-	if m.removedslots == nil {
-		m.removedslots = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.slots, ids[i])
-		m.removedslots[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedSlots returns the removed IDs of the "slots" edge to the Slot entity.
-func (m *KitMutation) RemovedSlotsIDs() (ids []string) {
-	for id := range m.removedslots {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// SlotsIDs returns the "slots" edge IDs in the mutation.
-func (m *KitMutation) SlotsIDs() (ids []string) {
-	for id := range m.slots {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetSlots resets all changes to the "slots" edge.
-func (m *KitMutation) ResetSlots() {
-	m.slots = nil
-	m.clearedslots = false
-	m.removedslots = nil
-}
-
-// AddIncludeIDs adds the "includes" edge to the KitInclude entity by ids.
-func (m *KitMutation) AddIncludeIDs(ids ...string) {
-	if m.includes == nil {
-		m.includes = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.includes[ids[i]] = struct{}{}
-	}
-}
-
-// ClearIncludes clears the "includes" edge to the KitInclude entity.
-func (m *KitMutation) ClearIncludes() {
-	m.clearedincludes = true
-}
-
-// IncludesCleared reports if the "includes" edge to the KitInclude entity was cleared.
-func (m *KitMutation) IncludesCleared() bool {
-	return m.clearedincludes
-}
-
-// RemoveIncludeIDs removes the "includes" edge to the KitInclude entity by IDs.
-func (m *KitMutation) RemoveIncludeIDs(ids ...string) {
-	if m.removedincludes == nil {
-		m.removedincludes = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.includes, ids[i])
-		m.removedincludes[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedIncludes returns the removed IDs of the "includes" edge to the KitInclude entity.
-func (m *KitMutation) RemovedIncludesIDs() (ids []string) {
-	for id := range m.removedincludes {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// IncludesIDs returns the "includes" edge IDs in the mutation.
-func (m *KitMutation) IncludesIDs() (ids []string) {
-	for id := range m.includes {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetIncludes resets all changes to the "includes" edge.
-func (m *KitMutation) ResetIncludes() {
-	m.includes = nil
-	m.clearedincludes = false
-	m.removedincludes = nil
-}
-
-// AddIncludedByIDs adds the "included_by" edge to the KitInclude entity by ids.
-func (m *KitMutation) AddIncludedByIDs(ids ...string) {
-	if m.included_by == nil {
-		m.included_by = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.included_by[ids[i]] = struct{}{}
-	}
-}
-
-// ClearIncludedBy clears the "included_by" edge to the KitInclude entity.
-func (m *KitMutation) ClearIncludedBy() {
-	m.clearedincluded_by = true
-}
-
-// IncludedByCleared reports if the "included_by" edge to the KitInclude entity was cleared.
-func (m *KitMutation) IncludedByCleared() bool {
-	return m.clearedincluded_by
-}
-
-// RemoveIncludedByIDs removes the "included_by" edge to the KitInclude entity by IDs.
-func (m *KitMutation) RemoveIncludedByIDs(ids ...string) {
-	if m.removedincluded_by == nil {
-		m.removedincluded_by = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.included_by, ids[i])
-		m.removedincluded_by[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedIncludedBy returns the removed IDs of the "included_by" edge to the KitInclude entity.
-func (m *KitMutation) RemovedIncludedByIDs() (ids []string) {
-	for id := range m.removedincluded_by {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// IncludedByIDs returns the "included_by" edge IDs in the mutation.
-func (m *KitMutation) IncludedByIDs() (ids []string) {
-	for id := range m.included_by {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetIncludedBy resets all changes to the "included_by" edge.
-func (m *KitMutation) ResetIncludedBy() {
-	m.included_by = nil
-	m.clearedincluded_by = false
-	m.removedincluded_by = nil
-}
-
-// AddOriginSlotIDs adds the "origin_slots" edge to the Slot entity by ids.
-func (m *KitMutation) AddOriginSlotIDs(ids ...string) {
-	if m.origin_slots == nil {
-		m.origin_slots = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.origin_slots[ids[i]] = struct{}{}
-	}
-}
-
-// ClearOriginSlots clears the "origin_slots" edge to the Slot entity.
-func (m *KitMutation) ClearOriginSlots() {
-	m.clearedorigin_slots = true
-}
-
-// OriginSlotsCleared reports if the "origin_slots" edge to the Slot entity was cleared.
-func (m *KitMutation) OriginSlotsCleared() bool {
-	return m.clearedorigin_slots
-}
-
-// RemoveOriginSlotIDs removes the "origin_slots" edge to the Slot entity by IDs.
-func (m *KitMutation) RemoveOriginSlotIDs(ids ...string) {
-	if m.removedorigin_slots == nil {
-		m.removedorigin_slots = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.origin_slots, ids[i])
-		m.removedorigin_slots[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedOriginSlots returns the removed IDs of the "origin_slots" edge to the Slot entity.
-func (m *KitMutation) RemovedOriginSlotsIDs() (ids []string) {
-	for id := range m.removedorigin_slots {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// OriginSlotsIDs returns the "origin_slots" edge IDs in the mutation.
-func (m *KitMutation) OriginSlotsIDs() (ids []string) {
-	for id := range m.origin_slots {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetOriginSlots resets all changes to the "origin_slots" edge.
-func (m *KitMutation) ResetOriginSlots() {
-	m.origin_slots = nil
-	m.clearedorigin_slots = false
-	m.removedorigin_slots = nil
-}
-
-// SetGoalID sets the "goal" edge to the Goal entity by id.
-func (m *KitMutation) SetGoalID(id string) {
-	m.goal = &id
-}
-
-// ClearGoal clears the "goal" edge to the Goal entity.
-func (m *KitMutation) ClearGoal() {
-	m.clearedgoal = true
-}
-
-// GoalCleared reports if the "goal" edge to the Goal entity was cleared.
-func (m *KitMutation) GoalCleared() bool {
-	return m.clearedgoal
-}
-
-// GoalID returns the "goal" edge ID in the mutation.
-func (m *KitMutation) GoalID() (id string, exists bool) {
-	if m.goal != nil {
-		return *m.goal, true
-	}
-	return
-}
-
-// GoalIDs returns the "goal" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// GoalID instead. It exists only for internal usage by the builders.
-func (m *KitMutation) GoalIDs() (ids []string) {
-	if id := m.goal; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetGoal resets all changes to the "goal" edge.
-func (m *KitMutation) ResetGoal() {
-	m.goal = nil
-	m.clearedgoal = false
-}
-
-// AddCheckIDs adds the "checks" edge to the Check entity by ids.
-func (m *KitMutation) AddCheckIDs(ids ...string) {
-	if m.checks == nil {
-		m.checks = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.checks[ids[i]] = struct{}{}
-	}
-}
-
-// ClearChecks clears the "checks" edge to the Check entity.
-func (m *KitMutation) ClearChecks() {
-	m.clearedchecks = true
-}
-
-// ChecksCleared reports if the "checks" edge to the Check entity was cleared.
-func (m *KitMutation) ChecksCleared() bool {
-	return m.clearedchecks
-}
-
-// RemoveCheckIDs removes the "checks" edge to the Check entity by IDs.
-func (m *KitMutation) RemoveCheckIDs(ids ...string) {
-	if m.removedchecks == nil {
-		m.removedchecks = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.checks, ids[i])
-		m.removedchecks[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedChecks returns the removed IDs of the "checks" edge to the Check entity.
-func (m *KitMutation) RemovedChecksIDs() (ids []string) {
-	for id := range m.removedchecks {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ChecksIDs returns the "checks" edge IDs in the mutation.
-func (m *KitMutation) ChecksIDs() (ids []string) {
-	for id := range m.checks {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetChecks resets all changes to the "checks" edge.
-func (m *KitMutation) ResetChecks() {
-	m.checks = nil
-	m.clearedchecks = false
-	m.removedchecks = nil
-}
-
-// AddRevisionIDs adds the "revisions" edge to the KitRevision entity by ids.
-func (m *KitMutation) AddRevisionIDs(ids ...string) {
-	if m.revisions == nil {
-		m.revisions = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.revisions[ids[i]] = struct{}{}
-	}
-}
-
-// ClearRevisions clears the "revisions" edge to the KitRevision entity.
-func (m *KitMutation) ClearRevisions() {
-	m.clearedrevisions = true
-}
-
-// RevisionsCleared reports if the "revisions" edge to the KitRevision entity was cleared.
-func (m *KitMutation) RevisionsCleared() bool {
-	return m.clearedrevisions
-}
-
-// RemoveRevisionIDs removes the "revisions" edge to the KitRevision entity by IDs.
-func (m *KitMutation) RemoveRevisionIDs(ids ...string) {
-	if m.removedrevisions == nil {
-		m.removedrevisions = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.revisions, ids[i])
-		m.removedrevisions[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedRevisions returns the removed IDs of the "revisions" edge to the KitRevision entity.
-func (m *KitMutation) RemovedRevisionsIDs() (ids []string) {
-	for id := range m.removedrevisions {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// RevisionsIDs returns the "revisions" edge IDs in the mutation.
-func (m *KitMutation) RevisionsIDs() (ids []string) {
-	for id := range m.revisions {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetRevisions resets all changes to the "revisions" edge.
-func (m *KitMutation) ResetRevisions() {
-	m.revisions = nil
-	m.clearedrevisions = false
-	m.removedrevisions = nil
-}
-
-// Where appends a list predicates to the KitMutation builder.
-func (m *KitMutation) Where(ps ...predicate.Kit) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the KitMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *KitMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.Kit, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *KitMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *KitMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (Kit).
-func (m *KitMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *KitMutation) Fields() []string {
-	fields := make([]string, 0, 10)
-	if m.created_at != nil {
-		fields = append(fields, kit.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, kit.FieldUpdatedAt)
-	}
-	if m.team != nil {
-		fields = append(fields, kit.FieldTeamID)
-	}
-	if m.slug != nil {
-		fields = append(fields, kit.FieldSlug)
-	}
-	if m.display_name != nil {
-		fields = append(fields, kit.FieldDisplayName)
-	}
-	if m.description != nil {
-		fields = append(fields, kit.FieldDescription)
-	}
-	if m.kind != nil {
-		fields = append(fields, kit.FieldKind)
-	}
-	if m.image_repository != nil {
-		fields = append(fields, kit.FieldImageRepository)
-	}
-	if m.network_preset != nil {
-		fields = append(fields, kit.FieldNetworkPreset)
-	}
-	if m.registration_enabled != nil {
-		fields = append(fields, kit.FieldRegistrationEnabled)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *KitMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case kit.FieldCreatedAt:
-		return m.CreatedAt()
-	case kit.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case kit.FieldTeamID:
-		return m.TeamID()
-	case kit.FieldSlug:
-		return m.Slug()
-	case kit.FieldDisplayName:
-		return m.DisplayName()
-	case kit.FieldDescription:
-		return m.Description()
-	case kit.FieldKind:
-		return m.Kind()
-	case kit.FieldImageRepository:
-		return m.ImageRepository()
-	case kit.FieldNetworkPreset:
-		return m.NetworkPreset()
-	case kit.FieldRegistrationEnabled:
-		return m.RegistrationEnabled()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *KitMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case kit.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case kit.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case kit.FieldTeamID:
-		return m.OldTeamID(ctx)
-	case kit.FieldSlug:
-		return m.OldSlug(ctx)
-	case kit.FieldDisplayName:
-		return m.OldDisplayName(ctx)
-	case kit.FieldDescription:
-		return m.OldDescription(ctx)
-	case kit.FieldKind:
-		return m.OldKind(ctx)
-	case kit.FieldImageRepository:
-		return m.OldImageRepository(ctx)
-	case kit.FieldNetworkPreset:
-		return m.OldNetworkPreset(ctx)
-	case kit.FieldRegistrationEnabled:
-		return m.OldRegistrationEnabled(ctx)
-	}
-	return nil, fmt.Errorf("unknown Kit field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *KitMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case kit.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case kit.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case kit.FieldTeamID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTeamID(v)
-		return nil
-	case kit.FieldSlug:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSlug(v)
-		return nil
-	case kit.FieldDisplayName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDisplayName(v)
-		return nil
-	case kit.FieldDescription:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDescription(v)
-		return nil
-	case kit.FieldKind:
-		v, ok := value.(kit.Kind)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetKind(v)
-		return nil
-	case kit.FieldImageRepository:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetImageRepository(v)
-		return nil
-	case kit.FieldNetworkPreset:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetNetworkPreset(v)
-		return nil
-	case kit.FieldRegistrationEnabled:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetRegistrationEnabled(v)
-		return nil
-	}
-	return fmt.Errorf("unknown Kit field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *KitMutation) AddedFields() []string {
-	return nil
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *KitMutation) AddedField(name string) (ent.Value, bool) {
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *KitMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	}
-	return fmt.Errorf("unknown Kit numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *KitMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(kit.FieldImageRepository) {
-		fields = append(fields, kit.FieldImageRepository)
-	}
-	if m.FieldCleared(kit.FieldNetworkPreset) {
-		fields = append(fields, kit.FieldNetworkPreset)
-	}
-	return fields
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *KitMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *KitMutation) ClearField(name string) error {
-	switch name {
-	case kit.FieldImageRepository:
-		m.ClearImageRepository()
-		return nil
-	case kit.FieldNetworkPreset:
-		m.ClearNetworkPreset()
-		return nil
-	}
-	return fmt.Errorf("unknown Kit nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *KitMutation) ResetField(name string) error {
-	switch name {
-	case kit.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case kit.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case kit.FieldTeamID:
-		m.ResetTeamID()
-		return nil
-	case kit.FieldSlug:
-		m.ResetSlug()
-		return nil
-	case kit.FieldDisplayName:
-		m.ResetDisplayName()
-		return nil
-	case kit.FieldDescription:
-		m.ResetDescription()
-		return nil
-	case kit.FieldKind:
-		m.ResetKind()
-		return nil
-	case kit.FieldImageRepository:
-		m.ResetImageRepository()
-		return nil
-	case kit.FieldNetworkPreset:
-		m.ResetNetworkPreset()
-		return nil
-	case kit.FieldRegistrationEnabled:
-		m.ResetRegistrationEnabled()
-		return nil
-	}
-	return fmt.Errorf("unknown Kit field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *KitMutation) AddedEdges() []string {
-	edges := make([]string, 0, 8)
-	if m.team != nil {
-		edges = append(edges, kit.EdgeTeam)
-	}
-	if m.slots != nil {
-		edges = append(edges, kit.EdgeSlots)
-	}
-	if m.includes != nil {
-		edges = append(edges, kit.EdgeIncludes)
-	}
-	if m.included_by != nil {
-		edges = append(edges, kit.EdgeIncludedBy)
-	}
-	if m.origin_slots != nil {
-		edges = append(edges, kit.EdgeOriginSlots)
-	}
-	if m.goal != nil {
-		edges = append(edges, kit.EdgeGoal)
-	}
-	if m.checks != nil {
-		edges = append(edges, kit.EdgeChecks)
-	}
-	if m.revisions != nil {
-		edges = append(edges, kit.EdgeRevisions)
-	}
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *KitMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case kit.EdgeTeam:
-		if id := m.team; id != nil {
-			return []ent.Value{*id}
-		}
-	case kit.EdgeSlots:
-		ids := make([]ent.Value, 0, len(m.slots))
-		for id := range m.slots {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeIncludes:
-		ids := make([]ent.Value, 0, len(m.includes))
-		for id := range m.includes {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeIncludedBy:
-		ids := make([]ent.Value, 0, len(m.included_by))
-		for id := range m.included_by {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeOriginSlots:
-		ids := make([]ent.Value, 0, len(m.origin_slots))
-		for id := range m.origin_slots {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeGoal:
-		if id := m.goal; id != nil {
-			return []ent.Value{*id}
-		}
-	case kit.EdgeChecks:
-		ids := make([]ent.Value, 0, len(m.checks))
-		for id := range m.checks {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeRevisions:
-		ids := make([]ent.Value, 0, len(m.revisions))
-		for id := range m.revisions {
-			ids = append(ids, id)
-		}
-		return ids
-	}
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *KitMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 8)
-	if m.removedslots != nil {
-		edges = append(edges, kit.EdgeSlots)
-	}
-	if m.removedincludes != nil {
-		edges = append(edges, kit.EdgeIncludes)
-	}
-	if m.removedincluded_by != nil {
-		edges = append(edges, kit.EdgeIncludedBy)
-	}
-	if m.removedorigin_slots != nil {
-		edges = append(edges, kit.EdgeOriginSlots)
-	}
-	if m.removedchecks != nil {
-		edges = append(edges, kit.EdgeChecks)
-	}
-	if m.removedrevisions != nil {
-		edges = append(edges, kit.EdgeRevisions)
-	}
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *KitMutation) RemovedIDs(name string) []ent.Value {
-	switch name {
-	case kit.EdgeSlots:
-		ids := make([]ent.Value, 0, len(m.removedslots))
-		for id := range m.removedslots {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeIncludes:
-		ids := make([]ent.Value, 0, len(m.removedincludes))
-		for id := range m.removedincludes {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeIncludedBy:
-		ids := make([]ent.Value, 0, len(m.removedincluded_by))
-		for id := range m.removedincluded_by {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeOriginSlots:
-		ids := make([]ent.Value, 0, len(m.removedorigin_slots))
-		for id := range m.removedorigin_slots {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeChecks:
-		ids := make([]ent.Value, 0, len(m.removedchecks))
-		for id := range m.removedchecks {
-			ids = append(ids, id)
-		}
-		return ids
-	case kit.EdgeRevisions:
-		ids := make([]ent.Value, 0, len(m.removedrevisions))
-		for id := range m.removedrevisions {
-			ids = append(ids, id)
-		}
-		return ids
-	}
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *KitMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 8)
-	if m.clearedteam {
-		edges = append(edges, kit.EdgeTeam)
-	}
-	if m.clearedslots {
-		edges = append(edges, kit.EdgeSlots)
-	}
-	if m.clearedincludes {
-		edges = append(edges, kit.EdgeIncludes)
-	}
-	if m.clearedincluded_by {
-		edges = append(edges, kit.EdgeIncludedBy)
-	}
-	if m.clearedorigin_slots {
-		edges = append(edges, kit.EdgeOriginSlots)
-	}
-	if m.clearedgoal {
-		edges = append(edges, kit.EdgeGoal)
-	}
-	if m.clearedchecks {
-		edges = append(edges, kit.EdgeChecks)
-	}
-	if m.clearedrevisions {
-		edges = append(edges, kit.EdgeRevisions)
-	}
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *KitMutation) EdgeCleared(name string) bool {
-	switch name {
-	case kit.EdgeTeam:
-		return m.clearedteam
-	case kit.EdgeSlots:
-		return m.clearedslots
-	case kit.EdgeIncludes:
-		return m.clearedincludes
-	case kit.EdgeIncludedBy:
-		return m.clearedincluded_by
-	case kit.EdgeOriginSlots:
-		return m.clearedorigin_slots
-	case kit.EdgeGoal:
-		return m.clearedgoal
-	case kit.EdgeChecks:
-		return m.clearedchecks
-	case kit.EdgeRevisions:
-		return m.clearedrevisions
-	}
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *KitMutation) ClearEdge(name string) error {
-	switch name {
-	case kit.EdgeTeam:
-		m.ClearTeam()
-		return nil
-	case kit.EdgeGoal:
-		m.ClearGoal()
-		return nil
-	}
-	return fmt.Errorf("unknown Kit unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *KitMutation) ResetEdge(name string) error {
-	switch name {
-	case kit.EdgeTeam:
-		m.ResetTeam()
-		return nil
-	case kit.EdgeSlots:
-		m.ResetSlots()
-		return nil
-	case kit.EdgeIncludes:
-		m.ResetIncludes()
-		return nil
-	case kit.EdgeIncludedBy:
-		m.ResetIncludedBy()
-		return nil
-	case kit.EdgeOriginSlots:
-		m.ResetOriginSlots()
-		return nil
-	case kit.EdgeGoal:
-		m.ResetGoal()
-		return nil
-	case kit.EdgeChecks:
-		m.ResetChecks()
-		return nil
-	case kit.EdgeRevisions:
-		m.ResetRevisions()
-		return nil
-	}
-	return fmt.Errorf("unknown Kit edge %s", name)
-}
-
-// KitIncludeMutation represents an operation that mutates the KitInclude nodes in the graph.
-type KitIncludeMutation struct {
-	config
-	op                  Op
-	typ                 string
-	id                  *string
-	created_at          *time.Time
-	updated_at          *time.Time
-	track               *kitinclude.Track
-	pinned_blueprint_id *string
-	position            *int
-	addposition         *int
-	clearedFields       map[string]struct{}
-	kit                 *string
-	clearedkit          bool
-	child_kit           *string
-	clearedchild_kit    bool
-	done                bool
-	oldValue            func(context.Context) (*KitInclude, error)
-	predicates          []predicate.KitInclude
-}
-
-var _ ent.Mutation = (*KitIncludeMutation)(nil)
-
-// kitincludeOption allows management of the mutation configuration using functional options.
-type kitincludeOption func(*KitIncludeMutation)
-
-// newKitIncludeMutation creates new mutation for the KitInclude entity.
-func newKitIncludeMutation(c config, op Op, opts ...kitincludeOption) *KitIncludeMutation {
-	m := &KitIncludeMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeKitInclude,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withKitIncludeID sets the ID field of the mutation.
-func withKitIncludeID(id string) kitincludeOption {
-	return func(m *KitIncludeMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *KitInclude
-		)
-		m.oldValue = func(ctx context.Context) (*KitInclude, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().KitInclude.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withKitInclude sets the old KitInclude of the mutation.
-func withKitInclude(node *KitInclude) kitincludeOption {
-	return func(m *KitIncludeMutation) {
-		m.oldValue = func(context.Context) (*KitInclude, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m KitIncludeMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m KitIncludeMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of KitInclude entities.
-func (m *KitIncludeMutation) SetID(id string) {
-	m.id = &id
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *KitIncludeMutation) ID() (id string, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *KitIncludeMutation) IDs(ctx context.Context) ([]string, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []string{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().KitInclude.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *KitIncludeMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *KitIncludeMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the KitInclude entity.
-// If the KitInclude object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitIncludeMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *KitIncludeMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *KitIncludeMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *KitIncludeMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the KitInclude entity.
-// If the KitInclude object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitIncludeMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *KitIncludeMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetKitID sets the "kit_id" field.
-func (m *KitIncludeMutation) SetKitID(s string) {
-	m.kit = &s
-}
-
-// KitID returns the value of the "kit_id" field in the mutation.
-func (m *KitIncludeMutation) KitID() (r string, exists bool) {
-	v := m.kit
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldKitID returns the old "kit_id" field's value of the KitInclude entity.
-// If the KitInclude object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitIncludeMutation) OldKitID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKitID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
-	}
-	return oldValue.KitID, nil
-}
-
-// ResetKitID resets all changes to the "kit_id" field.
-func (m *KitIncludeMutation) ResetKitID() {
-	m.kit = nil
-}
-
-// SetChildKitID sets the "child_kit_id" field.
-func (m *KitIncludeMutation) SetChildKitID(s string) {
-	m.child_kit = &s
-}
-
-// ChildKitID returns the value of the "child_kit_id" field in the mutation.
-func (m *KitIncludeMutation) ChildKitID() (r string, exists bool) {
-	v := m.child_kit
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldChildKitID returns the old "child_kit_id" field's value of the KitInclude entity.
-// If the KitInclude object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitIncludeMutation) OldChildKitID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldChildKitID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldChildKitID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldChildKitID: %w", err)
-	}
-	return oldValue.ChildKitID, nil
-}
-
-// ResetChildKitID resets all changes to the "child_kit_id" field.
-func (m *KitIncludeMutation) ResetChildKitID() {
-	m.child_kit = nil
-}
-
-// SetTrack sets the "track" field.
-func (m *KitIncludeMutation) SetTrack(k kitinclude.Track) {
-	m.track = &k
-}
-
-// Track returns the value of the "track" field in the mutation.
-func (m *KitIncludeMutation) Track() (r kitinclude.Track, exists bool) {
-	v := m.track
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTrack returns the old "track" field's value of the KitInclude entity.
-// If the KitInclude object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitIncludeMutation) OldTrack(ctx context.Context) (v kitinclude.Track, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTrack is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTrack requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTrack: %w", err)
-	}
-	return oldValue.Track, nil
-}
-
-// ResetTrack resets all changes to the "track" field.
-func (m *KitIncludeMutation) ResetTrack() {
-	m.track = nil
-}
-
-// SetPinnedBlueprintID sets the "pinned_blueprint_id" field.
-func (m *KitIncludeMutation) SetPinnedBlueprintID(s string) {
-	m.pinned_blueprint_id = &s
-}
-
-// PinnedBlueprintID returns the value of the "pinned_blueprint_id" field in the mutation.
-func (m *KitIncludeMutation) PinnedBlueprintID() (r string, exists bool) {
-	v := m.pinned_blueprint_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPinnedBlueprintID returns the old "pinned_blueprint_id" field's value of the KitInclude entity.
-// If the KitInclude object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitIncludeMutation) OldPinnedBlueprintID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPinnedBlueprintID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPinnedBlueprintID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPinnedBlueprintID: %w", err)
-	}
-	return oldValue.PinnedBlueprintID, nil
-}
-
-// ClearPinnedBlueprintID clears the value of the "pinned_blueprint_id" field.
-func (m *KitIncludeMutation) ClearPinnedBlueprintID() {
-	m.pinned_blueprint_id = nil
-	m.clearedFields[kitinclude.FieldPinnedBlueprintID] = struct{}{}
-}
-
-// PinnedBlueprintIDCleared returns if the "pinned_blueprint_id" field was cleared in this mutation.
-func (m *KitIncludeMutation) PinnedBlueprintIDCleared() bool {
-	_, ok := m.clearedFields[kitinclude.FieldPinnedBlueprintID]
-	return ok
-}
-
-// ResetPinnedBlueprintID resets all changes to the "pinned_blueprint_id" field.
-func (m *KitIncludeMutation) ResetPinnedBlueprintID() {
-	m.pinned_blueprint_id = nil
-	delete(m.clearedFields, kitinclude.FieldPinnedBlueprintID)
-}
-
-// SetPosition sets the "position" field.
-func (m *KitIncludeMutation) SetPosition(i int) {
-	m.position = &i
-	m.addposition = nil
-}
-
-// Position returns the value of the "position" field in the mutation.
-func (m *KitIncludeMutation) Position() (r int, exists bool) {
-	v := m.position
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPosition returns the old "position" field's value of the KitInclude entity.
-// If the KitInclude object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitIncludeMutation) OldPosition(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPosition is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPosition requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPosition: %w", err)
-	}
-	return oldValue.Position, nil
-}
-
-// AddPosition adds i to the "position" field.
-func (m *KitIncludeMutation) AddPosition(i int) {
-	if m.addposition != nil {
-		*m.addposition += i
-	} else {
-		m.addposition = &i
-	}
-}
-
-// AddedPosition returns the value that was added to the "position" field in this mutation.
-func (m *KitIncludeMutation) AddedPosition() (r int, exists bool) {
-	v := m.addposition
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetPosition resets all changes to the "position" field.
-func (m *KitIncludeMutation) ResetPosition() {
-	m.position = nil
-	m.addposition = nil
-}
-
-// ClearKit clears the "kit" edge to the Kit entity.
-func (m *KitIncludeMutation) ClearKit() {
-	m.clearedkit = true
-	m.clearedFields[kitinclude.FieldKitID] = struct{}{}
-}
-
-// KitCleared reports if the "kit" edge to the Kit entity was cleared.
-func (m *KitIncludeMutation) KitCleared() bool {
-	return m.clearedkit
-}
-
-// KitIDs returns the "kit" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// KitID instead. It exists only for internal usage by the builders.
-func (m *KitIncludeMutation) KitIDs() (ids []string) {
-	if id := m.kit; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetKit resets all changes to the "kit" edge.
-func (m *KitIncludeMutation) ResetKit() {
-	m.kit = nil
-	m.clearedkit = false
-}
-
-// ClearChildKit clears the "child_kit" edge to the Kit entity.
-func (m *KitIncludeMutation) ClearChildKit() {
-	m.clearedchild_kit = true
-	m.clearedFields[kitinclude.FieldChildKitID] = struct{}{}
-}
-
-// ChildKitCleared reports if the "child_kit" edge to the Kit entity was cleared.
-func (m *KitIncludeMutation) ChildKitCleared() bool {
-	return m.clearedchild_kit
-}
-
-// ChildKitIDs returns the "child_kit" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ChildKitID instead. It exists only for internal usage by the builders.
-func (m *KitIncludeMutation) ChildKitIDs() (ids []string) {
-	if id := m.child_kit; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetChildKit resets all changes to the "child_kit" edge.
-func (m *KitIncludeMutation) ResetChildKit() {
-	m.child_kit = nil
-	m.clearedchild_kit = false
-}
-
-// Where appends a list predicates to the KitIncludeMutation builder.
-func (m *KitIncludeMutation) Where(ps ...predicate.KitInclude) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the KitIncludeMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *KitIncludeMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.KitInclude, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *KitIncludeMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *KitIncludeMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (KitInclude).
-func (m *KitIncludeMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *KitIncludeMutation) Fields() []string {
-	fields := make([]string, 0, 7)
-	if m.created_at != nil {
-		fields = append(fields, kitinclude.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, kitinclude.FieldUpdatedAt)
-	}
-	if m.kit != nil {
-		fields = append(fields, kitinclude.FieldKitID)
-	}
-	if m.child_kit != nil {
-		fields = append(fields, kitinclude.FieldChildKitID)
-	}
-	if m.track != nil {
-		fields = append(fields, kitinclude.FieldTrack)
-	}
-	if m.pinned_blueprint_id != nil {
-		fields = append(fields, kitinclude.FieldPinnedBlueprintID)
-	}
-	if m.position != nil {
-		fields = append(fields, kitinclude.FieldPosition)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *KitIncludeMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case kitinclude.FieldCreatedAt:
-		return m.CreatedAt()
-	case kitinclude.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case kitinclude.FieldKitID:
-		return m.KitID()
-	case kitinclude.FieldChildKitID:
-		return m.ChildKitID()
-	case kitinclude.FieldTrack:
-		return m.Track()
-	case kitinclude.FieldPinnedBlueprintID:
-		return m.PinnedBlueprintID()
-	case kitinclude.FieldPosition:
-		return m.Position()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *KitIncludeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case kitinclude.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case kitinclude.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case kitinclude.FieldKitID:
-		return m.OldKitID(ctx)
-	case kitinclude.FieldChildKitID:
-		return m.OldChildKitID(ctx)
-	case kitinclude.FieldTrack:
-		return m.OldTrack(ctx)
-	case kitinclude.FieldPinnedBlueprintID:
-		return m.OldPinnedBlueprintID(ctx)
-	case kitinclude.FieldPosition:
-		return m.OldPosition(ctx)
-	}
-	return nil, fmt.Errorf("unknown KitInclude field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *KitIncludeMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case kitinclude.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case kitinclude.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case kitinclude.FieldKitID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetKitID(v)
-		return nil
-	case kitinclude.FieldChildKitID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetChildKitID(v)
-		return nil
-	case kitinclude.FieldTrack:
-		v, ok := value.(kitinclude.Track)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTrack(v)
-		return nil
-	case kitinclude.FieldPinnedBlueprintID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPinnedBlueprintID(v)
-		return nil
-	case kitinclude.FieldPosition:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPosition(v)
-		return nil
-	}
-	return fmt.Errorf("unknown KitInclude field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *KitIncludeMutation) AddedFields() []string {
-	var fields []string
-	if m.addposition != nil {
-		fields = append(fields, kitinclude.FieldPosition)
-	}
-	return fields
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *KitIncludeMutation) AddedField(name string) (ent.Value, bool) {
-	switch name {
-	case kitinclude.FieldPosition:
-		return m.AddedPosition()
-	}
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *KitIncludeMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	case kitinclude.FieldPosition:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddPosition(v)
-		return nil
-	}
-	return fmt.Errorf("unknown KitInclude numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *KitIncludeMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(kitinclude.FieldPinnedBlueprintID) {
-		fields = append(fields, kitinclude.FieldPinnedBlueprintID)
-	}
-	return fields
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *KitIncludeMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *KitIncludeMutation) ClearField(name string) error {
-	switch name {
-	case kitinclude.FieldPinnedBlueprintID:
-		m.ClearPinnedBlueprintID()
-		return nil
-	}
-	return fmt.Errorf("unknown KitInclude nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *KitIncludeMutation) ResetField(name string) error {
-	switch name {
-	case kitinclude.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case kitinclude.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case kitinclude.FieldKitID:
-		m.ResetKitID()
-		return nil
-	case kitinclude.FieldChildKitID:
-		m.ResetChildKitID()
-		return nil
-	case kitinclude.FieldTrack:
-		m.ResetTrack()
-		return nil
-	case kitinclude.FieldPinnedBlueprintID:
-		m.ResetPinnedBlueprintID()
-		return nil
-	case kitinclude.FieldPosition:
-		m.ResetPosition()
-		return nil
-	}
-	return fmt.Errorf("unknown KitInclude field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *KitIncludeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.kit != nil {
-		edges = append(edges, kitinclude.EdgeKit)
-	}
-	if m.child_kit != nil {
-		edges = append(edges, kitinclude.EdgeChildKit)
-	}
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *KitIncludeMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case kitinclude.EdgeKit:
-		if id := m.kit; id != nil {
-			return []ent.Value{*id}
-		}
-	case kitinclude.EdgeChildKit:
-		if id := m.child_kit; id != nil {
-			return []ent.Value{*id}
-		}
-	}
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *KitIncludeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *KitIncludeMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *KitIncludeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.clearedkit {
-		edges = append(edges, kitinclude.EdgeKit)
-	}
-	if m.clearedchild_kit {
-		edges = append(edges, kitinclude.EdgeChildKit)
-	}
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *KitIncludeMutation) EdgeCleared(name string) bool {
-	switch name {
-	case kitinclude.EdgeKit:
-		return m.clearedkit
-	case kitinclude.EdgeChildKit:
-		return m.clearedchild_kit
-	}
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *KitIncludeMutation) ClearEdge(name string) error {
-	switch name {
-	case kitinclude.EdgeKit:
-		m.ClearKit()
-		return nil
-	case kitinclude.EdgeChildKit:
-		m.ClearChildKit()
-		return nil
-	}
-	return fmt.Errorf("unknown KitInclude unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *KitIncludeMutation) ResetEdge(name string) error {
-	switch name {
-	case kitinclude.EdgeKit:
-		m.ResetKit()
-		return nil
-	case kitinclude.EdgeChildKit:
-		m.ResetChildKit()
-		return nil
-	}
-	return fmt.Errorf("unknown KitInclude edge %s", name)
-}
-
-// KitRevisionMutation represents an operation that mutates the KitRevision nodes in the graph.
-type KitRevisionMutation struct {
-	config
-	op            Op
-	typ           string
-	id            *string
-	created_at    *time.Time
-	seq           *int
-	addseq        *int
-	action        *string
-	slot_key      *string
-	summary       *string
-	snapshot      *map[string]interface{}
-	yaml          *string
-	clearedFields map[string]struct{}
-	kit           *string
-	clearedkit    bool
-	actor         *string
-	clearedactor  bool
-	done          bool
-	oldValue      func(context.Context) (*KitRevision, error)
-	predicates    []predicate.KitRevision
-}
-
-var _ ent.Mutation = (*KitRevisionMutation)(nil)
-
-// kitrevisionOption allows management of the mutation configuration using functional options.
-type kitrevisionOption func(*KitRevisionMutation)
-
-// newKitRevisionMutation creates new mutation for the KitRevision entity.
-func newKitRevisionMutation(c config, op Op, opts ...kitrevisionOption) *KitRevisionMutation {
-	m := &KitRevisionMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeKitRevision,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withKitRevisionID sets the ID field of the mutation.
-func withKitRevisionID(id string) kitrevisionOption {
-	return func(m *KitRevisionMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *KitRevision
-		)
-		m.oldValue = func(ctx context.Context) (*KitRevision, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().KitRevision.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withKitRevision sets the old KitRevision of the mutation.
-func withKitRevision(node *KitRevision) kitrevisionOption {
-	return func(m *KitRevisionMutation) {
-		m.oldValue = func(context.Context) (*KitRevision, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m KitRevisionMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m KitRevisionMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of KitRevision entities.
-func (m *KitRevisionMutation) SetID(id string) {
-	m.id = &id
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *KitRevisionMutation) ID() (id string, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *KitRevisionMutation) IDs(ctx context.Context) ([]string, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []string{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().KitRevision.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *KitRevisionMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *KitRevisionMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *KitRevisionMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetKitID sets the "kit_id" field.
-func (m *KitRevisionMutation) SetKitID(s string) {
-	m.kit = &s
-}
-
-// KitID returns the value of the "kit_id" field in the mutation.
-func (m *KitRevisionMutation) KitID() (r string, exists bool) {
-	v := m.kit
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldKitID returns the old "kit_id" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldKitID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKitID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
-	}
-	return oldValue.KitID, nil
-}
-
-// ResetKitID resets all changes to the "kit_id" field.
-func (m *KitRevisionMutation) ResetKitID() {
-	m.kit = nil
-}
-
-// SetSeq sets the "seq" field.
-func (m *KitRevisionMutation) SetSeq(i int) {
-	m.seq = &i
-	m.addseq = nil
-}
-
-// Seq returns the value of the "seq" field in the mutation.
-func (m *KitRevisionMutation) Seq() (r int, exists bool) {
-	v := m.seq
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSeq returns the old "seq" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldSeq(ctx context.Context) (v int, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSeq is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSeq requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSeq: %w", err)
-	}
-	return oldValue.Seq, nil
-}
-
-// AddSeq adds i to the "seq" field.
-func (m *KitRevisionMutation) AddSeq(i int) {
-	if m.addseq != nil {
-		*m.addseq += i
-	} else {
-		m.addseq = &i
-	}
-}
-
-// AddedSeq returns the value that was added to the "seq" field in this mutation.
-func (m *KitRevisionMutation) AddedSeq() (r int, exists bool) {
-	v := m.addseq
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetSeq resets all changes to the "seq" field.
-func (m *KitRevisionMutation) ResetSeq() {
-	m.seq = nil
-	m.addseq = nil
-}
-
-// SetActorUserID sets the "actor_user_id" field.
-func (m *KitRevisionMutation) SetActorUserID(s string) {
-	m.actor = &s
-}
-
-// ActorUserID returns the value of the "actor_user_id" field in the mutation.
-func (m *KitRevisionMutation) ActorUserID() (r string, exists bool) {
-	v := m.actor
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldActorUserID returns the old "actor_user_id" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldActorUserID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldActorUserID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldActorUserID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldActorUserID: %w", err)
-	}
-	return oldValue.ActorUserID, nil
-}
-
-// ClearActorUserID clears the value of the "actor_user_id" field.
-func (m *KitRevisionMutation) ClearActorUserID() {
-	m.actor = nil
-	m.clearedFields[kitrevision.FieldActorUserID] = struct{}{}
-}
-
-// ActorUserIDCleared returns if the "actor_user_id" field was cleared in this mutation.
-func (m *KitRevisionMutation) ActorUserIDCleared() bool {
-	_, ok := m.clearedFields[kitrevision.FieldActorUserID]
-	return ok
-}
-
-// ResetActorUserID resets all changes to the "actor_user_id" field.
-func (m *KitRevisionMutation) ResetActorUserID() {
-	m.actor = nil
-	delete(m.clearedFields, kitrevision.FieldActorUserID)
-}
-
-// SetAction sets the "action" field.
-func (m *KitRevisionMutation) SetAction(s string) {
-	m.action = &s
-}
-
-// Action returns the value of the "action" field in the mutation.
-func (m *KitRevisionMutation) Action() (r string, exists bool) {
-	v := m.action
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAction returns the old "action" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldAction(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAction is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAction requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAction: %w", err)
-	}
-	return oldValue.Action, nil
-}
-
-// ResetAction resets all changes to the "action" field.
-func (m *KitRevisionMutation) ResetAction() {
-	m.action = nil
-}
-
-// SetSlotKey sets the "slot_key" field.
-func (m *KitRevisionMutation) SetSlotKey(s string) {
-	m.slot_key = &s
-}
-
-// SlotKey returns the value of the "slot_key" field in the mutation.
-func (m *KitRevisionMutation) SlotKey() (r string, exists bool) {
-	v := m.slot_key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSlotKey returns the old "slot_key" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldSlotKey(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSlotKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSlotKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSlotKey: %w", err)
-	}
-	return oldValue.SlotKey, nil
-}
-
-// ClearSlotKey clears the value of the "slot_key" field.
-func (m *KitRevisionMutation) ClearSlotKey() {
-	m.slot_key = nil
-	m.clearedFields[kitrevision.FieldSlotKey] = struct{}{}
-}
-
-// SlotKeyCleared returns if the "slot_key" field was cleared in this mutation.
-func (m *KitRevisionMutation) SlotKeyCleared() bool {
-	_, ok := m.clearedFields[kitrevision.FieldSlotKey]
-	return ok
-}
-
-// ResetSlotKey resets all changes to the "slot_key" field.
-func (m *KitRevisionMutation) ResetSlotKey() {
-	m.slot_key = nil
-	delete(m.clearedFields, kitrevision.FieldSlotKey)
-}
-
-// SetSummary sets the "summary" field.
-func (m *KitRevisionMutation) SetSummary(s string) {
-	m.summary = &s
-}
-
-// Summary returns the value of the "summary" field in the mutation.
-func (m *KitRevisionMutation) Summary() (r string, exists bool) {
-	v := m.summary
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSummary returns the old "summary" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldSummary(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSummary is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSummary requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSummary: %w", err)
-	}
-	return oldValue.Summary, nil
-}
-
-// ResetSummary resets all changes to the "summary" field.
-func (m *KitRevisionMutation) ResetSummary() {
-	m.summary = nil
-}
-
-// SetSnapshot sets the "snapshot" field.
-func (m *KitRevisionMutation) SetSnapshot(value map[string]interface{}) {
-	m.snapshot = &value
-}
-
-// Snapshot returns the value of the "snapshot" field in the mutation.
-func (m *KitRevisionMutation) Snapshot() (r map[string]interface{}, exists bool) {
-	v := m.snapshot
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSnapshot returns the old "snapshot" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldSnapshot(ctx context.Context) (v map[string]interface{}, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSnapshot requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
-	}
-	return oldValue.Snapshot, nil
-}
-
-// ResetSnapshot resets all changes to the "snapshot" field.
-func (m *KitRevisionMutation) ResetSnapshot() {
-	m.snapshot = nil
-}
-
-// SetYaml sets the "yaml" field.
-func (m *KitRevisionMutation) SetYaml(s string) {
-	m.yaml = &s
-}
-
-// Yaml returns the value of the "yaml" field in the mutation.
-func (m *KitRevisionMutation) Yaml() (r string, exists bool) {
-	v := m.yaml
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldYaml returns the old "yaml" field's value of the KitRevision entity.
-// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *KitRevisionMutation) OldYaml(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldYaml is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldYaml requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldYaml: %w", err)
-	}
-	return oldValue.Yaml, nil
-}
-
-// ResetYaml resets all changes to the "yaml" field.
-func (m *KitRevisionMutation) ResetYaml() {
-	m.yaml = nil
-}
-
-// ClearKit clears the "kit" edge to the Kit entity.
-func (m *KitRevisionMutation) ClearKit() {
-	m.clearedkit = true
-	m.clearedFields[kitrevision.FieldKitID] = struct{}{}
-}
-
-// KitCleared reports if the "kit" edge to the Kit entity was cleared.
-func (m *KitRevisionMutation) KitCleared() bool {
-	return m.clearedkit
-}
-
-// KitIDs returns the "kit" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// KitID instead. It exists only for internal usage by the builders.
-func (m *KitRevisionMutation) KitIDs() (ids []string) {
-	if id := m.kit; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetKit resets all changes to the "kit" edge.
-func (m *KitRevisionMutation) ResetKit() {
-	m.kit = nil
-	m.clearedkit = false
-}
-
-// SetActorID sets the "actor" edge to the User entity by id.
-func (m *KitRevisionMutation) SetActorID(id string) {
-	m.actor = &id
-}
-
-// ClearActor clears the "actor" edge to the User entity.
-func (m *KitRevisionMutation) ClearActor() {
-	m.clearedactor = true
-	m.clearedFields[kitrevision.FieldActorUserID] = struct{}{}
-}
-
-// ActorCleared reports if the "actor" edge to the User entity was cleared.
-func (m *KitRevisionMutation) ActorCleared() bool {
-	return m.ActorUserIDCleared() || m.clearedactor
-}
-
-// ActorID returns the "actor" edge ID in the mutation.
-func (m *KitRevisionMutation) ActorID() (id string, exists bool) {
-	if m.actor != nil {
-		return *m.actor, true
-	}
-	return
-}
-
-// ActorIDs returns the "actor" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ActorID instead. It exists only for internal usage by the builders.
-func (m *KitRevisionMutation) ActorIDs() (ids []string) {
-	if id := m.actor; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetActor resets all changes to the "actor" edge.
-func (m *KitRevisionMutation) ResetActor() {
-	m.actor = nil
-	m.clearedactor = false
-}
-
-// Where appends a list predicates to the KitRevisionMutation builder.
-func (m *KitRevisionMutation) Where(ps ...predicate.KitRevision) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the KitRevisionMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *KitRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.KitRevision, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *KitRevisionMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *KitRevisionMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (KitRevision).
-func (m *KitRevisionMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *KitRevisionMutation) Fields() []string {
-	fields := make([]string, 0, 9)
-	if m.created_at != nil {
-		fields = append(fields, kitrevision.FieldCreatedAt)
-	}
-	if m.kit != nil {
-		fields = append(fields, kitrevision.FieldKitID)
-	}
-	if m.seq != nil {
-		fields = append(fields, kitrevision.FieldSeq)
-	}
-	if m.actor != nil {
-		fields = append(fields, kitrevision.FieldActorUserID)
-	}
-	if m.action != nil {
-		fields = append(fields, kitrevision.FieldAction)
-	}
-	if m.slot_key != nil {
-		fields = append(fields, kitrevision.FieldSlotKey)
-	}
-	if m.summary != nil {
-		fields = append(fields, kitrevision.FieldSummary)
-	}
-	if m.snapshot != nil {
-		fields = append(fields, kitrevision.FieldSnapshot)
-	}
-	if m.yaml != nil {
-		fields = append(fields, kitrevision.FieldYaml)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *KitRevisionMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case kitrevision.FieldCreatedAt:
-		return m.CreatedAt()
-	case kitrevision.FieldKitID:
-		return m.KitID()
-	case kitrevision.FieldSeq:
-		return m.Seq()
-	case kitrevision.FieldActorUserID:
-		return m.ActorUserID()
-	case kitrevision.FieldAction:
-		return m.Action()
-	case kitrevision.FieldSlotKey:
-		return m.SlotKey()
-	case kitrevision.FieldSummary:
-		return m.Summary()
-	case kitrevision.FieldSnapshot:
-		return m.Snapshot()
-	case kitrevision.FieldYaml:
-		return m.Yaml()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *KitRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case kitrevision.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case kitrevision.FieldKitID:
-		return m.OldKitID(ctx)
-	case kitrevision.FieldSeq:
-		return m.OldSeq(ctx)
-	case kitrevision.FieldActorUserID:
-		return m.OldActorUserID(ctx)
-	case kitrevision.FieldAction:
-		return m.OldAction(ctx)
-	case kitrevision.FieldSlotKey:
-		return m.OldSlotKey(ctx)
-	case kitrevision.FieldSummary:
-		return m.OldSummary(ctx)
-	case kitrevision.FieldSnapshot:
-		return m.OldSnapshot(ctx)
-	case kitrevision.FieldYaml:
-		return m.OldYaml(ctx)
-	}
-	return nil, fmt.Errorf("unknown KitRevision field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *KitRevisionMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case kitrevision.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case kitrevision.FieldKitID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetKitID(v)
-		return nil
-	case kitrevision.FieldSeq:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSeq(v)
-		return nil
-	case kitrevision.FieldActorUserID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetActorUserID(v)
-		return nil
-	case kitrevision.FieldAction:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAction(v)
-		return nil
-	case kitrevision.FieldSlotKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSlotKey(v)
-		return nil
-	case kitrevision.FieldSummary:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSummary(v)
-		return nil
-	case kitrevision.FieldSnapshot:
-		v, ok := value.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSnapshot(v)
-		return nil
-	case kitrevision.FieldYaml:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetYaml(v)
-		return nil
-	}
-	return fmt.Errorf("unknown KitRevision field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *KitRevisionMutation) AddedFields() []string {
-	var fields []string
-	if m.addseq != nil {
-		fields = append(fields, kitrevision.FieldSeq)
-	}
-	return fields
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *KitRevisionMutation) AddedField(name string) (ent.Value, bool) {
-	switch name {
-	case kitrevision.FieldSeq:
-		return m.AddedSeq()
-	}
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *KitRevisionMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	case kitrevision.FieldSeq:
-		v, ok := value.(int)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddSeq(v)
-		return nil
-	}
-	return fmt.Errorf("unknown KitRevision numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *KitRevisionMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(kitrevision.FieldActorUserID) {
-		fields = append(fields, kitrevision.FieldActorUserID)
-	}
-	if m.FieldCleared(kitrevision.FieldSlotKey) {
-		fields = append(fields, kitrevision.FieldSlotKey)
-	}
-	return fields
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *KitRevisionMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *KitRevisionMutation) ClearField(name string) error {
-	switch name {
-	case kitrevision.FieldActorUserID:
-		m.ClearActorUserID()
-		return nil
-	case kitrevision.FieldSlotKey:
-		m.ClearSlotKey()
-		return nil
-	}
-	return fmt.Errorf("unknown KitRevision nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *KitRevisionMutation) ResetField(name string) error {
-	switch name {
-	case kitrevision.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case kitrevision.FieldKitID:
-		m.ResetKitID()
-		return nil
-	case kitrevision.FieldSeq:
-		m.ResetSeq()
-		return nil
-	case kitrevision.FieldActorUserID:
-		m.ResetActorUserID()
-		return nil
-	case kitrevision.FieldAction:
-		m.ResetAction()
-		return nil
-	case kitrevision.FieldSlotKey:
-		m.ResetSlotKey()
-		return nil
-	case kitrevision.FieldSummary:
-		m.ResetSummary()
-		return nil
-	case kitrevision.FieldSnapshot:
-		m.ResetSnapshot()
-		return nil
-	case kitrevision.FieldYaml:
-		m.ResetYaml()
-		return nil
-	}
-	return fmt.Errorf("unknown KitRevision field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *KitRevisionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.kit != nil {
-		edges = append(edges, kitrevision.EdgeKit)
-	}
-	if m.actor != nil {
-		edges = append(edges, kitrevision.EdgeActor)
-	}
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *KitRevisionMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case kitrevision.EdgeKit:
-		if id := m.kit; id != nil {
-			return []ent.Value{*id}
-		}
-	case kitrevision.EdgeActor:
-		if id := m.actor; id != nil {
-			return []ent.Value{*id}
-		}
-	}
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *KitRevisionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *KitRevisionMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *KitRevisionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.clearedkit {
-		edges = append(edges, kitrevision.EdgeKit)
-	}
-	if m.clearedactor {
-		edges = append(edges, kitrevision.EdgeActor)
-	}
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *KitRevisionMutation) EdgeCleared(name string) bool {
-	switch name {
-	case kitrevision.EdgeKit:
-		return m.clearedkit
-	case kitrevision.EdgeActor:
-		return m.clearedactor
-	}
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *KitRevisionMutation) ClearEdge(name string) error {
-	switch name {
-	case kitrevision.EdgeKit:
-		m.ClearKit()
-		return nil
-	case kitrevision.EdgeActor:
-		m.ClearActor()
-		return nil
-	}
-	return fmt.Errorf("unknown KitRevision unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *KitRevisionMutation) ResetEdge(name string) error {
-	switch name {
-	case kitrevision.EdgeKit:
-		m.ResetKit()
-		return nil
-	case kitrevision.EdgeActor:
-		m.ResetActor()
-		return nil
-	}
-	return fmt.Errorf("unknown KitRevision edge %s", name)
 }
 
 // RoleAssignmentMutation represents an operation that mutates the RoleAssignment nodes in the graph.
@@ -12385,34 +13238,35 @@ func (m *SessionMutation) ResetEdge(name string) error {
 // SlotMutation represents an operation that mutates the Slot nodes in the graph.
 type SlotMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	created_at           *time.Time
-	updated_at           *time.Time
-	key                  *string
-	label                *string
-	section              *string
-	state                *slot.State
-	required             *bool
-	position             *int
-	addposition          *int
-	optional_capability  *bool
-	group_name           *string
-	clearedFields        map[string]struct{}
-	kit                  *string
-	clearedkit           bool
-	origin_kit           *string
-	clearedorigin_kit    bool
-	overrides            *string
-	clearedoverrides     bool
-	overridden_by        *string
-	clearedoverridden_by bool
-	link                 *string
-	clearedlink          bool
-	done                 bool
-	oldValue             func(context.Context) (*Slot, error)
-	predicates           []predicate.Slot
+	op                      Op
+	typ                     string
+	id                      *string
+	created_at              *time.Time
+	updated_at              *time.Time
+	key                     *string
+	label                   *string
+	section                 *string
+	block_type              *string
+	state                   *slot.State
+	required                *bool
+	position                *int
+	addposition             *int
+	optional_capability     *bool
+	group_name              *string
+	clearedFields           map[string]struct{}
+	blueprint               *string
+	clearedblueprint        bool
+	origin_blueprint        *string
+	clearedorigin_blueprint bool
+	overrides               *string
+	clearedoverrides        bool
+	overridden_by           *string
+	clearedoverridden_by    bool
+	link                    *string
+	clearedlink             bool
+	done                    bool
+	oldValue                func(context.Context) (*Slot, error)
+	predicates              []predicate.Slot
 }
 
 var _ ent.Mutation = (*SlotMutation)(nil)
@@ -12591,89 +13445,89 @@ func (m *SlotMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetKitID sets the "kit_id" field.
-func (m *SlotMutation) SetKitID(s string) {
-	m.kit = &s
+// SetBlueprintID sets the "blueprint_id" field.
+func (m *SlotMutation) SetBlueprintID(s string) {
+	m.blueprint = &s
 }
 
-// KitID returns the value of the "kit_id" field in the mutation.
-func (m *SlotMutation) KitID() (r string, exists bool) {
-	v := m.kit
+// BlueprintID returns the value of the "blueprint_id" field in the mutation.
+func (m *SlotMutation) BlueprintID() (r string, exists bool) {
+	v := m.blueprint
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldKitID returns the old "kit_id" field's value of the Slot entity.
+// OldBlueprintID returns the old "blueprint_id" field's value of the Slot entity.
 // If the Slot object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SlotMutation) OldKitID(ctx context.Context) (v string, err error) {
+func (m *SlotMutation) OldBlueprintID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
+		return v, errors.New("OldBlueprintID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldKitID requires an ID field in the mutation")
+		return v, errors.New("OldBlueprintID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
+		return v, fmt.Errorf("querying old value for OldBlueprintID: %w", err)
 	}
-	return oldValue.KitID, nil
+	return oldValue.BlueprintID, nil
 }
 
-// ResetKitID resets all changes to the "kit_id" field.
-func (m *SlotMutation) ResetKitID() {
-	m.kit = nil
+// ResetBlueprintID resets all changes to the "blueprint_id" field.
+func (m *SlotMutation) ResetBlueprintID() {
+	m.blueprint = nil
 }
 
-// SetOriginKitID sets the "origin_kit_id" field.
-func (m *SlotMutation) SetOriginKitID(s string) {
-	m.origin_kit = &s
+// SetOriginBlueprintID sets the "origin_blueprint_id" field.
+func (m *SlotMutation) SetOriginBlueprintID(s string) {
+	m.origin_blueprint = &s
 }
 
-// OriginKitID returns the value of the "origin_kit_id" field in the mutation.
-func (m *SlotMutation) OriginKitID() (r string, exists bool) {
-	v := m.origin_kit
+// OriginBlueprintID returns the value of the "origin_blueprint_id" field in the mutation.
+func (m *SlotMutation) OriginBlueprintID() (r string, exists bool) {
+	v := m.origin_blueprint
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldOriginKitID returns the old "origin_kit_id" field's value of the Slot entity.
+// OldOriginBlueprintID returns the old "origin_blueprint_id" field's value of the Slot entity.
 // If the Slot object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SlotMutation) OldOriginKitID(ctx context.Context) (v *string, err error) {
+func (m *SlotMutation) OldOriginBlueprintID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOriginKitID is only allowed on UpdateOne operations")
+		return v, errors.New("OldOriginBlueprintID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOriginKitID requires an ID field in the mutation")
+		return v, errors.New("OldOriginBlueprintID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOriginKitID: %w", err)
+		return v, fmt.Errorf("querying old value for OldOriginBlueprintID: %w", err)
 	}
-	return oldValue.OriginKitID, nil
+	return oldValue.OriginBlueprintID, nil
 }
 
-// ClearOriginKitID clears the value of the "origin_kit_id" field.
-func (m *SlotMutation) ClearOriginKitID() {
-	m.origin_kit = nil
-	m.clearedFields[slot.FieldOriginKitID] = struct{}{}
+// ClearOriginBlueprintID clears the value of the "origin_blueprint_id" field.
+func (m *SlotMutation) ClearOriginBlueprintID() {
+	m.origin_blueprint = nil
+	m.clearedFields[slot.FieldOriginBlueprintID] = struct{}{}
 }
 
-// OriginKitIDCleared returns if the "origin_kit_id" field was cleared in this mutation.
-func (m *SlotMutation) OriginKitIDCleared() bool {
-	_, ok := m.clearedFields[slot.FieldOriginKitID]
+// OriginBlueprintIDCleared returns if the "origin_blueprint_id" field was cleared in this mutation.
+func (m *SlotMutation) OriginBlueprintIDCleared() bool {
+	_, ok := m.clearedFields[slot.FieldOriginBlueprintID]
 	return ok
 }
 
-// ResetOriginKitID resets all changes to the "origin_kit_id" field.
-func (m *SlotMutation) ResetOriginKitID() {
-	m.origin_kit = nil
-	delete(m.clearedFields, slot.FieldOriginKitID)
+// ResetOriginBlueprintID resets all changes to the "origin_blueprint_id" field.
+func (m *SlotMutation) ResetOriginBlueprintID() {
+	m.origin_blueprint = nil
+	delete(m.clearedFields, slot.FieldOriginBlueprintID)
 }
 
 // SetOverridesSlotID sets the "overrides_slot_id" field.
@@ -12831,6 +13685,42 @@ func (m *SlotMutation) OldSection(ctx context.Context) (v string, err error) {
 // ResetSection resets all changes to the "section" field.
 func (m *SlotMutation) ResetSection() {
 	m.section = nil
+}
+
+// SetBlockType sets the "block_type" field.
+func (m *SlotMutation) SetBlockType(s string) {
+	m.block_type = &s
+}
+
+// BlockType returns the value of the "block_type" field in the mutation.
+func (m *SlotMutation) BlockType() (r string, exists bool) {
+	v := m.block_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBlockType returns the old "block_type" field's value of the Slot entity.
+// If the Slot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SlotMutation) OldBlockType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBlockType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBlockType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBlockType: %w", err)
+	}
+	return oldValue.BlockType, nil
+}
+
+// ResetBlockType resets all changes to the "block_type" field.
+func (m *SlotMutation) ResetBlockType() {
+	m.block_type = nil
 }
 
 // SetState sets the "state" field.
@@ -13046,58 +13936,58 @@ func (m *SlotMutation) ResetGroupName() {
 	delete(m.clearedFields, slot.FieldGroupName)
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (m *SlotMutation) ClearKit() {
-	m.clearedkit = true
-	m.clearedFields[slot.FieldKitID] = struct{}{}
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (m *SlotMutation) ClearBlueprint() {
+	m.clearedblueprint = true
+	m.clearedFields[slot.FieldBlueprintID] = struct{}{}
 }
 
-// KitCleared reports if the "kit" edge to the Kit entity was cleared.
-func (m *SlotMutation) KitCleared() bool {
-	return m.clearedkit
+// BlueprintCleared reports if the "blueprint" edge to the Blueprint entity was cleared.
+func (m *SlotMutation) BlueprintCleared() bool {
+	return m.clearedblueprint
 }
 
-// KitIDs returns the "kit" edge IDs in the mutation.
+// BlueprintIDs returns the "blueprint" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// KitID instead. It exists only for internal usage by the builders.
-func (m *SlotMutation) KitIDs() (ids []string) {
-	if id := m.kit; id != nil {
+// BlueprintID instead. It exists only for internal usage by the builders.
+func (m *SlotMutation) BlueprintIDs() (ids []string) {
+	if id := m.blueprint; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetKit resets all changes to the "kit" edge.
-func (m *SlotMutation) ResetKit() {
-	m.kit = nil
-	m.clearedkit = false
+// ResetBlueprint resets all changes to the "blueprint" edge.
+func (m *SlotMutation) ResetBlueprint() {
+	m.blueprint = nil
+	m.clearedblueprint = false
 }
 
-// ClearOriginKit clears the "origin_kit" edge to the Kit entity.
-func (m *SlotMutation) ClearOriginKit() {
-	m.clearedorigin_kit = true
-	m.clearedFields[slot.FieldOriginKitID] = struct{}{}
+// ClearOriginBlueprint clears the "origin_blueprint" edge to the Blueprint entity.
+func (m *SlotMutation) ClearOriginBlueprint() {
+	m.clearedorigin_blueprint = true
+	m.clearedFields[slot.FieldOriginBlueprintID] = struct{}{}
 }
 
-// OriginKitCleared reports if the "origin_kit" edge to the Kit entity was cleared.
-func (m *SlotMutation) OriginKitCleared() bool {
-	return m.OriginKitIDCleared() || m.clearedorigin_kit
+// OriginBlueprintCleared reports if the "origin_blueprint" edge to the Blueprint entity was cleared.
+func (m *SlotMutation) OriginBlueprintCleared() bool {
+	return m.OriginBlueprintIDCleared() || m.clearedorigin_blueprint
 }
 
-// OriginKitIDs returns the "origin_kit" edge IDs in the mutation.
+// OriginBlueprintIDs returns the "origin_blueprint" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OriginKitID instead. It exists only for internal usage by the builders.
-func (m *SlotMutation) OriginKitIDs() (ids []string) {
-	if id := m.origin_kit; id != nil {
+// OriginBlueprintID instead. It exists only for internal usage by the builders.
+func (m *SlotMutation) OriginBlueprintIDs() (ids []string) {
+	if id := m.origin_blueprint; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetOriginKit resets all changes to the "origin_kit" edge.
-func (m *SlotMutation) ResetOriginKit() {
-	m.origin_kit = nil
-	m.clearedorigin_kit = false
+// ResetOriginBlueprint resets all changes to the "origin_blueprint" edge.
+func (m *SlotMutation) ResetOriginBlueprint() {
+	m.origin_blueprint = nil
+	m.clearedorigin_blueprint = false
 }
 
 // SetOverridesID sets the "overrides" edge to the Slot entity by id.
@@ -13252,18 +14142,18 @@ func (m *SlotMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SlotMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, slot.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, slot.FieldUpdatedAt)
 	}
-	if m.kit != nil {
-		fields = append(fields, slot.FieldKitID)
+	if m.blueprint != nil {
+		fields = append(fields, slot.FieldBlueprintID)
 	}
-	if m.origin_kit != nil {
-		fields = append(fields, slot.FieldOriginKitID)
+	if m.origin_blueprint != nil {
+		fields = append(fields, slot.FieldOriginBlueprintID)
 	}
 	if m.overrides != nil {
 		fields = append(fields, slot.FieldOverridesSlotID)
@@ -13276,6 +14166,9 @@ func (m *SlotMutation) Fields() []string {
 	}
 	if m.section != nil {
 		fields = append(fields, slot.FieldSection)
+	}
+	if m.block_type != nil {
+		fields = append(fields, slot.FieldBlockType)
 	}
 	if m.state != nil {
 		fields = append(fields, slot.FieldState)
@@ -13304,10 +14197,10 @@ func (m *SlotMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case slot.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case slot.FieldKitID:
-		return m.KitID()
-	case slot.FieldOriginKitID:
-		return m.OriginKitID()
+	case slot.FieldBlueprintID:
+		return m.BlueprintID()
+	case slot.FieldOriginBlueprintID:
+		return m.OriginBlueprintID()
 	case slot.FieldOverridesSlotID:
 		return m.OverridesSlotID()
 	case slot.FieldKey:
@@ -13316,6 +14209,8 @@ func (m *SlotMutation) Field(name string) (ent.Value, bool) {
 		return m.Label()
 	case slot.FieldSection:
 		return m.Section()
+	case slot.FieldBlockType:
+		return m.BlockType()
 	case slot.FieldState:
 		return m.State()
 	case slot.FieldRequired:
@@ -13339,10 +14234,10 @@ func (m *SlotMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldCreatedAt(ctx)
 	case slot.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case slot.FieldKitID:
-		return m.OldKitID(ctx)
-	case slot.FieldOriginKitID:
-		return m.OldOriginKitID(ctx)
+	case slot.FieldBlueprintID:
+		return m.OldBlueprintID(ctx)
+	case slot.FieldOriginBlueprintID:
+		return m.OldOriginBlueprintID(ctx)
 	case slot.FieldOverridesSlotID:
 		return m.OldOverridesSlotID(ctx)
 	case slot.FieldKey:
@@ -13351,6 +14246,8 @@ func (m *SlotMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldLabel(ctx)
 	case slot.FieldSection:
 		return m.OldSection(ctx)
+	case slot.FieldBlockType:
+		return m.OldBlockType(ctx)
 	case slot.FieldState:
 		return m.OldState(ctx)
 	case slot.FieldRequired:
@@ -13384,19 +14281,19 @@ func (m *SlotMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case slot.FieldKitID:
+	case slot.FieldBlueprintID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetKitID(v)
+		m.SetBlueprintID(v)
 		return nil
-	case slot.FieldOriginKitID:
+	case slot.FieldOriginBlueprintID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetOriginKitID(v)
+		m.SetOriginBlueprintID(v)
 		return nil
 	case slot.FieldOverridesSlotID:
 		v, ok := value.(string)
@@ -13425,6 +14322,13 @@ func (m *SlotMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSection(v)
+		return nil
+	case slot.FieldBlockType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBlockType(v)
 		return nil
 	case slot.FieldState:
 		v, ok := value.(slot.State)
@@ -13506,8 +14410,8 @@ func (m *SlotMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *SlotMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(slot.FieldOriginKitID) {
-		fields = append(fields, slot.FieldOriginKitID)
+	if m.FieldCleared(slot.FieldOriginBlueprintID) {
+		fields = append(fields, slot.FieldOriginBlueprintID)
 	}
 	if m.FieldCleared(slot.FieldOverridesSlotID) {
 		fields = append(fields, slot.FieldOverridesSlotID)
@@ -13529,8 +14433,8 @@ func (m *SlotMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *SlotMutation) ClearField(name string) error {
 	switch name {
-	case slot.FieldOriginKitID:
-		m.ClearOriginKitID()
+	case slot.FieldOriginBlueprintID:
+		m.ClearOriginBlueprintID()
 		return nil
 	case slot.FieldOverridesSlotID:
 		m.ClearOverridesSlotID()
@@ -13552,11 +14456,11 @@ func (m *SlotMutation) ResetField(name string) error {
 	case slot.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case slot.FieldKitID:
-		m.ResetKitID()
+	case slot.FieldBlueprintID:
+		m.ResetBlueprintID()
 		return nil
-	case slot.FieldOriginKitID:
-		m.ResetOriginKitID()
+	case slot.FieldOriginBlueprintID:
+		m.ResetOriginBlueprintID()
 		return nil
 	case slot.FieldOverridesSlotID:
 		m.ResetOverridesSlotID()
@@ -13569,6 +14473,9 @@ func (m *SlotMutation) ResetField(name string) error {
 		return nil
 	case slot.FieldSection:
 		m.ResetSection()
+		return nil
+	case slot.FieldBlockType:
+		m.ResetBlockType()
 		return nil
 	case slot.FieldState:
 		m.ResetState()
@@ -13592,11 +14499,11 @@ func (m *SlotMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SlotMutation) AddedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.kit != nil {
-		edges = append(edges, slot.EdgeKit)
+	if m.blueprint != nil {
+		edges = append(edges, slot.EdgeBlueprint)
 	}
-	if m.origin_kit != nil {
-		edges = append(edges, slot.EdgeOriginKit)
+	if m.origin_blueprint != nil {
+		edges = append(edges, slot.EdgeOriginBlueprint)
 	}
 	if m.overrides != nil {
 		edges = append(edges, slot.EdgeOverrides)
@@ -13614,12 +14521,12 @@ func (m *SlotMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *SlotMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case slot.EdgeKit:
-		if id := m.kit; id != nil {
+	case slot.EdgeBlueprint:
+		if id := m.blueprint; id != nil {
 			return []ent.Value{*id}
 		}
-	case slot.EdgeOriginKit:
-		if id := m.origin_kit; id != nil {
+	case slot.EdgeOriginBlueprint:
+		if id := m.origin_blueprint; id != nil {
 			return []ent.Value{*id}
 		}
 	case slot.EdgeOverrides:
@@ -13653,11 +14560,11 @@ func (m *SlotMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SlotMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.clearedkit {
-		edges = append(edges, slot.EdgeKit)
+	if m.clearedblueprint {
+		edges = append(edges, slot.EdgeBlueprint)
 	}
-	if m.clearedorigin_kit {
-		edges = append(edges, slot.EdgeOriginKit)
+	if m.clearedorigin_blueprint {
+		edges = append(edges, slot.EdgeOriginBlueprint)
 	}
 	if m.clearedoverrides {
 		edges = append(edges, slot.EdgeOverrides)
@@ -13675,10 +14582,10 @@ func (m *SlotMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *SlotMutation) EdgeCleared(name string) bool {
 	switch name {
-	case slot.EdgeKit:
-		return m.clearedkit
-	case slot.EdgeOriginKit:
-		return m.clearedorigin_kit
+	case slot.EdgeBlueprint:
+		return m.clearedblueprint
+	case slot.EdgeOriginBlueprint:
+		return m.clearedorigin_blueprint
 	case slot.EdgeOverrides:
 		return m.clearedoverrides
 	case slot.EdgeOverriddenBy:
@@ -13693,11 +14600,11 @@ func (m *SlotMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *SlotMutation) ClearEdge(name string) error {
 	switch name {
-	case slot.EdgeKit:
-		m.ClearKit()
+	case slot.EdgeBlueprint:
+		m.ClearBlueprint()
 		return nil
-	case slot.EdgeOriginKit:
-		m.ClearOriginKit()
+	case slot.EdgeOriginBlueprint:
+		m.ClearOriginBlueprint()
 		return nil
 	case slot.EdgeOverrides:
 		m.ClearOverrides()
@@ -13716,11 +14623,11 @@ func (m *SlotMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SlotMutation) ResetEdge(name string) error {
 	switch name {
-	case slot.EdgeKit:
-		m.ResetKit()
+	case slot.EdgeBlueprint:
+		m.ResetBlueprint()
 		return nil
-	case slot.EdgeOriginKit:
-		m.ResetOriginKit()
+	case slot.EdgeOriginBlueprint:
+		m.ResetOriginBlueprint()
 		return nil
 	case slot.EdgeOverrides:
 		m.ResetOverrides()
@@ -13757,9 +14664,9 @@ type TeamMutation struct {
 	blocks             map[string]struct{}
 	removedblocks      map[string]struct{}
 	clearedblocks      bool
-	kits               map[string]struct{}
-	removedkits        map[string]struct{}
-	clearedkits        bool
+	blueprints         map[string]struct{}
+	removedblueprints  map[string]struct{}
+	clearedblueprints  bool
 	done               bool
 	oldValue           func(context.Context) (*Team, error)
 	predicates         []predicate.Team
@@ -14264,58 +15171,58 @@ func (m *TeamMutation) ResetBlocks() {
 	m.removedblocks = nil
 }
 
-// AddKitIDs adds the "kits" edge to the Kit entity by ids.
-func (m *TeamMutation) AddKitIDs(ids ...string) {
-	if m.kits == nil {
-		m.kits = make(map[string]struct{})
+// AddBlueprintIDs adds the "blueprints" edge to the Blueprint entity by ids.
+func (m *TeamMutation) AddBlueprintIDs(ids ...string) {
+	if m.blueprints == nil {
+		m.blueprints = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.kits[ids[i]] = struct{}{}
+		m.blueprints[ids[i]] = struct{}{}
 	}
 }
 
-// ClearKits clears the "kits" edge to the Kit entity.
-func (m *TeamMutation) ClearKits() {
-	m.clearedkits = true
+// ClearBlueprints clears the "blueprints" edge to the Blueprint entity.
+func (m *TeamMutation) ClearBlueprints() {
+	m.clearedblueprints = true
 }
 
-// KitsCleared reports if the "kits" edge to the Kit entity was cleared.
-func (m *TeamMutation) KitsCleared() bool {
-	return m.clearedkits
+// BlueprintsCleared reports if the "blueprints" edge to the Blueprint entity was cleared.
+func (m *TeamMutation) BlueprintsCleared() bool {
+	return m.clearedblueprints
 }
 
-// RemoveKitIDs removes the "kits" edge to the Kit entity by IDs.
-func (m *TeamMutation) RemoveKitIDs(ids ...string) {
-	if m.removedkits == nil {
-		m.removedkits = make(map[string]struct{})
+// RemoveBlueprintIDs removes the "blueprints" edge to the Blueprint entity by IDs.
+func (m *TeamMutation) RemoveBlueprintIDs(ids ...string) {
+	if m.removedblueprints == nil {
+		m.removedblueprints = make(map[string]struct{})
 	}
 	for i := range ids {
-		delete(m.kits, ids[i])
-		m.removedkits[ids[i]] = struct{}{}
+		delete(m.blueprints, ids[i])
+		m.removedblueprints[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedKits returns the removed IDs of the "kits" edge to the Kit entity.
-func (m *TeamMutation) RemovedKitsIDs() (ids []string) {
-	for id := range m.removedkits {
+// RemovedBlueprints returns the removed IDs of the "blueprints" edge to the Blueprint entity.
+func (m *TeamMutation) RemovedBlueprintsIDs() (ids []string) {
+	for id := range m.removedblueprints {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// KitsIDs returns the "kits" edge IDs in the mutation.
-func (m *TeamMutation) KitsIDs() (ids []string) {
-	for id := range m.kits {
+// BlueprintsIDs returns the "blueprints" edge IDs in the mutation.
+func (m *TeamMutation) BlueprintsIDs() (ids []string) {
+	for id := range m.blueprints {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetKits resets all changes to the "kits" edge.
-func (m *TeamMutation) ResetKits() {
-	m.kits = nil
-	m.clearedkits = false
-	m.removedkits = nil
+// ResetBlueprints resets all changes to the "blueprints" edge.
+func (m *TeamMutation) ResetBlueprints() {
+	m.blueprints = nil
+	m.clearedblueprints = false
+	m.removedblueprints = nil
 }
 
 // Where appends a list predicates to the TeamMutation builder.
@@ -14541,8 +15448,8 @@ func (m *TeamMutation) AddedEdges() []string {
 	if m.blocks != nil {
 		edges = append(edges, team.EdgeBlocks)
 	}
-	if m.kits != nil {
-		edges = append(edges, team.EdgeKits)
+	if m.blueprints != nil {
+		edges = append(edges, team.EdgeBlueprints)
 	}
 	return edges
 }
@@ -14573,9 +15480,9 @@ func (m *TeamMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case team.EdgeKits:
-		ids := make([]ent.Value, 0, len(m.kits))
-		for id := range m.kits {
+	case team.EdgeBlueprints:
+		ids := make([]ent.Value, 0, len(m.blueprints))
+		for id := range m.blueprints {
 			ids = append(ids, id)
 		}
 		return ids
@@ -14595,8 +15502,8 @@ func (m *TeamMutation) RemovedEdges() []string {
 	if m.removedblocks != nil {
 		edges = append(edges, team.EdgeBlocks)
 	}
-	if m.removedkits != nil {
-		edges = append(edges, team.EdgeKits)
+	if m.removedblueprints != nil {
+		edges = append(edges, team.EdgeBlueprints)
 	}
 	return edges
 }
@@ -14623,9 +15530,9 @@ func (m *TeamMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case team.EdgeKits:
-		ids := make([]ent.Value, 0, len(m.removedkits))
-		for id := range m.removedkits {
+	case team.EdgeBlueprints:
+		ids := make([]ent.Value, 0, len(m.removedblueprints))
+		for id := range m.removedblueprints {
 			ids = append(ids, id)
 		}
 		return ids
@@ -14648,8 +15555,8 @@ func (m *TeamMutation) ClearedEdges() []string {
 	if m.clearedblocks {
 		edges = append(edges, team.EdgeBlocks)
 	}
-	if m.clearedkits {
-		edges = append(edges, team.EdgeKits)
+	if m.clearedblueprints {
+		edges = append(edges, team.EdgeBlueprints)
 	}
 	return edges
 }
@@ -14666,8 +15573,8 @@ func (m *TeamMutation) EdgeCleared(name string) bool {
 		return m.clearedmemberships
 	case team.EdgeBlocks:
 		return m.clearedblocks
-	case team.EdgeKits:
-		return m.clearedkits
+	case team.EdgeBlueprints:
+		return m.clearedblueprints
 	}
 	return false
 }
@@ -14699,8 +15606,8 @@ func (m *TeamMutation) ResetEdge(name string) error {
 	case team.EdgeBlocks:
 		m.ResetBlocks()
 		return nil
-	case team.EdgeKits:
-		m.ResetKits()
+	case team.EdgeBlueprints:
+		m.ResetBlueprints()
 		return nil
 	}
 	return fmt.Errorf("unknown Team edge %s", name)
@@ -15564,9 +16471,9 @@ type UserMutation struct {
 	accepted_block_versions        map[string]struct{}
 	removedaccepted_block_versions map[string]struct{}
 	clearedaccepted_block_versions bool
-	kit_revisions                  map[string]struct{}
-	removedkit_revisions           map[string]struct{}
-	clearedkit_revisions           bool
+	blueprint_revisions            map[string]struct{}
+	removedblueprint_revisions     map[string]struct{}
+	clearedblueprint_revisions     bool
 	done                           bool
 	oldValue                       func(context.Context) (*User, error)
 	predicates                     []predicate.User
@@ -16259,58 +17166,58 @@ func (m *UserMutation) ResetAcceptedBlockVersions() {
 	m.removedaccepted_block_versions = nil
 }
 
-// AddKitRevisionIDs adds the "kit_revisions" edge to the KitRevision entity by ids.
-func (m *UserMutation) AddKitRevisionIDs(ids ...string) {
-	if m.kit_revisions == nil {
-		m.kit_revisions = make(map[string]struct{})
+// AddBlueprintRevisionIDs adds the "blueprint_revisions" edge to the BlueprintRevision entity by ids.
+func (m *UserMutation) AddBlueprintRevisionIDs(ids ...string) {
+	if m.blueprint_revisions == nil {
+		m.blueprint_revisions = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.kit_revisions[ids[i]] = struct{}{}
+		m.blueprint_revisions[ids[i]] = struct{}{}
 	}
 }
 
-// ClearKitRevisions clears the "kit_revisions" edge to the KitRevision entity.
-func (m *UserMutation) ClearKitRevisions() {
-	m.clearedkit_revisions = true
+// ClearBlueprintRevisions clears the "blueprint_revisions" edge to the BlueprintRevision entity.
+func (m *UserMutation) ClearBlueprintRevisions() {
+	m.clearedblueprint_revisions = true
 }
 
-// KitRevisionsCleared reports if the "kit_revisions" edge to the KitRevision entity was cleared.
-func (m *UserMutation) KitRevisionsCleared() bool {
-	return m.clearedkit_revisions
+// BlueprintRevisionsCleared reports if the "blueprint_revisions" edge to the BlueprintRevision entity was cleared.
+func (m *UserMutation) BlueprintRevisionsCleared() bool {
+	return m.clearedblueprint_revisions
 }
 
-// RemoveKitRevisionIDs removes the "kit_revisions" edge to the KitRevision entity by IDs.
-func (m *UserMutation) RemoveKitRevisionIDs(ids ...string) {
-	if m.removedkit_revisions == nil {
-		m.removedkit_revisions = make(map[string]struct{})
+// RemoveBlueprintRevisionIDs removes the "blueprint_revisions" edge to the BlueprintRevision entity by IDs.
+func (m *UserMutation) RemoveBlueprintRevisionIDs(ids ...string) {
+	if m.removedblueprint_revisions == nil {
+		m.removedblueprint_revisions = make(map[string]struct{})
 	}
 	for i := range ids {
-		delete(m.kit_revisions, ids[i])
-		m.removedkit_revisions[ids[i]] = struct{}{}
+		delete(m.blueprint_revisions, ids[i])
+		m.removedblueprint_revisions[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedKitRevisions returns the removed IDs of the "kit_revisions" edge to the KitRevision entity.
-func (m *UserMutation) RemovedKitRevisionsIDs() (ids []string) {
-	for id := range m.removedkit_revisions {
+// RemovedBlueprintRevisions returns the removed IDs of the "blueprint_revisions" edge to the BlueprintRevision entity.
+func (m *UserMutation) RemovedBlueprintRevisionsIDs() (ids []string) {
+	for id := range m.removedblueprint_revisions {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// KitRevisionsIDs returns the "kit_revisions" edge IDs in the mutation.
-func (m *UserMutation) KitRevisionsIDs() (ids []string) {
-	for id := range m.kit_revisions {
+// BlueprintRevisionsIDs returns the "blueprint_revisions" edge IDs in the mutation.
+func (m *UserMutation) BlueprintRevisionsIDs() (ids []string) {
+	for id := range m.blueprint_revisions {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetKitRevisions resets all changes to the "kit_revisions" edge.
-func (m *UserMutation) ResetKitRevisions() {
-	m.kit_revisions = nil
-	m.clearedkit_revisions = false
-	m.removedkit_revisions = nil
+// ResetBlueprintRevisions resets all changes to the "blueprint_revisions" edge.
+func (m *UserMutation) ResetBlueprintRevisions() {
+	m.blueprint_revisions = nil
+	m.clearedblueprint_revisions = false
+	m.removedblueprint_revisions = nil
 }
 
 // Where appends a list predicates to the UserMutation builder.
@@ -16671,8 +17578,8 @@ func (m *UserMutation) AddedEdges() []string {
 	if m.accepted_block_versions != nil {
 		edges = append(edges, user.EdgeAcceptedBlockVersions)
 	}
-	if m.kit_revisions != nil {
-		edges = append(edges, user.EdgeKitRevisions)
+	if m.blueprint_revisions != nil {
+		edges = append(edges, user.EdgeBlueprintRevisions)
 	}
 	return edges
 }
@@ -16693,9 +17600,9 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case user.EdgeKitRevisions:
-		ids := make([]ent.Value, 0, len(m.kit_revisions))
-		for id := range m.kit_revisions {
+	case user.EdgeBlueprintRevisions:
+		ids := make([]ent.Value, 0, len(m.blueprint_revisions))
+		for id := range m.blueprint_revisions {
 			ids = append(ids, id)
 		}
 		return ids
@@ -16712,8 +17619,8 @@ func (m *UserMutation) RemovedEdges() []string {
 	if m.removedaccepted_block_versions != nil {
 		edges = append(edges, user.EdgeAcceptedBlockVersions)
 	}
-	if m.removedkit_revisions != nil {
-		edges = append(edges, user.EdgeKitRevisions)
+	if m.removedblueprint_revisions != nil {
+		edges = append(edges, user.EdgeBlueprintRevisions)
 	}
 	return edges
 }
@@ -16734,9 +17641,9 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case user.EdgeKitRevisions:
-		ids := make([]ent.Value, 0, len(m.removedkit_revisions))
-		for id := range m.removedkit_revisions {
+	case user.EdgeBlueprintRevisions:
+		ids := make([]ent.Value, 0, len(m.removedblueprint_revisions))
+		for id := range m.removedblueprint_revisions {
 			ids = append(ids, id)
 		}
 		return ids
@@ -16753,8 +17660,8 @@ func (m *UserMutation) ClearedEdges() []string {
 	if m.clearedaccepted_block_versions {
 		edges = append(edges, user.EdgeAcceptedBlockVersions)
 	}
-	if m.clearedkit_revisions {
-		edges = append(edges, user.EdgeKitRevisions)
+	if m.clearedblueprint_revisions {
+		edges = append(edges, user.EdgeBlueprintRevisions)
 	}
 	return edges
 }
@@ -16767,8 +17674,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedmemberships
 	case user.EdgeAcceptedBlockVersions:
 		return m.clearedaccepted_block_versions
-	case user.EdgeKitRevisions:
-		return m.clearedkit_revisions
+	case user.EdgeBlueprintRevisions:
+		return m.clearedblueprint_revisions
 	}
 	return false
 }
@@ -16791,8 +17698,8 @@ func (m *UserMutation) ResetEdge(name string) error {
 	case user.EdgeAcceptedBlockVersions:
 		m.ResetAcceptedBlockVersions()
 		return nil
-	case user.EdgeKitRevisions:
-		m.ResetKitRevisions()
+	case user.EdgeBlueprintRevisions:
+		m.ResetBlueprintRevisions()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

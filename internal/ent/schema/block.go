@@ -7,7 +7,7 @@ import (
 	"entgo.io/ent/schema/field"
 
 	"entgo.io/ent/schema/index"
-	"github.com/docker/kit-maker/internal/kits/patch"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 	"github.com/pgvector/pgvector-go"
 )
 

@@ -43,8 +43,8 @@ type TeamEdges struct {
 	Memberships []*TeamMembership `json:"memberships,omitempty"`
 	// Blocks holds the value of the blocks edge.
 	Blocks []*Block `json:"blocks,omitempty"`
-	// Kits holds the value of the kits edge.
-	Kits []*Kit `json:"kits,omitempty"`
+	// Blueprints holds the value of the blueprints edge.
+	Blueprints []*Blueprint `json:"blueprints,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [5]bool
@@ -88,13 +88,13 @@ func (e TeamEdges) BlocksOrErr() ([]*Block, error) {
 	return nil, &NotLoadedError{edge: "blocks"}
 }
 
-// KitsOrErr returns the Kits value or an error if the edge
+// BlueprintsOrErr returns the Blueprints value or an error if the edge
 // was not loaded in eager-loading.
-func (e TeamEdges) KitsOrErr() ([]*Kit, error) {
+func (e TeamEdges) BlueprintsOrErr() ([]*Blueprint, error) {
 	if e.loadedTypes[4] {
-		return e.Kits, nil
+		return e.Blueprints, nil
 	}
-	return nil, &NotLoadedError{edge: "kits"}
+	return nil, &NotLoadedError{edge: "blueprints"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -191,9 +191,9 @@ func (_m *Team) QueryBlocks() *BlockQuery {
 	return NewTeamClient(_m.config).QueryBlocks(_m)
 }
 
-// QueryKits queries the "kits" edge of the Team entity.
-func (_m *Team) QueryKits() *KitQuery {
-	return NewTeamClient(_m.config).QueryKits(_m)
+// QueryBlueprints queries the "blueprints" edge of the Team entity.
+func (_m *Team) QueryBlueprints() *BlueprintQuery {
+	return NewTeamClient(_m.config).QueryBlueprints(_m)
 }
 
 // Update returns a builder for updating this Team.

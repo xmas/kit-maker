@@ -19,13 +19,14 @@ import (
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
+	"github.com/docker/kit-maker/internal/ent/blueprintinclude"
+	"github.com/docker/kit-maker/internal/ent/blueprintrevision"
+	"github.com/docker/kit-maker/internal/ent/blueprintversion"
 	"github.com/docker/kit-maker/internal/ent/check"
 	"github.com/docker/kit-maker/internal/ent/deploymentsetting"
 	"github.com/docker/kit-maker/internal/ent/goal"
 	"github.com/docker/kit-maker/internal/ent/integration"
-	"github.com/docker/kit-maker/internal/ent/kit"
-	"github.com/docker/kit-maker/internal/ent/kitinclude"
-	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/session"
 	"github.com/docker/kit-maker/internal/ent/slot"
@@ -49,6 +50,14 @@ type Client struct {
 	BlockLink *BlockLinkClient
 	// BlockVersion is the client for interacting with the BlockVersion builders.
 	BlockVersion *BlockVersionClient
+	// Blueprint is the client for interacting with the Blueprint builders.
+	Blueprint *BlueprintClient
+	// BlueprintInclude is the client for interacting with the BlueprintInclude builders.
+	BlueprintInclude *BlueprintIncludeClient
+	// BlueprintRevision is the client for interacting with the BlueprintRevision builders.
+	BlueprintRevision *BlueprintRevisionClient
+	// BlueprintVersion is the client for interacting with the BlueprintVersion builders.
+	BlueprintVersion *BlueprintVersionClient
 	// Check is the client for interacting with the Check builders.
 	Check *CheckClient
 	// DeploymentSetting is the client for interacting with the DeploymentSetting builders.
@@ -57,12 +66,6 @@ type Client struct {
 	Goal *GoalClient
 	// Integration is the client for interacting with the Integration builders.
 	Integration *IntegrationClient
-	// Kit is the client for interacting with the Kit builders.
-	Kit *KitClient
-	// KitInclude is the client for interacting with the KitInclude builders.
-	KitInclude *KitIncludeClient
-	// KitRevision is the client for interacting with the KitRevision builders.
-	KitRevision *KitRevisionClient
 	// RoleAssignment is the client for interacting with the RoleAssignment builders.
 	RoleAssignment *RoleAssignmentClient
 	// Session is the client for interacting with the Session builders.
@@ -90,13 +93,14 @@ func (c *Client) init() {
 	c.Block = NewBlockClient(c.config)
 	c.BlockLink = NewBlockLinkClient(c.config)
 	c.BlockVersion = NewBlockVersionClient(c.config)
+	c.Blueprint = NewBlueprintClient(c.config)
+	c.BlueprintInclude = NewBlueprintIncludeClient(c.config)
+	c.BlueprintRevision = NewBlueprintRevisionClient(c.config)
+	c.BlueprintVersion = NewBlueprintVersionClient(c.config)
 	c.Check = NewCheckClient(c.config)
 	c.DeploymentSetting = NewDeploymentSettingClient(c.config)
 	c.Goal = NewGoalClient(c.config)
 	c.Integration = NewIntegrationClient(c.config)
-	c.Kit = NewKitClient(c.config)
-	c.KitInclude = NewKitIncludeClient(c.config)
-	c.KitRevision = NewKitRevisionClient(c.config)
 	c.RoleAssignment = NewRoleAssignmentClient(c.config)
 	c.Session = NewSessionClient(c.config)
 	c.Slot = NewSlotClient(c.config)
@@ -199,13 +203,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Block:             NewBlockClient(cfg),
 		BlockLink:         NewBlockLinkClient(cfg),
 		BlockVersion:      NewBlockVersionClient(cfg),
+		Blueprint:         NewBlueprintClient(cfg),
+		BlueprintInclude:  NewBlueprintIncludeClient(cfg),
+		BlueprintRevision: NewBlueprintRevisionClient(cfg),
+		BlueprintVersion:  NewBlueprintVersionClient(cfg),
 		Check:             NewCheckClient(cfg),
 		DeploymentSetting: NewDeploymentSettingClient(cfg),
 		Goal:              NewGoalClient(cfg),
 		Integration:       NewIntegrationClient(cfg),
-		Kit:               NewKitClient(cfg),
-		KitInclude:        NewKitIncludeClient(cfg),
-		KitRevision:       NewKitRevisionClient(cfg),
 		RoleAssignment:    NewRoleAssignmentClient(cfg),
 		Session:           NewSessionClient(cfg),
 		Slot:              NewSlotClient(cfg),
@@ -235,13 +240,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Block:             NewBlockClient(cfg),
 		BlockLink:         NewBlockLinkClient(cfg),
 		BlockVersion:      NewBlockVersionClient(cfg),
+		Blueprint:         NewBlueprintClient(cfg),
+		BlueprintInclude:  NewBlueprintIncludeClient(cfg),
+		BlueprintRevision: NewBlueprintRevisionClient(cfg),
+		BlueprintVersion:  NewBlueprintVersionClient(cfg),
 		Check:             NewCheckClient(cfg),
 		DeploymentSetting: NewDeploymentSettingClient(cfg),
 		Goal:              NewGoalClient(cfg),
 		Integration:       NewIntegrationClient(cfg),
-		Kit:               NewKitClient(cfg),
-		KitInclude:        NewKitIncludeClient(cfg),
-		KitRevision:       NewKitRevisionClient(cfg),
 		RoleAssignment:    NewRoleAssignmentClient(cfg),
 		Session:           NewSessionClient(cfg),
 		Slot:              NewSlotClient(cfg),
@@ -277,9 +283,10 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AICall, c.Block, c.BlockLink, c.BlockVersion, c.Check, c.DeploymentSetting,
-		c.Goal, c.Integration, c.Kit, c.KitInclude, c.KitRevision, c.RoleAssignment,
-		c.Session, c.Slot, c.Team, c.TeamMembership, c.User,
+		c.AICall, c.Block, c.BlockLink, c.BlockVersion, c.Blueprint, c.BlueprintInclude,
+		c.BlueprintRevision, c.BlueprintVersion, c.Check, c.DeploymentSetting, c.Goal,
+		c.Integration, c.RoleAssignment, c.Session, c.Slot, c.Team, c.TeamMembership,
+		c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -289,9 +296,10 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AICall, c.Block, c.BlockLink, c.BlockVersion, c.Check, c.DeploymentSetting,
-		c.Goal, c.Integration, c.Kit, c.KitInclude, c.KitRevision, c.RoleAssignment,
-		c.Session, c.Slot, c.Team, c.TeamMembership, c.User,
+		c.AICall, c.Block, c.BlockLink, c.BlockVersion, c.Blueprint, c.BlueprintInclude,
+		c.BlueprintRevision, c.BlueprintVersion, c.Check, c.DeploymentSetting, c.Goal,
+		c.Integration, c.RoleAssignment, c.Session, c.Slot, c.Team, c.TeamMembership,
+		c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -308,6 +316,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BlockLink.mutate(ctx, m)
 	case *BlockVersionMutation:
 		return c.BlockVersion.mutate(ctx, m)
+	case *BlueprintMutation:
+		return c.Blueprint.mutate(ctx, m)
+	case *BlueprintIncludeMutation:
+		return c.BlueprintInclude.mutate(ctx, m)
+	case *BlueprintRevisionMutation:
+		return c.BlueprintRevision.mutate(ctx, m)
+	case *BlueprintVersionMutation:
+		return c.BlueprintVersion.mutate(ctx, m)
 	case *CheckMutation:
 		return c.Check.mutate(ctx, m)
 	case *DeploymentSettingMutation:
@@ -316,12 +332,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Goal.mutate(ctx, m)
 	case *IntegrationMutation:
 		return c.Integration.mutate(ctx, m)
-	case *KitMutation:
-		return c.Kit.mutate(ctx, m)
-	case *KitIncludeMutation:
-		return c.KitInclude.mutate(ctx, m)
-	case *KitRevisionMutation:
-		return c.KitRevision.mutate(ctx, m)
 	case *RoleAssignmentMutation:
 		return c.RoleAssignment.mutate(ctx, m)
 	case *SessionMutation:
@@ -1143,6 +1153,762 @@ func (c *BlockVersionClient) mutate(ctx context.Context, m *BlockVersionMutation
 	}
 }
 
+// BlueprintClient is a client for the Blueprint schema.
+type BlueprintClient struct {
+	config
+}
+
+// NewBlueprintClient returns a client for the Blueprint from the given config.
+func NewBlueprintClient(c config) *BlueprintClient {
+	return &BlueprintClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `blueprint.Hooks(f(g(h())))`.
+func (c *BlueprintClient) Use(hooks ...Hook) {
+	c.hooks.Blueprint = append(c.hooks.Blueprint, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `blueprint.Intercept(f(g(h())))`.
+func (c *BlueprintClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Blueprint = append(c.inters.Blueprint, interceptors...)
+}
+
+// Create returns a builder for creating a Blueprint entity.
+func (c *BlueprintClient) Create() *BlueprintCreate {
+	mutation := newBlueprintMutation(c.config, OpCreate)
+	return &BlueprintCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Blueprint entities.
+func (c *BlueprintClient) CreateBulk(builders ...*BlueprintCreate) *BlueprintCreateBulk {
+	return &BlueprintCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BlueprintClient) MapCreateBulk(slice any, setFunc func(*BlueprintCreate, int)) *BlueprintCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BlueprintCreateBulk{err: fmt.Errorf("calling to BlueprintClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BlueprintCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BlueprintCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Blueprint.
+func (c *BlueprintClient) Update() *BlueprintUpdate {
+	mutation := newBlueprintMutation(c.config, OpUpdate)
+	return &BlueprintUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BlueprintClient) UpdateOne(_m *Blueprint) *BlueprintUpdateOne {
+	mutation := newBlueprintMutation(c.config, OpUpdateOne, withBlueprint(_m))
+	return &BlueprintUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BlueprintClient) UpdateOneID(id string) *BlueprintUpdateOne {
+	mutation := newBlueprintMutation(c.config, OpUpdateOne, withBlueprintID(id))
+	return &BlueprintUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Blueprint.
+func (c *BlueprintClient) Delete() *BlueprintDelete {
+	mutation := newBlueprintMutation(c.config, OpDelete)
+	return &BlueprintDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BlueprintClient) DeleteOne(_m *Blueprint) *BlueprintDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BlueprintClient) DeleteOneID(id string) *BlueprintDeleteOne {
+	builder := c.Delete().Where(blueprint.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BlueprintDeleteOne{builder}
+}
+
+// Query returns a query builder for Blueprint.
+func (c *BlueprintClient) Query() *BlueprintQuery {
+	return &BlueprintQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBlueprint},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Blueprint entity by its id.
+func (c *BlueprintClient) Get(ctx context.Context, id string) (*Blueprint, error) {
+	return c.Query().Where(blueprint.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BlueprintClient) GetX(ctx context.Context, id string) *Blueprint {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTeam queries the team edge of a Blueprint.
+func (c *BlueprintClient) QueryTeam(_m *Blueprint) *TeamQuery {
+	query := (&TeamClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(team.Table, team.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, blueprint.TeamTable, blueprint.TeamColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySlots queries the slots edge of a Blueprint.
+func (c *BlueprintClient) QuerySlots(_m *Blueprint) *SlotQuery {
+	query := (&SlotClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(slot.Table, slot.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blueprint.SlotsTable, blueprint.SlotsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryIncludes queries the includes edge of a Blueprint.
+func (c *BlueprintClient) QueryIncludes(_m *Blueprint) *BlueprintIncludeQuery {
+	query := (&BlueprintIncludeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(blueprintinclude.Table, blueprintinclude.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blueprint.IncludesTable, blueprint.IncludesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryIncludedBy queries the included_by edge of a Blueprint.
+func (c *BlueprintClient) QueryIncludedBy(_m *Blueprint) *BlueprintIncludeQuery {
+	query := (&BlueprintIncludeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(blueprintinclude.Table, blueprintinclude.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blueprint.IncludedByTable, blueprint.IncludedByColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOriginSlots queries the origin_slots edge of a Blueprint.
+func (c *BlueprintClient) QueryOriginSlots(_m *Blueprint) *SlotQuery {
+	query := (&SlotClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(slot.Table, slot.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blueprint.OriginSlotsTable, blueprint.OriginSlotsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGoal queries the goal edge of a Blueprint.
+func (c *BlueprintClient) QueryGoal(_m *Blueprint) *GoalQuery {
+	query := (&GoalClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(goal.Table, goal.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, blueprint.GoalTable, blueprint.GoalColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChecks queries the checks edge of a Blueprint.
+func (c *BlueprintClient) QueryChecks(_m *Blueprint) *CheckQuery {
+	query := (&CheckClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(check.Table, check.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blueprint.ChecksTable, blueprint.ChecksColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRevisions queries the revisions edge of a Blueprint.
+func (c *BlueprintClient) QueryRevisions(_m *Blueprint) *BlueprintRevisionQuery {
+	query := (&BlueprintRevisionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(blueprintrevision.Table, blueprintrevision.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blueprint.RevisionsTable, blueprint.RevisionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryVersions queries the versions edge of a Blueprint.
+func (c *BlueprintClient) QueryVersions(_m *Blueprint) *BlueprintVersionQuery {
+	query := (&BlueprintVersionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprint.Table, blueprint.FieldID, id),
+			sqlgraph.To(blueprintversion.Table, blueprintversion.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, blueprint.VersionsTable, blueprint.VersionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BlueprintClient) Hooks() []Hook {
+	return c.hooks.Blueprint
+}
+
+// Interceptors returns the client interceptors.
+func (c *BlueprintClient) Interceptors() []Interceptor {
+	return c.inters.Blueprint
+}
+
+func (c *BlueprintClient) mutate(ctx context.Context, m *BlueprintMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BlueprintCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BlueprintUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BlueprintUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BlueprintDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Blueprint mutation op: %q", m.Op())
+	}
+}
+
+// BlueprintIncludeClient is a client for the BlueprintInclude schema.
+type BlueprintIncludeClient struct {
+	config
+}
+
+// NewBlueprintIncludeClient returns a client for the BlueprintInclude from the given config.
+func NewBlueprintIncludeClient(c config) *BlueprintIncludeClient {
+	return &BlueprintIncludeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `blueprintinclude.Hooks(f(g(h())))`.
+func (c *BlueprintIncludeClient) Use(hooks ...Hook) {
+	c.hooks.BlueprintInclude = append(c.hooks.BlueprintInclude, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `blueprintinclude.Intercept(f(g(h())))`.
+func (c *BlueprintIncludeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BlueprintInclude = append(c.inters.BlueprintInclude, interceptors...)
+}
+
+// Create returns a builder for creating a BlueprintInclude entity.
+func (c *BlueprintIncludeClient) Create() *BlueprintIncludeCreate {
+	mutation := newBlueprintIncludeMutation(c.config, OpCreate)
+	return &BlueprintIncludeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BlueprintInclude entities.
+func (c *BlueprintIncludeClient) CreateBulk(builders ...*BlueprintIncludeCreate) *BlueprintIncludeCreateBulk {
+	return &BlueprintIncludeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BlueprintIncludeClient) MapCreateBulk(slice any, setFunc func(*BlueprintIncludeCreate, int)) *BlueprintIncludeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BlueprintIncludeCreateBulk{err: fmt.Errorf("calling to BlueprintIncludeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BlueprintIncludeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BlueprintIncludeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BlueprintInclude.
+func (c *BlueprintIncludeClient) Update() *BlueprintIncludeUpdate {
+	mutation := newBlueprintIncludeMutation(c.config, OpUpdate)
+	return &BlueprintIncludeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BlueprintIncludeClient) UpdateOne(_m *BlueprintInclude) *BlueprintIncludeUpdateOne {
+	mutation := newBlueprintIncludeMutation(c.config, OpUpdateOne, withBlueprintInclude(_m))
+	return &BlueprintIncludeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BlueprintIncludeClient) UpdateOneID(id string) *BlueprintIncludeUpdateOne {
+	mutation := newBlueprintIncludeMutation(c.config, OpUpdateOne, withBlueprintIncludeID(id))
+	return &BlueprintIncludeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BlueprintInclude.
+func (c *BlueprintIncludeClient) Delete() *BlueprintIncludeDelete {
+	mutation := newBlueprintIncludeMutation(c.config, OpDelete)
+	return &BlueprintIncludeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BlueprintIncludeClient) DeleteOne(_m *BlueprintInclude) *BlueprintIncludeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BlueprintIncludeClient) DeleteOneID(id string) *BlueprintIncludeDeleteOne {
+	builder := c.Delete().Where(blueprintinclude.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BlueprintIncludeDeleteOne{builder}
+}
+
+// Query returns a query builder for BlueprintInclude.
+func (c *BlueprintIncludeClient) Query() *BlueprintIncludeQuery {
+	return &BlueprintIncludeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBlueprintInclude},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BlueprintInclude entity by its id.
+func (c *BlueprintIncludeClient) Get(ctx context.Context, id string) (*BlueprintInclude, error) {
+	return c.Query().Where(blueprintinclude.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BlueprintIncludeClient) GetX(ctx context.Context, id string) *BlueprintInclude {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBlueprint queries the blueprint edge of a BlueprintInclude.
+func (c *BlueprintIncludeClient) QueryBlueprint(_m *BlueprintInclude) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprintinclude.Table, blueprintinclude.FieldID, id),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, blueprintinclude.BlueprintTable, blueprintinclude.BlueprintColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildBlueprint queries the child_blueprint edge of a BlueprintInclude.
+func (c *BlueprintIncludeClient) QueryChildBlueprint(_m *BlueprintInclude) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprintinclude.Table, blueprintinclude.FieldID, id),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, blueprintinclude.ChildBlueprintTable, blueprintinclude.ChildBlueprintColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BlueprintIncludeClient) Hooks() []Hook {
+	return c.hooks.BlueprintInclude
+}
+
+// Interceptors returns the client interceptors.
+func (c *BlueprintIncludeClient) Interceptors() []Interceptor {
+	return c.inters.BlueprintInclude
+}
+
+func (c *BlueprintIncludeClient) mutate(ctx context.Context, m *BlueprintIncludeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BlueprintIncludeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BlueprintIncludeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BlueprintIncludeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BlueprintIncludeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown BlueprintInclude mutation op: %q", m.Op())
+	}
+}
+
+// BlueprintRevisionClient is a client for the BlueprintRevision schema.
+type BlueprintRevisionClient struct {
+	config
+}
+
+// NewBlueprintRevisionClient returns a client for the BlueprintRevision from the given config.
+func NewBlueprintRevisionClient(c config) *BlueprintRevisionClient {
+	return &BlueprintRevisionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `blueprintrevision.Hooks(f(g(h())))`.
+func (c *BlueprintRevisionClient) Use(hooks ...Hook) {
+	c.hooks.BlueprintRevision = append(c.hooks.BlueprintRevision, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `blueprintrevision.Intercept(f(g(h())))`.
+func (c *BlueprintRevisionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BlueprintRevision = append(c.inters.BlueprintRevision, interceptors...)
+}
+
+// Create returns a builder for creating a BlueprintRevision entity.
+func (c *BlueprintRevisionClient) Create() *BlueprintRevisionCreate {
+	mutation := newBlueprintRevisionMutation(c.config, OpCreate)
+	return &BlueprintRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BlueprintRevision entities.
+func (c *BlueprintRevisionClient) CreateBulk(builders ...*BlueprintRevisionCreate) *BlueprintRevisionCreateBulk {
+	return &BlueprintRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BlueprintRevisionClient) MapCreateBulk(slice any, setFunc func(*BlueprintRevisionCreate, int)) *BlueprintRevisionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BlueprintRevisionCreateBulk{err: fmt.Errorf("calling to BlueprintRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BlueprintRevisionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BlueprintRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BlueprintRevision.
+func (c *BlueprintRevisionClient) Update() *BlueprintRevisionUpdate {
+	mutation := newBlueprintRevisionMutation(c.config, OpUpdate)
+	return &BlueprintRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BlueprintRevisionClient) UpdateOne(_m *BlueprintRevision) *BlueprintRevisionUpdateOne {
+	mutation := newBlueprintRevisionMutation(c.config, OpUpdateOne, withBlueprintRevision(_m))
+	return &BlueprintRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BlueprintRevisionClient) UpdateOneID(id string) *BlueprintRevisionUpdateOne {
+	mutation := newBlueprintRevisionMutation(c.config, OpUpdateOne, withBlueprintRevisionID(id))
+	return &BlueprintRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BlueprintRevision.
+func (c *BlueprintRevisionClient) Delete() *BlueprintRevisionDelete {
+	mutation := newBlueprintRevisionMutation(c.config, OpDelete)
+	return &BlueprintRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BlueprintRevisionClient) DeleteOne(_m *BlueprintRevision) *BlueprintRevisionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BlueprintRevisionClient) DeleteOneID(id string) *BlueprintRevisionDeleteOne {
+	builder := c.Delete().Where(blueprintrevision.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BlueprintRevisionDeleteOne{builder}
+}
+
+// Query returns a query builder for BlueprintRevision.
+func (c *BlueprintRevisionClient) Query() *BlueprintRevisionQuery {
+	return &BlueprintRevisionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBlueprintRevision},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BlueprintRevision entity by its id.
+func (c *BlueprintRevisionClient) Get(ctx context.Context, id string) (*BlueprintRevision, error) {
+	return c.Query().Where(blueprintrevision.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BlueprintRevisionClient) GetX(ctx context.Context, id string) *BlueprintRevision {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBlueprint queries the blueprint edge of a BlueprintRevision.
+func (c *BlueprintRevisionClient) QueryBlueprint(_m *BlueprintRevision) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprintrevision.Table, blueprintrevision.FieldID, id),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, blueprintrevision.BlueprintTable, blueprintrevision.BlueprintColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryActor queries the actor edge of a BlueprintRevision.
+func (c *BlueprintRevisionClient) QueryActor(_m *BlueprintRevision) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprintrevision.Table, blueprintrevision.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, blueprintrevision.ActorTable, blueprintrevision.ActorColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BlueprintRevisionClient) Hooks() []Hook {
+	return c.hooks.BlueprintRevision
+}
+
+// Interceptors returns the client interceptors.
+func (c *BlueprintRevisionClient) Interceptors() []Interceptor {
+	return c.inters.BlueprintRevision
+}
+
+func (c *BlueprintRevisionClient) mutate(ctx context.Context, m *BlueprintRevisionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BlueprintRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BlueprintRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BlueprintRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BlueprintRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown BlueprintRevision mutation op: %q", m.Op())
+	}
+}
+
+// BlueprintVersionClient is a client for the BlueprintVersion schema.
+type BlueprintVersionClient struct {
+	config
+}
+
+// NewBlueprintVersionClient returns a client for the BlueprintVersion from the given config.
+func NewBlueprintVersionClient(c config) *BlueprintVersionClient {
+	return &BlueprintVersionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `blueprintversion.Hooks(f(g(h())))`.
+func (c *BlueprintVersionClient) Use(hooks ...Hook) {
+	c.hooks.BlueprintVersion = append(c.hooks.BlueprintVersion, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `blueprintversion.Intercept(f(g(h())))`.
+func (c *BlueprintVersionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BlueprintVersion = append(c.inters.BlueprintVersion, interceptors...)
+}
+
+// Create returns a builder for creating a BlueprintVersion entity.
+func (c *BlueprintVersionClient) Create() *BlueprintVersionCreate {
+	mutation := newBlueprintVersionMutation(c.config, OpCreate)
+	return &BlueprintVersionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BlueprintVersion entities.
+func (c *BlueprintVersionClient) CreateBulk(builders ...*BlueprintVersionCreate) *BlueprintVersionCreateBulk {
+	return &BlueprintVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BlueprintVersionClient) MapCreateBulk(slice any, setFunc func(*BlueprintVersionCreate, int)) *BlueprintVersionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BlueprintVersionCreateBulk{err: fmt.Errorf("calling to BlueprintVersionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BlueprintVersionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BlueprintVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BlueprintVersion.
+func (c *BlueprintVersionClient) Update() *BlueprintVersionUpdate {
+	mutation := newBlueprintVersionMutation(c.config, OpUpdate)
+	return &BlueprintVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BlueprintVersionClient) UpdateOne(_m *BlueprintVersion) *BlueprintVersionUpdateOne {
+	mutation := newBlueprintVersionMutation(c.config, OpUpdateOne, withBlueprintVersion(_m))
+	return &BlueprintVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BlueprintVersionClient) UpdateOneID(id string) *BlueprintVersionUpdateOne {
+	mutation := newBlueprintVersionMutation(c.config, OpUpdateOne, withBlueprintVersionID(id))
+	return &BlueprintVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BlueprintVersion.
+func (c *BlueprintVersionClient) Delete() *BlueprintVersionDelete {
+	mutation := newBlueprintVersionMutation(c.config, OpDelete)
+	return &BlueprintVersionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BlueprintVersionClient) DeleteOne(_m *BlueprintVersion) *BlueprintVersionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BlueprintVersionClient) DeleteOneID(id string) *BlueprintVersionDeleteOne {
+	builder := c.Delete().Where(blueprintversion.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BlueprintVersionDeleteOne{builder}
+}
+
+// Query returns a query builder for BlueprintVersion.
+func (c *BlueprintVersionClient) Query() *BlueprintVersionQuery {
+	return &BlueprintVersionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBlueprintVersion},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BlueprintVersion entity by its id.
+func (c *BlueprintVersionClient) Get(ctx context.Context, id string) (*BlueprintVersion, error) {
+	return c.Query().Where(blueprintversion.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BlueprintVersionClient) GetX(ctx context.Context, id string) *BlueprintVersion {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBlueprint queries the blueprint edge of a BlueprintVersion.
+func (c *BlueprintVersionClient) QueryBlueprint(_m *BlueprintVersion) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(blueprintversion.Table, blueprintversion.FieldID, id),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, blueprintversion.BlueprintTable, blueprintversion.BlueprintColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BlueprintVersionClient) Hooks() []Hook {
+	return c.hooks.BlueprintVersion
+}
+
+// Interceptors returns the client interceptors.
+func (c *BlueprintVersionClient) Interceptors() []Interceptor {
+	return c.inters.BlueprintVersion
+}
+
+func (c *BlueprintVersionClient) mutate(ctx context.Context, m *BlueprintVersionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BlueprintVersionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BlueprintVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BlueprintVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BlueprintVersionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown BlueprintVersion mutation op: %q", m.Op())
+	}
+}
+
 // CheckClient is a client for the Check schema.
 type CheckClient struct {
 	config
@@ -1251,15 +2017,15 @@ func (c *CheckClient) GetX(ctx context.Context, id string) *Check {
 	return obj
 }
 
-// QueryKit queries the kit edge of a Check.
-func (c *CheckClient) QueryKit(_m *Check) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
+// QueryBlueprint queries the blueprint edge of a Check.
+func (c *CheckClient) QueryBlueprint(_m *Check) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(check.Table, check.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, check.KitTable, check.KitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, check.BlueprintTable, check.BlueprintColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1533,15 +2299,15 @@ func (c *GoalClient) GetX(ctx context.Context, id string) *Goal {
 	return obj
 }
 
-// QueryKit queries the kit edge of a Goal.
-func (c *GoalClient) QueryKit(_m *Goal) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
+// QueryBlueprint queries the blueprint edge of a Goal.
+func (c *GoalClient) QueryBlueprint(_m *Goal) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(goal.Table, goal.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, goal.KitTable, goal.KitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, goal.BlueprintTable, goal.BlueprintColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1704,597 +2470,6 @@ func (c *IntegrationClient) mutate(ctx context.Context, m *IntegrationMutation) 
 		return (&IntegrationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Integration mutation op: %q", m.Op())
-	}
-}
-
-// KitClient is a client for the Kit schema.
-type KitClient struct {
-	config
-}
-
-// NewKitClient returns a client for the Kit from the given config.
-func NewKitClient(c config) *KitClient {
-	return &KitClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `kit.Hooks(f(g(h())))`.
-func (c *KitClient) Use(hooks ...Hook) {
-	c.hooks.Kit = append(c.hooks.Kit, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `kit.Intercept(f(g(h())))`.
-func (c *KitClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Kit = append(c.inters.Kit, interceptors...)
-}
-
-// Create returns a builder for creating a Kit entity.
-func (c *KitClient) Create() *KitCreate {
-	mutation := newKitMutation(c.config, OpCreate)
-	return &KitCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of Kit entities.
-func (c *KitClient) CreateBulk(builders ...*KitCreate) *KitCreateBulk {
-	return &KitCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *KitClient) MapCreateBulk(slice any, setFunc func(*KitCreate, int)) *KitCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &KitCreateBulk{err: fmt.Errorf("calling to KitClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*KitCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &KitCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for Kit.
-func (c *KitClient) Update() *KitUpdate {
-	mutation := newKitMutation(c.config, OpUpdate)
-	return &KitUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *KitClient) UpdateOne(_m *Kit) *KitUpdateOne {
-	mutation := newKitMutation(c.config, OpUpdateOne, withKit(_m))
-	return &KitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *KitClient) UpdateOneID(id string) *KitUpdateOne {
-	mutation := newKitMutation(c.config, OpUpdateOne, withKitID(id))
-	return &KitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for Kit.
-func (c *KitClient) Delete() *KitDelete {
-	mutation := newKitMutation(c.config, OpDelete)
-	return &KitDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *KitClient) DeleteOne(_m *Kit) *KitDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *KitClient) DeleteOneID(id string) *KitDeleteOne {
-	builder := c.Delete().Where(kit.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &KitDeleteOne{builder}
-}
-
-// Query returns a query builder for Kit.
-func (c *KitClient) Query() *KitQuery {
-	return &KitQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeKit},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a Kit entity by its id.
-func (c *KitClient) Get(ctx context.Context, id string) (*Kit, error) {
-	return c.Query().Where(kit.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *KitClient) GetX(ctx context.Context, id string) *Kit {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryTeam queries the team edge of a Kit.
-func (c *KitClient) QueryTeam(_m *Kit) *TeamQuery {
-	query := (&TeamClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(team.Table, team.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, kit.TeamTable, kit.TeamColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySlots queries the slots edge of a Kit.
-func (c *KitClient) QuerySlots(_m *Kit) *SlotQuery {
-	query := (&SlotClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(slot.Table, slot.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, kit.SlotsTable, kit.SlotsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryIncludes queries the includes edge of a Kit.
-func (c *KitClient) QueryIncludes(_m *Kit) *KitIncludeQuery {
-	query := (&KitIncludeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(kitinclude.Table, kitinclude.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, kit.IncludesTable, kit.IncludesColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryIncludedBy queries the included_by edge of a Kit.
-func (c *KitClient) QueryIncludedBy(_m *Kit) *KitIncludeQuery {
-	query := (&KitIncludeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(kitinclude.Table, kitinclude.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, kit.IncludedByTable, kit.IncludedByColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryOriginSlots queries the origin_slots edge of a Kit.
-func (c *KitClient) QueryOriginSlots(_m *Kit) *SlotQuery {
-	query := (&SlotClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(slot.Table, slot.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, kit.OriginSlotsTable, kit.OriginSlotsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryGoal queries the goal edge of a Kit.
-func (c *KitClient) QueryGoal(_m *Kit) *GoalQuery {
-	query := (&GoalClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(goal.Table, goal.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, kit.GoalTable, kit.GoalColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryChecks queries the checks edge of a Kit.
-func (c *KitClient) QueryChecks(_m *Kit) *CheckQuery {
-	query := (&CheckClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(check.Table, check.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, kit.ChecksTable, kit.ChecksColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryRevisions queries the revisions edge of a Kit.
-func (c *KitClient) QueryRevisions(_m *Kit) *KitRevisionQuery {
-	query := (&KitRevisionClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kit.Table, kit.FieldID, id),
-			sqlgraph.To(kitrevision.Table, kitrevision.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, kit.RevisionsTable, kit.RevisionsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *KitClient) Hooks() []Hook {
-	return c.hooks.Kit
-}
-
-// Interceptors returns the client interceptors.
-func (c *KitClient) Interceptors() []Interceptor {
-	return c.inters.Kit
-}
-
-func (c *KitClient) mutate(ctx context.Context, m *KitMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&KitCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&KitUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&KitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&KitDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown Kit mutation op: %q", m.Op())
-	}
-}
-
-// KitIncludeClient is a client for the KitInclude schema.
-type KitIncludeClient struct {
-	config
-}
-
-// NewKitIncludeClient returns a client for the KitInclude from the given config.
-func NewKitIncludeClient(c config) *KitIncludeClient {
-	return &KitIncludeClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `kitinclude.Hooks(f(g(h())))`.
-func (c *KitIncludeClient) Use(hooks ...Hook) {
-	c.hooks.KitInclude = append(c.hooks.KitInclude, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `kitinclude.Intercept(f(g(h())))`.
-func (c *KitIncludeClient) Intercept(interceptors ...Interceptor) {
-	c.inters.KitInclude = append(c.inters.KitInclude, interceptors...)
-}
-
-// Create returns a builder for creating a KitInclude entity.
-func (c *KitIncludeClient) Create() *KitIncludeCreate {
-	mutation := newKitIncludeMutation(c.config, OpCreate)
-	return &KitIncludeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of KitInclude entities.
-func (c *KitIncludeClient) CreateBulk(builders ...*KitIncludeCreate) *KitIncludeCreateBulk {
-	return &KitIncludeCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *KitIncludeClient) MapCreateBulk(slice any, setFunc func(*KitIncludeCreate, int)) *KitIncludeCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &KitIncludeCreateBulk{err: fmt.Errorf("calling to KitIncludeClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*KitIncludeCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &KitIncludeCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for KitInclude.
-func (c *KitIncludeClient) Update() *KitIncludeUpdate {
-	mutation := newKitIncludeMutation(c.config, OpUpdate)
-	return &KitIncludeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *KitIncludeClient) UpdateOne(_m *KitInclude) *KitIncludeUpdateOne {
-	mutation := newKitIncludeMutation(c.config, OpUpdateOne, withKitInclude(_m))
-	return &KitIncludeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *KitIncludeClient) UpdateOneID(id string) *KitIncludeUpdateOne {
-	mutation := newKitIncludeMutation(c.config, OpUpdateOne, withKitIncludeID(id))
-	return &KitIncludeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for KitInclude.
-func (c *KitIncludeClient) Delete() *KitIncludeDelete {
-	mutation := newKitIncludeMutation(c.config, OpDelete)
-	return &KitIncludeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *KitIncludeClient) DeleteOne(_m *KitInclude) *KitIncludeDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *KitIncludeClient) DeleteOneID(id string) *KitIncludeDeleteOne {
-	builder := c.Delete().Where(kitinclude.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &KitIncludeDeleteOne{builder}
-}
-
-// Query returns a query builder for KitInclude.
-func (c *KitIncludeClient) Query() *KitIncludeQuery {
-	return &KitIncludeQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeKitInclude},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a KitInclude entity by its id.
-func (c *KitIncludeClient) Get(ctx context.Context, id string) (*KitInclude, error) {
-	return c.Query().Where(kitinclude.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *KitIncludeClient) GetX(ctx context.Context, id string) *KitInclude {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryKit queries the kit edge of a KitInclude.
-func (c *KitIncludeClient) QueryKit(_m *KitInclude) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kitinclude.Table, kitinclude.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, kitinclude.KitTable, kitinclude.KitColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryChildKit queries the child_kit edge of a KitInclude.
-func (c *KitIncludeClient) QueryChildKit(_m *KitInclude) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kitinclude.Table, kitinclude.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, kitinclude.ChildKitTable, kitinclude.ChildKitColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *KitIncludeClient) Hooks() []Hook {
-	return c.hooks.KitInclude
-}
-
-// Interceptors returns the client interceptors.
-func (c *KitIncludeClient) Interceptors() []Interceptor {
-	return c.inters.KitInclude
-}
-
-func (c *KitIncludeClient) mutate(ctx context.Context, m *KitIncludeMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&KitIncludeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&KitIncludeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&KitIncludeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&KitIncludeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown KitInclude mutation op: %q", m.Op())
-	}
-}
-
-// KitRevisionClient is a client for the KitRevision schema.
-type KitRevisionClient struct {
-	config
-}
-
-// NewKitRevisionClient returns a client for the KitRevision from the given config.
-func NewKitRevisionClient(c config) *KitRevisionClient {
-	return &KitRevisionClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `kitrevision.Hooks(f(g(h())))`.
-func (c *KitRevisionClient) Use(hooks ...Hook) {
-	c.hooks.KitRevision = append(c.hooks.KitRevision, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `kitrevision.Intercept(f(g(h())))`.
-func (c *KitRevisionClient) Intercept(interceptors ...Interceptor) {
-	c.inters.KitRevision = append(c.inters.KitRevision, interceptors...)
-}
-
-// Create returns a builder for creating a KitRevision entity.
-func (c *KitRevisionClient) Create() *KitRevisionCreate {
-	mutation := newKitRevisionMutation(c.config, OpCreate)
-	return &KitRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of KitRevision entities.
-func (c *KitRevisionClient) CreateBulk(builders ...*KitRevisionCreate) *KitRevisionCreateBulk {
-	return &KitRevisionCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *KitRevisionClient) MapCreateBulk(slice any, setFunc func(*KitRevisionCreate, int)) *KitRevisionCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &KitRevisionCreateBulk{err: fmt.Errorf("calling to KitRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*KitRevisionCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &KitRevisionCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for KitRevision.
-func (c *KitRevisionClient) Update() *KitRevisionUpdate {
-	mutation := newKitRevisionMutation(c.config, OpUpdate)
-	return &KitRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *KitRevisionClient) UpdateOne(_m *KitRevision) *KitRevisionUpdateOne {
-	mutation := newKitRevisionMutation(c.config, OpUpdateOne, withKitRevision(_m))
-	return &KitRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *KitRevisionClient) UpdateOneID(id string) *KitRevisionUpdateOne {
-	mutation := newKitRevisionMutation(c.config, OpUpdateOne, withKitRevisionID(id))
-	return &KitRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for KitRevision.
-func (c *KitRevisionClient) Delete() *KitRevisionDelete {
-	mutation := newKitRevisionMutation(c.config, OpDelete)
-	return &KitRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *KitRevisionClient) DeleteOne(_m *KitRevision) *KitRevisionDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *KitRevisionClient) DeleteOneID(id string) *KitRevisionDeleteOne {
-	builder := c.Delete().Where(kitrevision.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &KitRevisionDeleteOne{builder}
-}
-
-// Query returns a query builder for KitRevision.
-func (c *KitRevisionClient) Query() *KitRevisionQuery {
-	return &KitRevisionQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeKitRevision},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a KitRevision entity by its id.
-func (c *KitRevisionClient) Get(ctx context.Context, id string) (*KitRevision, error) {
-	return c.Query().Where(kitrevision.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *KitRevisionClient) GetX(ctx context.Context, id string) *KitRevision {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryKit queries the kit edge of a KitRevision.
-func (c *KitRevisionClient) QueryKit(_m *KitRevision) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kitrevision.Table, kitrevision.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, kitrevision.KitTable, kitrevision.KitColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryActor queries the actor edge of a KitRevision.
-func (c *KitRevisionClient) QueryActor(_m *KitRevision) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(kitrevision.Table, kitrevision.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, kitrevision.ActorTable, kitrevision.ActorColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *KitRevisionClient) Hooks() []Hook {
-	return c.hooks.KitRevision
-}
-
-// Interceptors returns the client interceptors.
-func (c *KitRevisionClient) Interceptors() []Interceptor {
-	return c.inters.KitRevision
-}
-
-func (c *KitRevisionClient) mutate(ctx context.Context, m *KitRevisionMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&KitRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&KitRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&KitRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&KitRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown KitRevision mutation op: %q", m.Op())
 	}
 }
 
@@ -2672,15 +2847,15 @@ func (c *SlotClient) GetX(ctx context.Context, id string) *Slot {
 	return obj
 }
 
-// QueryKit queries the kit edge of a Slot.
-func (c *SlotClient) QueryKit(_m *Slot) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
+// QueryBlueprint queries the blueprint edge of a Slot.
+func (c *SlotClient) QueryBlueprint(_m *Slot) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(slot.Table, slot.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, slot.KitTable, slot.KitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, slot.BlueprintTable, slot.BlueprintColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2688,15 +2863,15 @@ func (c *SlotClient) QueryKit(_m *Slot) *KitQuery {
 	return query
 }
 
-// QueryOriginKit queries the origin_kit edge of a Slot.
-func (c *SlotClient) QueryOriginKit(_m *Slot) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
+// QueryOriginBlueprint queries the origin_blueprint edge of a Slot.
+func (c *SlotClient) QueryOriginBlueprint(_m *Slot) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(slot.Table, slot.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, slot.OriginKitTable, slot.OriginKitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, slot.OriginBlueprintTable, slot.OriginBlueprintColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2949,15 +3124,15 @@ func (c *TeamClient) QueryBlocks(_m *Team) *BlockQuery {
 	return query
 }
 
-// QueryKits queries the kits edge of a Team.
-func (c *TeamClient) QueryKits(_m *Team) *KitQuery {
-	query := (&KitClient{config: c.config}).Query()
+// QueryBlueprints queries the blueprints edge of a Team.
+func (c *TeamClient) QueryBlueprints(_m *Team) *BlueprintQuery {
+	query := (&BlueprintClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(team.Table, team.FieldID, id),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, team.KitsTable, team.KitsColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, team.BlueprintsTable, team.BlueprintsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -3295,15 +3470,15 @@ func (c *UserClient) QueryAcceptedBlockVersions(_m *User) *BlockVersionQuery {
 	return query
 }
 
-// QueryKitRevisions queries the kit_revisions edge of a User.
-func (c *UserClient) QueryKitRevisions(_m *User) *KitRevisionQuery {
-	query := (&KitRevisionClient{config: c.config}).Query()
+// QueryBlueprintRevisions queries the blueprint_revisions edge of a User.
+func (c *UserClient) QueryBlueprintRevisions(_m *User) *BlueprintRevisionQuery {
+	query := (&BlueprintRevisionClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(kitrevision.Table, kitrevision.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.KitRevisionsTable, user.KitRevisionsColumn),
+			sqlgraph.To(blueprintrevision.Table, blueprintrevision.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.BlueprintRevisionsTable, user.BlueprintRevisionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -3339,14 +3514,16 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AICall, Block, BlockLink, BlockVersion, Check, DeploymentSetting, Goal,
-		Integration, Kit, KitInclude, KitRevision, RoleAssignment, Session, Slot, Team,
-		TeamMembership, User []ent.Hook
+		AICall, Block, BlockLink, BlockVersion, Blueprint, BlueprintInclude,
+		BlueprintRevision, BlueprintVersion, Check, DeploymentSetting, Goal,
+		Integration, RoleAssignment, Session, Slot, Team, TeamMembership,
+		User []ent.Hook
 	}
 	inters struct {
-		AICall, Block, BlockLink, BlockVersion, Check, DeploymentSetting, Goal,
-		Integration, Kit, KitInclude, KitRevision, RoleAssignment, Session, Slot, Team,
-		TeamMembership, User []ent.Interceptor
+		AICall, Block, BlockLink, BlockVersion, Blueprint, BlueprintInclude,
+		BlueprintRevision, BlueprintVersion, Check, DeploymentSetting, Goal,
+		Integration, RoleAssignment, Session, Slot, Team, TeamMembership,
+		User []ent.Interceptor
 	}
 )
 

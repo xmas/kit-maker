@@ -75,14 +75,14 @@ func UpdatedAt(v time.Time) predicate.Slot {
 	return predicate.Slot(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// KitID applies equality check predicate on the "kit_id" field. It's identical to KitIDEQ.
-func KitID(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldEQ(FieldKitID, v))
+// BlueprintID applies equality check predicate on the "blueprint_id" field. It's identical to BlueprintIDEQ.
+func BlueprintID(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEQ(FieldBlueprintID, v))
 }
 
-// OriginKitID applies equality check predicate on the "origin_kit_id" field. It's identical to OriginKitIDEQ.
-func OriginKitID(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldEQ(FieldOriginKitID, v))
+// OriginBlueprintID applies equality check predicate on the "origin_blueprint_id" field. It's identical to OriginBlueprintIDEQ.
+func OriginBlueprintID(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEQ(FieldOriginBlueprintID, v))
 }
 
 // OverridesSlotID applies equality check predicate on the "overrides_slot_id" field. It's identical to OverridesSlotIDEQ.
@@ -98,6 +98,11 @@ func Key(v string) predicate.Slot {
 // Section applies equality check predicate on the "section" field. It's identical to SectionEQ.
 func Section(v string) predicate.Slot {
 	return predicate.Slot(sql.FieldEQ(FieldSection, v))
+}
+
+// BlockType applies equality check predicate on the "block_type" field. It's identical to BlockTypeEQ.
+func BlockType(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEQ(FieldBlockType, v))
 }
 
 // Required applies equality check predicate on the "required" field. It's identical to RequiredEQ.
@@ -200,144 +205,144 @@ func UpdatedAtLTE(v time.Time) predicate.Slot {
 	return predicate.Slot(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// KitIDEQ applies the EQ predicate on the "kit_id" field.
-func KitIDEQ(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldEQ(FieldKitID, v))
+// BlueprintIDEQ applies the EQ predicate on the "blueprint_id" field.
+func BlueprintIDEQ(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEQ(FieldBlueprintID, v))
 }
 
-// KitIDNEQ applies the NEQ predicate on the "kit_id" field.
-func KitIDNEQ(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldNEQ(FieldKitID, v))
+// BlueprintIDNEQ applies the NEQ predicate on the "blueprint_id" field.
+func BlueprintIDNEQ(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldNEQ(FieldBlueprintID, v))
 }
 
-// KitIDIn applies the In predicate on the "kit_id" field.
-func KitIDIn(vs ...string) predicate.Slot {
-	return predicate.Slot(sql.FieldIn(FieldKitID, vs...))
+// BlueprintIDIn applies the In predicate on the "blueprint_id" field.
+func BlueprintIDIn(vs ...string) predicate.Slot {
+	return predicate.Slot(sql.FieldIn(FieldBlueprintID, vs...))
 }
 
-// KitIDNotIn applies the NotIn predicate on the "kit_id" field.
-func KitIDNotIn(vs ...string) predicate.Slot {
-	return predicate.Slot(sql.FieldNotIn(FieldKitID, vs...))
+// BlueprintIDNotIn applies the NotIn predicate on the "blueprint_id" field.
+func BlueprintIDNotIn(vs ...string) predicate.Slot {
+	return predicate.Slot(sql.FieldNotIn(FieldBlueprintID, vs...))
 }
 
-// KitIDGT applies the GT predicate on the "kit_id" field.
-func KitIDGT(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldGT(FieldKitID, v))
+// BlueprintIDGT applies the GT predicate on the "blueprint_id" field.
+func BlueprintIDGT(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldGT(FieldBlueprintID, v))
 }
 
-// KitIDGTE applies the GTE predicate on the "kit_id" field.
-func KitIDGTE(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldGTE(FieldKitID, v))
+// BlueprintIDGTE applies the GTE predicate on the "blueprint_id" field.
+func BlueprintIDGTE(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldGTE(FieldBlueprintID, v))
 }
 
-// KitIDLT applies the LT predicate on the "kit_id" field.
-func KitIDLT(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldLT(FieldKitID, v))
+// BlueprintIDLT applies the LT predicate on the "blueprint_id" field.
+func BlueprintIDLT(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldLT(FieldBlueprintID, v))
 }
 
-// KitIDLTE applies the LTE predicate on the "kit_id" field.
-func KitIDLTE(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldLTE(FieldKitID, v))
+// BlueprintIDLTE applies the LTE predicate on the "blueprint_id" field.
+func BlueprintIDLTE(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldLTE(FieldBlueprintID, v))
 }
 
-// KitIDContains applies the Contains predicate on the "kit_id" field.
-func KitIDContains(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldContains(FieldKitID, v))
+// BlueprintIDContains applies the Contains predicate on the "blueprint_id" field.
+func BlueprintIDContains(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldContains(FieldBlueprintID, v))
 }
 
-// KitIDHasPrefix applies the HasPrefix predicate on the "kit_id" field.
-func KitIDHasPrefix(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldHasPrefix(FieldKitID, v))
+// BlueprintIDHasPrefix applies the HasPrefix predicate on the "blueprint_id" field.
+func BlueprintIDHasPrefix(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldHasPrefix(FieldBlueprintID, v))
 }
 
-// KitIDHasSuffix applies the HasSuffix predicate on the "kit_id" field.
-func KitIDHasSuffix(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldHasSuffix(FieldKitID, v))
+// BlueprintIDHasSuffix applies the HasSuffix predicate on the "blueprint_id" field.
+func BlueprintIDHasSuffix(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldHasSuffix(FieldBlueprintID, v))
 }
 
-// KitIDEqualFold applies the EqualFold predicate on the "kit_id" field.
-func KitIDEqualFold(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldEqualFold(FieldKitID, v))
+// BlueprintIDEqualFold applies the EqualFold predicate on the "blueprint_id" field.
+func BlueprintIDEqualFold(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEqualFold(FieldBlueprintID, v))
 }
 
-// KitIDContainsFold applies the ContainsFold predicate on the "kit_id" field.
-func KitIDContainsFold(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldContainsFold(FieldKitID, v))
+// BlueprintIDContainsFold applies the ContainsFold predicate on the "blueprint_id" field.
+func BlueprintIDContainsFold(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldContainsFold(FieldBlueprintID, v))
 }
 
-// OriginKitIDEQ applies the EQ predicate on the "origin_kit_id" field.
-func OriginKitIDEQ(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldEQ(FieldOriginKitID, v))
+// OriginBlueprintIDEQ applies the EQ predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDEQ(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEQ(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDNEQ applies the NEQ predicate on the "origin_kit_id" field.
-func OriginKitIDNEQ(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldNEQ(FieldOriginKitID, v))
+// OriginBlueprintIDNEQ applies the NEQ predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDNEQ(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldNEQ(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDIn applies the In predicate on the "origin_kit_id" field.
-func OriginKitIDIn(vs ...string) predicate.Slot {
-	return predicate.Slot(sql.FieldIn(FieldOriginKitID, vs...))
+// OriginBlueprintIDIn applies the In predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDIn(vs ...string) predicate.Slot {
+	return predicate.Slot(sql.FieldIn(FieldOriginBlueprintID, vs...))
 }
 
-// OriginKitIDNotIn applies the NotIn predicate on the "origin_kit_id" field.
-func OriginKitIDNotIn(vs ...string) predicate.Slot {
-	return predicate.Slot(sql.FieldNotIn(FieldOriginKitID, vs...))
+// OriginBlueprintIDNotIn applies the NotIn predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDNotIn(vs ...string) predicate.Slot {
+	return predicate.Slot(sql.FieldNotIn(FieldOriginBlueprintID, vs...))
 }
 
-// OriginKitIDGT applies the GT predicate on the "origin_kit_id" field.
-func OriginKitIDGT(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldGT(FieldOriginKitID, v))
+// OriginBlueprintIDGT applies the GT predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDGT(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldGT(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDGTE applies the GTE predicate on the "origin_kit_id" field.
-func OriginKitIDGTE(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldGTE(FieldOriginKitID, v))
+// OriginBlueprintIDGTE applies the GTE predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDGTE(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldGTE(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDLT applies the LT predicate on the "origin_kit_id" field.
-func OriginKitIDLT(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldLT(FieldOriginKitID, v))
+// OriginBlueprintIDLT applies the LT predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDLT(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldLT(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDLTE applies the LTE predicate on the "origin_kit_id" field.
-func OriginKitIDLTE(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldLTE(FieldOriginKitID, v))
+// OriginBlueprintIDLTE applies the LTE predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDLTE(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldLTE(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDContains applies the Contains predicate on the "origin_kit_id" field.
-func OriginKitIDContains(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldContains(FieldOriginKitID, v))
+// OriginBlueprintIDContains applies the Contains predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDContains(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldContains(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDHasPrefix applies the HasPrefix predicate on the "origin_kit_id" field.
-func OriginKitIDHasPrefix(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldHasPrefix(FieldOriginKitID, v))
+// OriginBlueprintIDHasPrefix applies the HasPrefix predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDHasPrefix(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldHasPrefix(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDHasSuffix applies the HasSuffix predicate on the "origin_kit_id" field.
-func OriginKitIDHasSuffix(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldHasSuffix(FieldOriginKitID, v))
+// OriginBlueprintIDHasSuffix applies the HasSuffix predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDHasSuffix(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldHasSuffix(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDIsNil applies the IsNil predicate on the "origin_kit_id" field.
-func OriginKitIDIsNil() predicate.Slot {
-	return predicate.Slot(sql.FieldIsNull(FieldOriginKitID))
+// OriginBlueprintIDIsNil applies the IsNil predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDIsNil() predicate.Slot {
+	return predicate.Slot(sql.FieldIsNull(FieldOriginBlueprintID))
 }
 
-// OriginKitIDNotNil applies the NotNil predicate on the "origin_kit_id" field.
-func OriginKitIDNotNil() predicate.Slot {
-	return predicate.Slot(sql.FieldNotNull(FieldOriginKitID))
+// OriginBlueprintIDNotNil applies the NotNil predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDNotNil() predicate.Slot {
+	return predicate.Slot(sql.FieldNotNull(FieldOriginBlueprintID))
 }
 
-// OriginKitIDEqualFold applies the EqualFold predicate on the "origin_kit_id" field.
-func OriginKitIDEqualFold(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldEqualFold(FieldOriginKitID, v))
+// OriginBlueprintIDEqualFold applies the EqualFold predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDEqualFold(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEqualFold(FieldOriginBlueprintID, v))
 }
 
-// OriginKitIDContainsFold applies the ContainsFold predicate on the "origin_kit_id" field.
-func OriginKitIDContainsFold(v string) predicate.Slot {
-	return predicate.Slot(sql.FieldContainsFold(FieldOriginKitID, v))
+// OriginBlueprintIDContainsFold applies the ContainsFold predicate on the "origin_blueprint_id" field.
+func OriginBlueprintIDContainsFold(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldContainsFold(FieldOriginBlueprintID, v))
 }
 
 // OverridesSlotIDEQ applies the EQ predicate on the "overrides_slot_id" field.
@@ -610,6 +615,71 @@ func SectionContainsFold(v string) predicate.Slot {
 	return predicate.Slot(sql.FieldContainsFold(FieldSection, v))
 }
 
+// BlockTypeEQ applies the EQ predicate on the "block_type" field.
+func BlockTypeEQ(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEQ(FieldBlockType, v))
+}
+
+// BlockTypeNEQ applies the NEQ predicate on the "block_type" field.
+func BlockTypeNEQ(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldNEQ(FieldBlockType, v))
+}
+
+// BlockTypeIn applies the In predicate on the "block_type" field.
+func BlockTypeIn(vs ...string) predicate.Slot {
+	return predicate.Slot(sql.FieldIn(FieldBlockType, vs...))
+}
+
+// BlockTypeNotIn applies the NotIn predicate on the "block_type" field.
+func BlockTypeNotIn(vs ...string) predicate.Slot {
+	return predicate.Slot(sql.FieldNotIn(FieldBlockType, vs...))
+}
+
+// BlockTypeGT applies the GT predicate on the "block_type" field.
+func BlockTypeGT(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldGT(FieldBlockType, v))
+}
+
+// BlockTypeGTE applies the GTE predicate on the "block_type" field.
+func BlockTypeGTE(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldGTE(FieldBlockType, v))
+}
+
+// BlockTypeLT applies the LT predicate on the "block_type" field.
+func BlockTypeLT(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldLT(FieldBlockType, v))
+}
+
+// BlockTypeLTE applies the LTE predicate on the "block_type" field.
+func BlockTypeLTE(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldLTE(FieldBlockType, v))
+}
+
+// BlockTypeContains applies the Contains predicate on the "block_type" field.
+func BlockTypeContains(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldContains(FieldBlockType, v))
+}
+
+// BlockTypeHasPrefix applies the HasPrefix predicate on the "block_type" field.
+func BlockTypeHasPrefix(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldHasPrefix(FieldBlockType, v))
+}
+
+// BlockTypeHasSuffix applies the HasSuffix predicate on the "block_type" field.
+func BlockTypeHasSuffix(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldHasSuffix(FieldBlockType, v))
+}
+
+// BlockTypeEqualFold applies the EqualFold predicate on the "block_type" field.
+func BlockTypeEqualFold(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldEqualFold(FieldBlockType, v))
+}
+
+// BlockTypeContainsFold applies the ContainsFold predicate on the "block_type" field.
+func BlockTypeContainsFold(v string) predicate.Slot {
+	return predicate.Slot(sql.FieldContainsFold(FieldBlockType, v))
+}
+
 // StateEQ applies the EQ predicate on the "state" field.
 func StateEQ(v State) predicate.Slot {
 	return predicate.Slot(sql.FieldEQ(FieldState, v))
@@ -765,21 +835,21 @@ func GroupNameContainsFold(v string) predicate.Slot {
 	return predicate.Slot(sql.FieldContainsFold(FieldGroupName, v))
 }
 
-// HasKit applies the HasEdge predicate on the "kit" edge.
-func HasKit() predicate.Slot {
+// HasBlueprint applies the HasEdge predicate on the "blueprint" edge.
+func HasBlueprint() predicate.Slot {
 	return predicate.Slot(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, KitTable, KitColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, BlueprintTable, BlueprintColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasKitWith applies the HasEdge predicate on the "kit" edge with a given conditions (other predicates).
-func HasKitWith(preds ...predicate.Kit) predicate.Slot {
+// HasBlueprintWith applies the HasEdge predicate on the "blueprint" edge with a given conditions (other predicates).
+func HasBlueprintWith(preds ...predicate.Blueprint) predicate.Slot {
 	return predicate.Slot(func(s *sql.Selector) {
-		step := newKitStep()
+		step := newBlueprintStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -788,21 +858,21 @@ func HasKitWith(preds ...predicate.Kit) predicate.Slot {
 	})
 }
 
-// HasOriginKit applies the HasEdge predicate on the "origin_kit" edge.
-func HasOriginKit() predicate.Slot {
+// HasOriginBlueprint applies the HasEdge predicate on the "origin_blueprint" edge.
+func HasOriginBlueprint() predicate.Slot {
 	return predicate.Slot(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OriginKitTable, OriginKitColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, OriginBlueprintTable, OriginBlueprintColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasOriginKitWith applies the HasEdge predicate on the "origin_kit" edge with a given conditions (other predicates).
-func HasOriginKitWith(preds ...predicate.Kit) predicate.Slot {
+// HasOriginBlueprintWith applies the HasEdge predicate on the "origin_blueprint" edge with a given conditions (other predicates).
+func HasOriginBlueprintWith(preds ...predicate.Blueprint) predicate.Slot {
 	return predicate.Slot(func(s *sql.Selector) {
-		step := newOriginKitStep()
+		step := newOriginBlueprintStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

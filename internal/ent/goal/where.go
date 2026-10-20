@@ -75,9 +75,9 @@ func UpdatedAt(v time.Time) predicate.Goal {
 	return predicate.Goal(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
-// KitID applies equality check predicate on the "kit_id" field. It's identical to KitIDEQ.
-func KitID(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldEQ(FieldKitID, v))
+// BlueprintID applies equality check predicate on the "blueprint_id" field. It's identical to BlueprintIDEQ.
+func BlueprintID(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldEQ(FieldBlueprintID, v))
 }
 
 // Statement applies equality check predicate on the "statement" field. It's identical to StatementEQ.
@@ -165,69 +165,69 @@ func UpdatedAtLTE(v time.Time) predicate.Goal {
 	return predicate.Goal(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// KitIDEQ applies the EQ predicate on the "kit_id" field.
-func KitIDEQ(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldEQ(FieldKitID, v))
+// BlueprintIDEQ applies the EQ predicate on the "blueprint_id" field.
+func BlueprintIDEQ(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldEQ(FieldBlueprintID, v))
 }
 
-// KitIDNEQ applies the NEQ predicate on the "kit_id" field.
-func KitIDNEQ(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldNEQ(FieldKitID, v))
+// BlueprintIDNEQ applies the NEQ predicate on the "blueprint_id" field.
+func BlueprintIDNEQ(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldNEQ(FieldBlueprintID, v))
 }
 
-// KitIDIn applies the In predicate on the "kit_id" field.
-func KitIDIn(vs ...string) predicate.Goal {
-	return predicate.Goal(sql.FieldIn(FieldKitID, vs...))
+// BlueprintIDIn applies the In predicate on the "blueprint_id" field.
+func BlueprintIDIn(vs ...string) predicate.Goal {
+	return predicate.Goal(sql.FieldIn(FieldBlueprintID, vs...))
 }
 
-// KitIDNotIn applies the NotIn predicate on the "kit_id" field.
-func KitIDNotIn(vs ...string) predicate.Goal {
-	return predicate.Goal(sql.FieldNotIn(FieldKitID, vs...))
+// BlueprintIDNotIn applies the NotIn predicate on the "blueprint_id" field.
+func BlueprintIDNotIn(vs ...string) predicate.Goal {
+	return predicate.Goal(sql.FieldNotIn(FieldBlueprintID, vs...))
 }
 
-// KitIDGT applies the GT predicate on the "kit_id" field.
-func KitIDGT(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldGT(FieldKitID, v))
+// BlueprintIDGT applies the GT predicate on the "blueprint_id" field.
+func BlueprintIDGT(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldGT(FieldBlueprintID, v))
 }
 
-// KitIDGTE applies the GTE predicate on the "kit_id" field.
-func KitIDGTE(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldGTE(FieldKitID, v))
+// BlueprintIDGTE applies the GTE predicate on the "blueprint_id" field.
+func BlueprintIDGTE(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldGTE(FieldBlueprintID, v))
 }
 
-// KitIDLT applies the LT predicate on the "kit_id" field.
-func KitIDLT(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldLT(FieldKitID, v))
+// BlueprintIDLT applies the LT predicate on the "blueprint_id" field.
+func BlueprintIDLT(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldLT(FieldBlueprintID, v))
 }
 
-// KitIDLTE applies the LTE predicate on the "kit_id" field.
-func KitIDLTE(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldLTE(FieldKitID, v))
+// BlueprintIDLTE applies the LTE predicate on the "blueprint_id" field.
+func BlueprintIDLTE(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldLTE(FieldBlueprintID, v))
 }
 
-// KitIDContains applies the Contains predicate on the "kit_id" field.
-func KitIDContains(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldContains(FieldKitID, v))
+// BlueprintIDContains applies the Contains predicate on the "blueprint_id" field.
+func BlueprintIDContains(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldContains(FieldBlueprintID, v))
 }
 
-// KitIDHasPrefix applies the HasPrefix predicate on the "kit_id" field.
-func KitIDHasPrefix(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldHasPrefix(FieldKitID, v))
+// BlueprintIDHasPrefix applies the HasPrefix predicate on the "blueprint_id" field.
+func BlueprintIDHasPrefix(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldHasPrefix(FieldBlueprintID, v))
 }
 
-// KitIDHasSuffix applies the HasSuffix predicate on the "kit_id" field.
-func KitIDHasSuffix(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldHasSuffix(FieldKitID, v))
+// BlueprintIDHasSuffix applies the HasSuffix predicate on the "blueprint_id" field.
+func BlueprintIDHasSuffix(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldHasSuffix(FieldBlueprintID, v))
 }
 
-// KitIDEqualFold applies the EqualFold predicate on the "kit_id" field.
-func KitIDEqualFold(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldEqualFold(FieldKitID, v))
+// BlueprintIDEqualFold applies the EqualFold predicate on the "blueprint_id" field.
+func BlueprintIDEqualFold(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldEqualFold(FieldBlueprintID, v))
 }
 
-// KitIDContainsFold applies the ContainsFold predicate on the "kit_id" field.
-func KitIDContainsFold(v string) predicate.Goal {
-	return predicate.Goal(sql.FieldContainsFold(FieldKitID, v))
+// BlueprintIDContainsFold applies the ContainsFold predicate on the "blueprint_id" field.
+func BlueprintIDContainsFold(v string) predicate.Goal {
+	return predicate.Goal(sql.FieldContainsFold(FieldBlueprintID, v))
 }
 
 // StatementEQ applies the EQ predicate on the "statement" field.
@@ -305,21 +305,21 @@ func SourcesNotNil() predicate.Goal {
 	return predicate.Goal(sql.FieldNotNull(FieldSources))
 }
 
-// HasKit applies the HasEdge predicate on the "kit" edge.
-func HasKit() predicate.Goal {
+// HasBlueprint applies the HasEdge predicate on the "blueprint" edge.
+func HasBlueprint() predicate.Goal {
 	return predicate.Goal(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, KitTable, KitColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, BlueprintTable, BlueprintColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasKitWith applies the HasEdge predicate on the "kit" edge with a given conditions (other predicates).
-func HasKitWith(preds ...predicate.Kit) predicate.Goal {
+// HasBlueprintWith applies the HasEdge predicate on the "blueprint" edge with a given conditions (other predicates).
+func HasBlueprintWith(preds ...predicate.Blueprint) predicate.Goal {
 	return predicate.Goal(func(s *sql.Selector) {
-		step := newKitStep()
+		step := newBlueprintStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

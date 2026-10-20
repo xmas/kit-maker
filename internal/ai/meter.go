@@ -108,7 +108,7 @@ func (m *Metered) record(ctx context.Context, req Request, res *Response, callEr
 		SetDurationMs(d.Milliseconds()).
 		SetNillableTeamID(nilIfEmpty(req.TeamID)).
 		SetNillableUserID(nilIfEmpty(req.UserID)).
-		SetNillableKitID(nilIfEmpty(req.KitID))
+		SetNillableBlueprintID(nilIfEmpty(req.BlueprintID))
 	if res != nil {
 		c.SetModel(res.Model).
 			SetInputTokens(res.Usage.InputTokens).

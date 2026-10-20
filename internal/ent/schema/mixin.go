@@ -10,7 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// NewULID returns a new ULID string, optionally prefixed (kit_, bp_, sbx_).
+// NewULID returns a new ULID string, optionally prefixed (bp_, prj_, sbx_).
 // Prefixed IDs are the ones shown to users (docs/database.md).
 func NewULID(prefix string) string {
 	return prefix + ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader).String()

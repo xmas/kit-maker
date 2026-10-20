@@ -18,10 +18,10 @@ type loginForm struct {
 	Next     string `json:"next"`
 }
 
-// loginPage renders the sign-in screen. Signed-in visitors go to their kits.
+// loginPage renders the sign-in screen. Signed-in visitors go to their blueprints.
 func (s *server) loginPage(w nethttp.ResponseWriter, r *nethttp.Request) {
 	if auth.UserFrom(r.Context()) != nil {
-		nethttp.Redirect(w, r, "/kits", nethttp.StatusSeeOther)
+		nethttp.Redirect(w, r, "/blueprints", nethttp.StatusSeeOther)
 		return
 	}
 	s.render(w, r, "Auth/Login", inertia.Props{
@@ -78,7 +78,7 @@ func (s *server) signOutEverywhere(w nethttp.ResponseWriter, r *nethttp.Request)
 func safeNext(next string) string {
 	u, err := url.Parse(next)
 	if next == "" || err != nil || u.IsAbs() || u.Host != "" || !strings.HasPrefix(u.Path, "/") || strings.HasPrefix(next, "//") {
-		return "/kits"
+		return "/blueprints"
 	}
 	return u.RequestURI()
 }

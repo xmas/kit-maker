@@ -1,0 +1,40 @@
+# syntax=docker/sandbox-kit:3
+schemaVersion: "3"
+displayName: Hello
+author: "Christian Dupuis <cd@docker.com>"
+description: Smallest possible sandbox kit, for smoke-testing the frontend
+
+kind: workload
+provides: ["hello@1.0.0"]
+
+args:
+  greeting:
+    default: world
+    pattern: "^[a-z]+$"
+    buildArg: GREETING
+
+capabilities:
+  # This workload is an agent sandbox: the host launches the agent rather
+  # than running the image's entrypoint as PID 1, and honors the identity
+  # the image config declares instead of assuming one.
+  - type: com.docker.sandbox/sbx@1
+
+  - type: com.docker.sandbox/network-policy@2
+    config:
+      runtime:
+        allow:
+          # Everything httpbin answers except the destructive verbs, which
+          # the smoke test has no use for and which make a refusal easy to
+          # see: DELETE comes back 403 from the boundary, not 405 from the
+          # origin.
+          - hosts: [httpbin.org]
+            methods: [GET, HEAD, OPTIONS, POST, PUT, PATCH]
+
+  - type: com.docker.sandbox/agent-context@2
+    config:
+      filename: AGENTS.md
+      content: |
+        # Hello kit
+
+        This sandbox greets. The greeting is baked at build time from the `greeting`
+        kit arg.

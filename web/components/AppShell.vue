@@ -24,9 +24,9 @@ const initials = computed(() => {
 })
 
 const nav = [
-  { href: '/kits', label: 'Kits' },
+  { href: '/blueprints', label: 'Blueprints' },
   { href: '/blocks', label: 'Blocks' },
-  { href: '/blueprints', label: 'Blueprints', disabled: true },
+  { href: '/projects', label: 'Projects', disabled: true },
   { href: '/sandboxes', label: 'Sandboxes', disabled: true },
 ]
 
@@ -37,9 +37,9 @@ function signOut() {
 
 <template>
   <div class="flex min-h-screen flex-col bg-[#F6F7F9]">
-    <header class="border-b bg-background">
+    <header class="sticky top-0 z-50 border-b bg-background">
       <div class="flex h-14 items-center gap-6 px-6">
-        <Link href="/kits" class="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
+        <Link href="/blueprints" class="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
           <span class="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Boxes class="size-4" />
           </span>

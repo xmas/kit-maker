@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/block"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/team"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
 )
@@ -158,19 +158,19 @@ func (_c *TeamCreate) AddBlocks(v ...*Block) *TeamCreate {
 	return _c.AddBlockIDs(ids...)
 }
 
-// AddKitIDs adds the "kits" edge to the Kit entity by IDs.
-func (_c *TeamCreate) AddKitIDs(ids ...string) *TeamCreate {
-	_c.mutation.AddKitIDs(ids...)
+// AddBlueprintIDs adds the "blueprints" edge to the Blueprint entity by IDs.
+func (_c *TeamCreate) AddBlueprintIDs(ids ...string) *TeamCreate {
+	_c.mutation.AddBlueprintIDs(ids...)
 	return _c
 }
 
-// AddKits adds the "kits" edges to the Kit entity.
-func (_c *TeamCreate) AddKits(v ...*Kit) *TeamCreate {
+// AddBlueprints adds the "blueprints" edges to the Blueprint entity.
+func (_c *TeamCreate) AddBlueprints(v ...*Blueprint) *TeamCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddKitIDs(ids...)
+	return _c.AddBlueprintIDs(ids...)
 }
 
 // Mutation returns the TeamMutation object of the builder.
@@ -368,15 +368,15 @@ func (_c *TeamCreate) createSpec() (*Team, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.KitsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BlueprintsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   team.KitsTable,
-			Columns: []string{team.KitsColumn},
+			Table:   team.BlueprintsTable,
+			Columns: []string{team.BlueprintsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -18,23 +18,23 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldKitID holds the string denoting the kit_id field in the database.
-	FieldKitID = "kit_id"
+	// FieldBlueprintID holds the string denoting the blueprint_id field in the database.
+	FieldBlueprintID = "blueprint_id"
 	// FieldStatement holds the string denoting the statement field in the database.
 	FieldStatement = "statement"
 	// FieldSources holds the string denoting the sources field in the database.
 	FieldSources = "sources"
-	// EdgeKit holds the string denoting the kit edge name in mutations.
-	EdgeKit = "kit"
+	// EdgeBlueprint holds the string denoting the blueprint edge name in mutations.
+	EdgeBlueprint = "blueprint"
 	// Table holds the table name of the goal in the database.
 	Table = "goals"
-	// KitTable is the table that holds the kit relation/edge.
-	KitTable = "goals"
-	// KitInverseTable is the table name for the Kit entity.
-	// It exists in this package in order to avoid circular dependency with the "kit" package.
-	KitInverseTable = "kits"
-	// KitColumn is the table column denoting the kit relation/edge.
-	KitColumn = "kit_id"
+	// BlueprintTable is the table that holds the blueprint relation/edge.
+	BlueprintTable = "goals"
+	// BlueprintInverseTable is the table name for the Blueprint entity.
+	// It exists in this package in order to avoid circular dependency with the "blueprint" package.
+	BlueprintInverseTable = "blueprints"
+	// BlueprintColumn is the table column denoting the blueprint relation/edge.
+	BlueprintColumn = "blueprint_id"
 )
 
 // Columns holds all SQL columns for goal fields.
@@ -42,7 +42,7 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldKitID,
+	FieldBlueprintID,
 	FieldStatement,
 	FieldSources,
 }
@@ -90,9 +90,9 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByKitID orders the results by the kit_id field.
-func ByKitID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKitID, opts...).ToFunc()
+// ByBlueprintID orders the results by the blueprint_id field.
+func ByBlueprintID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBlueprintID, opts...).ToFunc()
 }
 
 // ByStatement orders the results by the statement field.
@@ -100,16 +100,16 @@ func ByStatement(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatement, opts...).ToFunc()
 }
 
-// ByKitField orders the results by kit field.
-func ByKitField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByBlueprintField orders the results by blueprint field.
+func ByBlueprintField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newKitStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newBlueprintStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newKitStep() *sqlgraph.Step {
+func newBlueprintStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(KitInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, KitTable, KitColumn),
+		sqlgraph.To(BlueprintInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, BlueprintTable, BlueprintColumn),
 	)
 }

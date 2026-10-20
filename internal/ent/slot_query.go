@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/slot"
 )
@@ -21,15 +21,15 @@ import (
 // SlotQuery is the builder for querying Slot entities.
 type SlotQuery struct {
 	config
-	ctx              *QueryContext
-	order            []slot.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.Slot
-	withKit          *KitQuery
-	withOriginKit    *KitQuery
-	withOverrides    *SlotQuery
-	withOverriddenBy *SlotQuery
-	withLink         *BlockLinkQuery
+	ctx                 *QueryContext
+	order               []slot.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.Slot
+	withBlueprint       *BlueprintQuery
+	withOriginBlueprint *BlueprintQuery
+	withOverrides       *SlotQuery
+	withOverriddenBy    *SlotQuery
+	withLink            *BlockLinkQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -66,9 +66,9 @@ func (_q *SlotQuery) Order(o ...slot.OrderOption) *SlotQuery {
 	return _q
 }
 
-// QueryKit chains the current query on the "kit" edge.
-func (_q *SlotQuery) QueryKit() *KitQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// QueryBlueprint chains the current query on the "blueprint" edge.
+func (_q *SlotQuery) QueryBlueprint() *BlueprintQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -79,8 +79,8 @@ func (_q *SlotQuery) QueryKit() *KitQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(slot.Table, slot.FieldID, selector),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, slot.KitTable, slot.KitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, slot.BlueprintTable, slot.BlueprintColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -88,9 +88,9 @@ func (_q *SlotQuery) QueryKit() *KitQuery {
 	return query
 }
 
-// QueryOriginKit chains the current query on the "origin_kit" edge.
-func (_q *SlotQuery) QueryOriginKit() *KitQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// QueryOriginBlueprint chains the current query on the "origin_blueprint" edge.
+func (_q *SlotQuery) QueryOriginBlueprint() *BlueprintQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -101,8 +101,8 @@ func (_q *SlotQuery) QueryOriginKit() *KitQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(slot.Table, slot.FieldID, selector),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, slot.OriginKitTable, slot.OriginKitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, slot.OriginBlueprintTable, slot.OriginBlueprintColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -363,41 +363,41 @@ func (_q *SlotQuery) Clone() *SlotQuery {
 		return nil
 	}
 	return &SlotQuery{
-		config:           _q.config,
-		ctx:              _q.ctx.Clone(),
-		order:            append([]slot.OrderOption{}, _q.order...),
-		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.Slot{}, _q.predicates...),
-		withKit:          _q.withKit.Clone(),
-		withOriginKit:    _q.withOriginKit.Clone(),
-		withOverrides:    _q.withOverrides.Clone(),
-		withOverriddenBy: _q.withOverriddenBy.Clone(),
-		withLink:         _q.withLink.Clone(),
+		config:              _q.config,
+		ctx:                 _q.ctx.Clone(),
+		order:               append([]slot.OrderOption{}, _q.order...),
+		inters:              append([]Interceptor{}, _q.inters...),
+		predicates:          append([]predicate.Slot{}, _q.predicates...),
+		withBlueprint:       _q.withBlueprint.Clone(),
+		withOriginBlueprint: _q.withOriginBlueprint.Clone(),
+		withOverrides:       _q.withOverrides.Clone(),
+		withOverriddenBy:    _q.withOverriddenBy.Clone(),
+		withLink:            _q.withLink.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithKit tells the query-builder to eager-load the nodes that are connected to
-// the "kit" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SlotQuery) WithKit(opts ...func(*KitQuery)) *SlotQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// WithBlueprint tells the query-builder to eager-load the nodes that are connected to
+// the "blueprint" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SlotQuery) WithBlueprint(opts ...func(*BlueprintQuery)) *SlotQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withKit = query
+	_q.withBlueprint = query
 	return _q
 }
 
-// WithOriginKit tells the query-builder to eager-load the nodes that are connected to
-// the "origin_kit" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SlotQuery) WithOriginKit(opts ...func(*KitQuery)) *SlotQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// WithOriginBlueprint tells the query-builder to eager-load the nodes that are connected to
+// the "origin_blueprint" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SlotQuery) WithOriginBlueprint(opts ...func(*BlueprintQuery)) *SlotQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withOriginKit = query
+	_q.withOriginBlueprint = query
 	return _q
 }
 
@@ -513,8 +513,8 @@ func (_q *SlotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Slot, e
 		nodes       = []*Slot{}
 		_spec       = _q.querySpec()
 		loadedTypes = [5]bool{
-			_q.withKit != nil,
-			_q.withOriginKit != nil,
+			_q.withBlueprint != nil,
+			_q.withOriginBlueprint != nil,
 			_q.withOverrides != nil,
 			_q.withOverriddenBy != nil,
 			_q.withLink != nil,
@@ -538,15 +538,15 @@ func (_q *SlotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Slot, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withKit; query != nil {
-		if err := _q.loadKit(ctx, query, nodes, nil,
-			func(n *Slot, e *Kit) { n.Edges.Kit = e }); err != nil {
+	if query := _q.withBlueprint; query != nil {
+		if err := _q.loadBlueprint(ctx, query, nodes, nil,
+			func(n *Slot, e *Blueprint) { n.Edges.Blueprint = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withOriginKit; query != nil {
-		if err := _q.loadOriginKit(ctx, query, nodes, nil,
-			func(n *Slot, e *Kit) { n.Edges.OriginKit = e }); err != nil {
+	if query := _q.withOriginBlueprint; query != nil {
+		if err := _q.loadOriginBlueprint(ctx, query, nodes, nil,
+			func(n *Slot, e *Blueprint) { n.Edges.OriginBlueprint = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -571,11 +571,11 @@ func (_q *SlotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Slot, e
 	return nodes, nil
 }
 
-func (_q *SlotQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Slot, init func(*Slot), assign func(*Slot, *Kit)) error {
+func (_q *SlotQuery) loadBlueprint(ctx context.Context, query *BlueprintQuery, nodes []*Slot, init func(*Slot), assign func(*Slot, *Blueprint)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*Slot)
 	for i := range nodes {
-		fk := nodes[i].KitID
+		fk := nodes[i].BlueprintID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -584,7 +584,7 @@ func (_q *SlotQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Slot
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(kit.IDIn(ids...))
+	query.Where(blueprint.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -592,7 +592,7 @@ func (_q *SlotQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Slot
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "kit_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "blueprint_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -600,14 +600,14 @@ func (_q *SlotQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Slot
 	}
 	return nil
 }
-func (_q *SlotQuery) loadOriginKit(ctx context.Context, query *KitQuery, nodes []*Slot, init func(*Slot), assign func(*Slot, *Kit)) error {
+func (_q *SlotQuery) loadOriginBlueprint(ctx context.Context, query *BlueprintQuery, nodes []*Slot, init func(*Slot), assign func(*Slot, *Blueprint)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*Slot)
 	for i := range nodes {
-		if nodes[i].OriginKitID == nil {
+		if nodes[i].OriginBlueprintID == nil {
 			continue
 		}
-		fk := *nodes[i].OriginKitID
+		fk := *nodes[i].OriginBlueprintID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -616,7 +616,7 @@ func (_q *SlotQuery) loadOriginKit(ctx context.Context, query *KitQuery, nodes [
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(kit.IDIn(ids...))
+	query.Where(blueprint.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -624,7 +624,7 @@ func (_q *SlotQuery) loadOriginKit(ctx context.Context, query *KitQuery, nodes [
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "origin_kit_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "origin_blueprint_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -747,11 +747,11 @@ func (_q *SlotQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withKit != nil {
-			_spec.Node.AddColumnOnce(slot.FieldKitID)
+		if _q.withBlueprint != nil {
+			_spec.Node.AddColumnOnce(slot.FieldBlueprintID)
 		}
-		if _q.withOriginKit != nil {
-			_spec.Node.AddColumnOnce(slot.FieldOriginKitID)
+		if _q.withOriginBlueprint != nil {
+			_spec.Node.AddColumnOnce(slot.FieldOriginBlueprintID)
 		}
 		if _q.withOverrides != nil {
 			_spec.Node.AddColumnOnce(slot.FieldOverridesSlotID)

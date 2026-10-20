@@ -122,7 +122,7 @@ func integrationSetCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "set <kind> <driver>",
 		Short: "Create or update an integration",
-		Example: `  kitmaker integration set registry zot --name local --config host=zot:5000 --config namespace=kits --config insecure=true --default --test
+		Example: `  kitmaker integration set registry zot --name local --config host=zot:5000 --config namespace=blueprints --config insecure=true --default --test
   kitmaker integration set ai anthropic --config api_key=$ANTHROPIC_API_KEY --default`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {

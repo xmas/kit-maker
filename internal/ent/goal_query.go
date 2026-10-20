@@ -11,19 +11,19 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/goal"
-	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 )
 
 // GoalQuery is the builder for querying Goal entities.
 type GoalQuery struct {
 	config
-	ctx        *QueryContext
-	order      []goal.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Goal
-	withKit    *KitQuery
+	ctx           *QueryContext
+	order         []goal.OrderOption
+	inters        []Interceptor
+	predicates    []predicate.Goal
+	withBlueprint *BlueprintQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -60,9 +60,9 @@ func (_q *GoalQuery) Order(o ...goal.OrderOption) *GoalQuery {
 	return _q
 }
 
-// QueryKit chains the current query on the "kit" edge.
-func (_q *GoalQuery) QueryKit() *KitQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// QueryBlueprint chains the current query on the "blueprint" edge.
+func (_q *GoalQuery) QueryBlueprint() *BlueprintQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -73,8 +73,8 @@ func (_q *GoalQuery) QueryKit() *KitQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(goal.Table, goal.FieldID, selector),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, goal.KitTable, goal.KitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, goal.BlueprintTable, goal.BlueprintColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -269,26 +269,26 @@ func (_q *GoalQuery) Clone() *GoalQuery {
 		return nil
 	}
 	return &GoalQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]goal.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Goal{}, _q.predicates...),
-		withKit:    _q.withKit.Clone(),
+		config:        _q.config,
+		ctx:           _q.ctx.Clone(),
+		order:         append([]goal.OrderOption{}, _q.order...),
+		inters:        append([]Interceptor{}, _q.inters...),
+		predicates:    append([]predicate.Goal{}, _q.predicates...),
+		withBlueprint: _q.withBlueprint.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithKit tells the query-builder to eager-load the nodes that are connected to
-// the "kit" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *GoalQuery) WithKit(opts ...func(*KitQuery)) *GoalQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// WithBlueprint tells the query-builder to eager-load the nodes that are connected to
+// the "blueprint" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *GoalQuery) WithBlueprint(opts ...func(*BlueprintQuery)) *GoalQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withKit = query
+	_q.withBlueprint = query
 	return _q
 }
 
@@ -371,7 +371,7 @@ func (_q *GoalQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Goal, e
 		nodes       = []*Goal{}
 		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			_q.withKit != nil,
+			_q.withBlueprint != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -392,20 +392,20 @@ func (_q *GoalQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Goal, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withKit; query != nil {
-		if err := _q.loadKit(ctx, query, nodes, nil,
-			func(n *Goal, e *Kit) { n.Edges.Kit = e }); err != nil {
+	if query := _q.withBlueprint; query != nil {
+		if err := _q.loadBlueprint(ctx, query, nodes, nil,
+			func(n *Goal, e *Blueprint) { n.Edges.Blueprint = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *GoalQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Goal, init func(*Goal), assign func(*Goal, *Kit)) error {
+func (_q *GoalQuery) loadBlueprint(ctx context.Context, query *BlueprintQuery, nodes []*Goal, init func(*Goal), assign func(*Goal, *Blueprint)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*Goal)
 	for i := range nodes {
-		fk := nodes[i].KitID
+		fk := nodes[i].BlueprintID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -414,7 +414,7 @@ func (_q *GoalQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Goal
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(kit.IDIn(ids...))
+	query.Where(blueprint.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -422,7 +422,7 @@ func (_q *GoalQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Goal
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "kit_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "blueprint_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -456,8 +456,8 @@ func (_q *GoalQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withKit != nil {
-			_spec.Node.AddColumnOnce(goal.FieldKitID)
+		if _q.withBlueprint != nil {
+			_spec.Node.AddColumnOnce(goal.FieldBlueprintID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

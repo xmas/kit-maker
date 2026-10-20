@@ -3,9 +3,9 @@
 Postgres 16+ with `pgvector`. Models are defined as Ent schemas
 (`internal/ent/schema`), and versioned migrations are generated with Atlas
 (`migrations/`). River's own job tables live in the same database. IDs are
-ULIDs. The prefixed ones (`kit_`, `bp_`, `sbx_`) are shown to users. One
-deployment is one organisation, so there is no tenant column. Every kit,
-block, blueprint and integration has an **owner team** (`team_id`), and
+ULIDs. The prefixed ones (`bp_`, `prj_`, `sbx_`) are shown to users. One
+deployment is one organisation, so there is no tenant column. Every blueprint,
+block and integration has an **owner team** (`team_id`), and
 `resource_grants` shares it with other teams at a role.
 
 Arrows read "row → the row it references".
@@ -118,7 +118,7 @@ erDiagram
     }
     role_permissions {
         ulid role_id FK
-        string permission "key from the Go registry, e.g. kit.promote"
+        string permission "key from the Go registry, e.g. blueprint.promote"
     }
     role_assignments {
         ulid id PK
@@ -131,15 +131,15 @@ erDiagram
     approval_policies ||--o{ approvals : governs
     resource_grants {
         ulid id PK
-        string resource_type "kit|block|integration|..."
+        string resource_type "blueprint|block|integration|..."
         ulid resource_id
         ulid grantee_team_id FK "or all"
         ulid role_id FK
     }
     approval_policies {
         ulid id PK
-        string scope "global|collection|kit"
-        ulid scope_id "collection or kit id; null for global"
+        string scope "global|collection|blueprint"
+        ulid scope_id "collection or blueprint id; null for global"
         string action "widening|promote|publish_shared|guardrail_exception"
         int required_approvals
         bool author_can_approve
@@ -216,15 +216,15 @@ erDiagram
         ulid ai_suggestion_id FK
     }
 
-    %% ── Kit composition ─────────────────────────────────────
-    teams ||--o{ kits : "owner team"
+    %% ── Blueprint composition ──────────────────────────────────
+    teams ||--o{ blueprints : "owner team"
     teams ||--o{ collections : "owner team"
-    collections ||--o{ kits : groups
-    kits ||--o{ slots : "outlined as"
-    kits ||--o{ kit_includes : "includes"
-    kit_includes }o--|| kits : "sub-kit"
-    kit_includes }o--o| blueprints : "pinned rev"
-    slots }o--o| kits : "origin (sub-kit)"
+    collections ||--o{ blueprints : groups
+    blueprints ||--o{ slots : "outlined as"
+    blueprints ||--o{ blueprint_includes : "includes"
+    blueprint_includes }o--|| blueprints : "included"
+    blueprint_includes }o--o| blueprint_versions : "pinned version"
+    slots }o--o| blueprints : "origin (included)"
     slots |o--o| slots : "overrides"
     slots ||--o| block_links : "filled by"
     block_links }o--|| blocks : "links to"
@@ -236,10 +236,10 @@ erDiagram
         string name
         string slug
     }
-    kits {
-        ulid id PK "kit_…"
+    blueprints {
+        ulid id PK "bp_…"
         ulid team_id FK
-        ulid collection_id FK "nullable, one collection per kit"
+        ulid collection_id FK "nullable, one collection per blueprint"
         string slug
         string display_name
         string kind "workload|mixin|set|environment"
@@ -248,19 +248,19 @@ erDiagram
         string network_preset
         bool registration_enabled
     }
-    kit_includes {
+    blueprint_includes {
         ulid id PK
-        ulid kit_id FK "parent"
-        ulid child_kit_id FK "sub-kit"
+        ulid blueprint_id FK "parent"
+        ulid child_blueprint_id FK "included"
         string track "stable|latest|pinned"
-        ulid pinned_blueprint_id FK
+        ulid pinned_version_id FK
         int position
     }
     slots {
         ulid id PK
-        ulid kit_id FK
-        ulid origin_kit_id FK "set when the slot comes from a sub-kit"
-        ulid overrides_slot_id FK "sub-kit slot this one overrides"
+        ulid blueprint_id FK
+        ulid origin_blueprint_id FK "set when the slot comes from an included blueprint"
+        ulid overrides_slot_id FK "included slot this one overrides"
         string key
         string section
         string state "blank|suggested|filled|optional"
@@ -283,21 +283,21 @@ erDiagram
     }
 
     %% ── Goals, checks, AI ───────────────────────────────────
-    kits ||--|| goals : states
-    kits ||--o{ checks : "derives"
-    kits ||--o{ kit_revisions : "history"
+    blueprints ||--|| goals : states
+    blueprints ||--o{ checks : "derives"
+    blueprints ||--o{ blueprint_revisions : "history"
     checks ||--o{ check_slot : ""
     slots ||--o{ check_slot : "satisfies"
-    kits ||--o{ ai_threads : ""
+    blueprints ||--o{ ai_threads : ""
     ai_threads ||--o{ ai_suggestions : contains
     ai_suggestions }o--o| slots : targets
     ai_suggestions }o--o| blocks : targets
     block_versions }o--o| ai_suggestions : "accepted from"
     teams ||--o{ ai_calls : "spends"
-    kit_revisions {
+    blueprint_revisions {
         ulid id PK
-        ulid kit_id FK
-        int seq "1, 2, 3… per kit"
+        ulid blueprint_id FK
+        int seq "1, 2, 3… per blueprint"
         ulid actor_user_id FK
         string action "baseline|create|edit|link|relink|unlink|add-slot|remove-slot|update|resync|goal|save-as-block|custom-block|restore"
         string slot_key "slot the change was about"
@@ -308,13 +308,13 @@ erDiagram
     }
     goals {
         ulid id PK
-        ulid kit_id FK
+        ulid blueprint_id FK
         text statement
         jsonb sources "repo, kit yaml, dockerfile, sbx-scan"
     }
     checks {
         ulid id PK
-        ulid kit_id FK
+        ulid blueprint_id FK
         string type "network|credential|tool|setup|agent|manual"
         jsonb spec "e.g. url + method"
         string expectation "reach|blocked|runs"
@@ -329,7 +329,7 @@ erDiagram
         ulid id PK
         ulid team_id FK "budget owner"
         ulid user_id FK
-        ulid kit_id FK
+        ulid blueprint_id FK
         string route "explain|fill|edit|plan|review|..."
         string provider "fake|anthropic|bedrock|vertex"
         string model "may be a fallback model"
@@ -343,14 +343,14 @@ erDiagram
     }
     ai_threads {
         ulid id PK
-        ulid kit_id FK
+        ulid blueprint_id FK
         ulid slot_id FK
         ulid block_id FK
     }
     ai_suggestions {
         ulid id PK
         ulid thread_id FK
-        ulid kit_id FK
+        ulid blueprint_id FK
         ulid slot_id FK
         ulid block_id FK
         string kind "outline|fill|edit|checks|merge|review|explain|import|dedupe"
@@ -368,20 +368,20 @@ erDiagram
         ulid decided_by_user_id FK
     }
 
-    %% ── Generate & publish ──────────────────────────────────
-    kits ||--o{ blueprints : "generates rev"
-    blueprints ||--o{ blueprint_block_versions : snapshots
-    blueprint_block_versions }o--|| block_versions : "exact version"
-    blueprints ||--o{ published_images : "pushed as"
-    blueprints ||--o{ builds : "built by"
-    kits ||--o{ channels : ""
-    channels }o--|| blueprints : "points at"
+    %% ── Publish ─────────────────────────────────────────────
+    blueprints ||--o{ blueprint_versions : "publishes"
+    blueprint_versions ||--o{ blueprint_version_blocks : snapshots
+    blueprint_version_blocks }o--|| block_versions : "exact version"
+    blueprint_versions ||--o{ published_images : "pushed as"
+    blueprint_versions ||--o{ builds : "built by"
+    blueprints ||--o{ channels : ""
+    channels }o--|| blueprint_versions : "points at"
     published_images }o--|| integrations : "registry"
     builds }o--|| integrations : "build runner"
-    blueprints {
-        ulid id PK "bp_…"
-        ulid kit_id FK
-        int revision
+    blueprint_versions {
+        ulid id PK "shown as bp_…@vN"
+        ulid blueprint_id FK
+        int version "1, 2, 3… per blueprint"
         string digest
         text descriptor_yaml
         jsonb files
@@ -391,17 +391,17 @@ erDiagram
         jsonb checks_snapshot
         jsonb ai_review
         text release_notes
-        ulid generated_by_user_id FK
+        ulid published_by_user_id FK
     }
-    blueprint_block_versions {
-        ulid blueprint_id FK
+    blueprint_version_blocks {
+        ulid blueprint_version_id FK
         ulid block_version_id FK
         string overrides_hash
         int position
     }
     builds {
         ulid id PK
-        ulid blueprint_id FK
+        ulid blueprint_version_id FK
         ulid integration_id FK
         string status "queued|running|succeeded|failed"
         string external_ref
@@ -409,46 +409,92 @@ erDiagram
     }
     published_images {
         ulid id PK
-        ulid blueprint_id FK
+        ulid blueprint_version_id FK
         ulid integration_id FK
         string repository
         string digest
-        string tags "rev-N, latest, stable"
+        string tags "vN, latest, stable"
         timestamp pushed_at
     }
     channels {
         ulid id PK
-        ulid kit_id FK
-        string name "latest|stable|custom"
         ulid blueprint_id FK
+        string name "latest|stable|custom"
+        ulid blueprint_version_id FK
         ulid promoted_by_user_id FK
         timestamp promoted_at
     }
 
-    %% ── In code & running ───────────────────────────────────
-    kits ||--o{ kit_references : "referenced by"
-    kit_references }o--o| blueprints : "resolves to"
-    kit_references }o--|| integrations : "git host"
-    blueprints ||--o{ sandboxes : runs
-    kit_references ||--o{ sandboxes : "reported by"
-    kits ||--o{ enrollment_tokens : ""
-    kit_references {
+    %% ── Projects, downloads & running (DESIGN.md §2, §5) ───
+    teams ||--o{ projects : "owner team"
+    projects }o--|| blueprints : runs
+    projects ||--o{ project_repos : "lives in"
+    projects ||--o{ repo_references : ""
+    projects ||--o{ downloads : ""
+    blueprint_versions ||--o{ downloads : "downloaded as"
+    users ||--o{ downloads : ""
+    projects ||--o{ sandboxes : "work for"
+    users ||--o{ sandboxes : "created by"
+    sandboxes ||--o{ sandbox_network_activity : "reached or was refused"
+    projects {
+        ulid id PK "prj_…"
+        ulid team_id FK
+        string name
+        text description
+        ulid blueprint_id FK "one blueprint (it may include others)"
+        string track "stable|latest|pinned"
+        ulid pinned_version_id FK "nullable"
+    }
+    project_repos {
+        ulid project_id FK
+        string repo
+        string path "where its sbxenv.yaml lives"
+    }
+    downloads {
         ulid id PK
-        ulid kit_id FK
+        ulid blueprint_version_id FK
+        ulid project_id FK "nullable"
+        ulid user_id FK
+        string kind "repo_reference|file|pull"
+        timestamp created_at
+    }
+    sandbox_network_activity {
+        ulid sandbox_id FK
+        string host
+        string decision "allowed|blocked"
+        string matched_rule "nullable; sbx names it only for blocked"
+        string reason "nullable"
+        int count
+        timestamp first_seen
+        timestamp last_seen
+    }
+    blueprints ||--o{ repo_references : "referenced by"
+    repo_references }o--o| blueprint_versions : "resolves to"
+    repo_references }o--|| integrations : "git host"
+    blueprint_versions ||--o{ sandboxes : runs
+    repo_references ||--o{ sandboxes : "reported by"
+    projects ||--o{ enrollment_tokens : ""
+    users ||--o{ enrollment_tokens : ""
+    repo_references {
+        ulid id PK
+        ulid project_id FK "nullable"
+        ulid blueprint_id FK
         ulid integration_id FK
         string repo
         string path
-        string ref_kind "channel|rev|digest"
+        string ref_kind "channel|version|digest"
         string ref_value
-        ulid resolved_blueprint_id FK
+        ulid resolved_version_id FK
         bool ci_bindings
         timestamp last_seen_at
         string source "git_scan|registration"
     }
     sandboxes {
         ulid id PK "sbx_…"
-        ulid blueprint_id FK
-        ulid kit_reference_id FK
+        ulid blueprint_version_id FK
+        ulid project_id FK "nullable"
+        ulid user_id FK "who created it (from the enrollment token)"
+        ulid repo_reference_id FK
         string sandbox_name
         string resolved_digest
         string host_fingerprint_hash
@@ -459,7 +505,8 @@ erDiagram
     }
     enrollment_tokens {
         ulid id PK
-        ulid kit_id FK
+        ulid project_id FK
+        ulid user_id FK "per person per project"
         string token_hash
         timestamp revoked_at
     }
@@ -468,36 +515,42 @@ erDiagram
 ## How the pieces connect
 
 - **Inheritance.** A `block_link` points at a `block` and records the
-  `base_version_id` its `overrides` were last rebased onto. The kit uses base
+  `base_version_id` its `overrides` were last rebased onto. The blueprint uses base
   ⊕ overrides. A fork is a `block` whose `parent_block_id` is set, and it
   keeps inheriting the same way through `parent_overrides`.
-- **Sub-kits.** `kit_includes` pulls another kit in at a channel or pinned
-  rev. Its slots show up with `origin_kit_id` set. A parent slot with
-  `overrides_slot_id` replaces or patches the sub-kit's slot. The outline's
+- **Included blueprints.** `blueprint_includes` pulls another blueprint in at a channel
+  or pinned version. Its slots show up with `origin_blueprint_id` set. A parent slot with
+  `overrides_slot_id` replaces or patches the included slot. The outline's
   origin marker is derived as follows:
 
   | Condition | Origin |
   |---|---|
   | link, no overrides, own slot | Inherited |
   | link with overrides | Modified |
-  | own slot, kit-local block | Custom |
-  | `origin_kit_id` set, not overridden | From sub-kit |
-  | `overrides_slot_id` set | Overrides sub-kit |
+  | own slot, blueprint-only block | Custom |
+  | `origin_blueprint_id` set, not overridden | From included blueprint |
+  | `overrides_slot_id` set | Overrides included blueprint |
 
-  Compile flattens sub-kits and overrides into one kit, because spec set
-  composition has no override.
-- **Reproducibility.** `blueprint_block_versions` stores the exact
-  `block_version` plus `overrides_hash` for every block in a revision, so a
-  `bp_…` can always be rebuilt byte-for-byte.
-- **Publishing.** A blueprint becomes one or more `published_images` (one per
-  registry push) and, if it has Dockerfile content, a `build`. `channels`
-  (`latest`, `stable`) point at a blueprint. Each image tag maps to one row.
-- **From code to sandbox.** A `kit_reference` is one repo's `sbxenv.yaml`
-  pointing at the kit by channel, rev or digest. When a sandbox registers, it
-  reports the reference and the digest it resolved, which creates a `sandbox`
-  row linked to both the `blueprint` and the `kit_reference`.
-- **AI.** Every AI output is an `ai_suggestion` in a thread scoped to a kit,
-  slot or block. Accepting one creates a `block_version` (or a check, or link
+  Compile flattens included blueprints and overrides into one kit, because
+  spec set composition has no override.
+- **Reproducibility.** `blueprint_version_blocks` stores the exact
+  `block_version` plus `overrides_hash` for every block in a version, so a
+  `bp_…@vN` can always be rebuilt byte-for-byte.
+- **Publishing.** A blueprint version becomes one or more `published_images`
+  (one per registry push) and, if it has Dockerfile content, a `build`.
+  `channels` (`latest`, `stable`) point at a blueprint version. Each image tag
+  maps to one row.
+- **From code to sandbox.** A `project` is the workload: a team, its repos and
+  the one blueprint it runs. A `repo_reference` is one repo's `sbxenv.yaml`
+  pointing at the blueprint by channel, version or digest. Downloading a
+  version writes a `download` and issues the person an enrollment token for
+  the project. When a sandbox registers with that token, it reports the
+  reference and the digest it resolved, which creates a `sandbox` row linked
+  to the `blueprint_version`, the `project`, the person and the
+  `repo_reference`. `sandbox_network_activity` holds what sbx's policy log
+  reported for it (DESIGN.md §5.1).
+- **AI.** Every AI output is an `ai_suggestion` in a thread scoped to a
+  blueprint, slot or block. Accepting one creates a `block_version` (or a check, or link
   overrides), which keeps `ai_suggestion_id` for authorship.
 - **Identity.** One `user` can have several `user_identities` (local,
   Entra, Okta, Google, generic OIDC). Service accounts are users with
@@ -509,8 +562,8 @@ erDiagram
   live.
 - **RBAC.** An effective permission = deployment role ∪ (team role × owner
   team) ∪ `resource_grants`, minus exclusions. `approval_policies` exist at
-  three scopes (global → collection → kit). The most specific wins per action,
-  and `locked` stops lower scopes from loosening it. `approvals` records each
+  three scopes (global → collection → blueprint). The most specific wins per
+  action, and `locked` stops lower scopes from loosening it. `approvals` records each
   decision: human or **AI reviewer** (verdict, risk, model and prompt version
   via its `ai_suggestion`), plus the typed justification for any
   self-approval.

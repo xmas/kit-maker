@@ -1,0 +1,16 @@
+{
+  "route": "edit",
+  "answers": [
+    {
+      "match": "(network-rules)",
+      "json": {"payload_json": "{\"runtime\":{\"allow\":[{\"label\":\"Example API (read)\",\"hosts\":[\"api.example.com\"],\"methods\":[\"GET\",\"HEAD\"]}],\"deny\":[]}}", "note": "(Fake AI) A canned draft: read-only access to api.example.com. Connect a real AI integration to draft from your request."}
+    },
+    {
+      "match": "(resources)",
+      "json": {"payload_json": "{\"cpu\":4,\"memory\":\"8GiB\"}", "note": "(Fake AI) A canned draft: 4 CPUs and 8 GiB. Connect a real AI integration to draft from your request."}
+    },
+    {
+      "json": {"payload_json": "", "note": "(Fake AI) The fake driver has no draft for this block type. Connect a real AI integration to draft from your request."}
+    }
+  ]
+}

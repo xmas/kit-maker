@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
-	"github.com/docker/kit-maker/internal/ent/kitrevision"
+	"github.com/docker/kit-maker/internal/ent/blueprintrevision"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
 	"github.com/docker/kit-maker/internal/ent/user"
@@ -225,19 +225,19 @@ func (_u *UserUpdate) AddAcceptedBlockVersions(v ...*BlockVersion) *UserUpdate {
 	return _u.AddAcceptedBlockVersionIDs(ids...)
 }
 
-// AddKitRevisionIDs adds the "kit_revisions" edge to the KitRevision entity by IDs.
-func (_u *UserUpdate) AddKitRevisionIDs(ids ...string) *UserUpdate {
-	_u.mutation.AddKitRevisionIDs(ids...)
+// AddBlueprintRevisionIDs adds the "blueprint_revisions" edge to the BlueprintRevision entity by IDs.
+func (_u *UserUpdate) AddBlueprintRevisionIDs(ids ...string) *UserUpdate {
+	_u.mutation.AddBlueprintRevisionIDs(ids...)
 	return _u
 }
 
-// AddKitRevisions adds the "kit_revisions" edges to the KitRevision entity.
-func (_u *UserUpdate) AddKitRevisions(v ...*KitRevision) *UserUpdate {
+// AddBlueprintRevisions adds the "blueprint_revisions" edges to the BlueprintRevision entity.
+func (_u *UserUpdate) AddBlueprintRevisions(v ...*BlueprintRevision) *UserUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddKitRevisionIDs(ids...)
+	return _u.AddBlueprintRevisionIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -287,25 +287,25 @@ func (_u *UserUpdate) RemoveAcceptedBlockVersions(v ...*BlockVersion) *UserUpdat
 	return _u.RemoveAcceptedBlockVersionIDs(ids...)
 }
 
-// ClearKitRevisions clears all "kit_revisions" edges to the KitRevision entity.
-func (_u *UserUpdate) ClearKitRevisions() *UserUpdate {
-	_u.mutation.ClearKitRevisions()
+// ClearBlueprintRevisions clears all "blueprint_revisions" edges to the BlueprintRevision entity.
+func (_u *UserUpdate) ClearBlueprintRevisions() *UserUpdate {
+	_u.mutation.ClearBlueprintRevisions()
 	return _u
 }
 
-// RemoveKitRevisionIDs removes the "kit_revisions" edge to KitRevision entities by IDs.
-func (_u *UserUpdate) RemoveKitRevisionIDs(ids ...string) *UserUpdate {
-	_u.mutation.RemoveKitRevisionIDs(ids...)
+// RemoveBlueprintRevisionIDs removes the "blueprint_revisions" edge to BlueprintRevision entities by IDs.
+func (_u *UserUpdate) RemoveBlueprintRevisionIDs(ids ...string) *UserUpdate {
+	_u.mutation.RemoveBlueprintRevisionIDs(ids...)
 	return _u
 }
 
-// RemoveKitRevisions removes "kit_revisions" edges to KitRevision entities.
-func (_u *UserUpdate) RemoveKitRevisions(v ...*KitRevision) *UserUpdate {
+// RemoveBlueprintRevisions removes "blueprint_revisions" edges to BlueprintRevision entities.
+func (_u *UserUpdate) RemoveBlueprintRevisions(v ...*BlueprintRevision) *UserUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveKitRevisionIDs(ids...)
+	return _u.RemoveBlueprintRevisionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -506,28 +506,28 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.KitRevisionsCleared() {
+	if _u.mutation.BlueprintRevisionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.KitRevisionsTable,
-			Columns: []string{user.KitRevisionsColumn},
+			Table:   user.BlueprintRevisionsTable,
+			Columns: []string{user.BlueprintRevisionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprintrevision.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedKitRevisionsIDs(); len(nodes) > 0 && !_u.mutation.KitRevisionsCleared() {
+	if nodes := _u.mutation.RemovedBlueprintRevisionsIDs(); len(nodes) > 0 && !_u.mutation.BlueprintRevisionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.KitRevisionsTable,
-			Columns: []string{user.KitRevisionsColumn},
+			Table:   user.BlueprintRevisionsTable,
+			Columns: []string{user.BlueprintRevisionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprintrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -535,15 +535,15 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitRevisionsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintRevisionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.KitRevisionsTable,
-			Columns: []string{user.KitRevisionsColumn},
+			Table:   user.BlueprintRevisionsTable,
+			Columns: []string{user.BlueprintRevisionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprintrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -765,19 +765,19 @@ func (_u *UserUpdateOne) AddAcceptedBlockVersions(v ...*BlockVersion) *UserUpdat
 	return _u.AddAcceptedBlockVersionIDs(ids...)
 }
 
-// AddKitRevisionIDs adds the "kit_revisions" edge to the KitRevision entity by IDs.
-func (_u *UserUpdateOne) AddKitRevisionIDs(ids ...string) *UserUpdateOne {
-	_u.mutation.AddKitRevisionIDs(ids...)
+// AddBlueprintRevisionIDs adds the "blueprint_revisions" edge to the BlueprintRevision entity by IDs.
+func (_u *UserUpdateOne) AddBlueprintRevisionIDs(ids ...string) *UserUpdateOne {
+	_u.mutation.AddBlueprintRevisionIDs(ids...)
 	return _u
 }
 
-// AddKitRevisions adds the "kit_revisions" edges to the KitRevision entity.
-func (_u *UserUpdateOne) AddKitRevisions(v ...*KitRevision) *UserUpdateOne {
+// AddBlueprintRevisions adds the "blueprint_revisions" edges to the BlueprintRevision entity.
+func (_u *UserUpdateOne) AddBlueprintRevisions(v ...*BlueprintRevision) *UserUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddKitRevisionIDs(ids...)
+	return _u.AddBlueprintRevisionIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -827,25 +827,25 @@ func (_u *UserUpdateOne) RemoveAcceptedBlockVersions(v ...*BlockVersion) *UserUp
 	return _u.RemoveAcceptedBlockVersionIDs(ids...)
 }
 
-// ClearKitRevisions clears all "kit_revisions" edges to the KitRevision entity.
-func (_u *UserUpdateOne) ClearKitRevisions() *UserUpdateOne {
-	_u.mutation.ClearKitRevisions()
+// ClearBlueprintRevisions clears all "blueprint_revisions" edges to the BlueprintRevision entity.
+func (_u *UserUpdateOne) ClearBlueprintRevisions() *UserUpdateOne {
+	_u.mutation.ClearBlueprintRevisions()
 	return _u
 }
 
-// RemoveKitRevisionIDs removes the "kit_revisions" edge to KitRevision entities by IDs.
-func (_u *UserUpdateOne) RemoveKitRevisionIDs(ids ...string) *UserUpdateOne {
-	_u.mutation.RemoveKitRevisionIDs(ids...)
+// RemoveBlueprintRevisionIDs removes the "blueprint_revisions" edge to BlueprintRevision entities by IDs.
+func (_u *UserUpdateOne) RemoveBlueprintRevisionIDs(ids ...string) *UserUpdateOne {
+	_u.mutation.RemoveBlueprintRevisionIDs(ids...)
 	return _u
 }
 
-// RemoveKitRevisions removes "kit_revisions" edges to KitRevision entities.
-func (_u *UserUpdateOne) RemoveKitRevisions(v ...*KitRevision) *UserUpdateOne {
+// RemoveBlueprintRevisions removes "blueprint_revisions" edges to BlueprintRevision entities.
+func (_u *UserUpdateOne) RemoveBlueprintRevisions(v ...*BlueprintRevision) *UserUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveKitRevisionIDs(ids...)
+	return _u.RemoveBlueprintRevisionIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -1076,28 +1076,28 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.KitRevisionsCleared() {
+	if _u.mutation.BlueprintRevisionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.KitRevisionsTable,
-			Columns: []string{user.KitRevisionsColumn},
+			Table:   user.BlueprintRevisionsTable,
+			Columns: []string{user.BlueprintRevisionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprintrevision.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedKitRevisionsIDs(); len(nodes) > 0 && !_u.mutation.KitRevisionsCleared() {
+	if nodes := _u.mutation.RemovedBlueprintRevisionsIDs(); len(nodes) > 0 && !_u.mutation.BlueprintRevisionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.KitRevisionsTable,
-			Columns: []string{user.KitRevisionsColumn},
+			Table:   user.BlueprintRevisionsTable,
+			Columns: []string{user.BlueprintRevisionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprintrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1105,15 +1105,15 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitRevisionsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintRevisionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.KitRevisionsTable,
-			Columns: []string{user.KitRevisionsColumn},
+			Table:   user.BlueprintRevisionsTable,
+			Columns: []string{user.BlueprintRevisionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kitrevision.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprintrevision.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -9,30 +9,30 @@ import (
 
 	"github.com/docker/kit-maker/internal/authz"
 	"github.com/docker/kit-maker/internal/blocks"
-	"github.com/docker/kit-maker/internal/kits"
+	"github.com/docker/kit-maker/internal/blueprints"
 )
 
 // slotResync drops a slot's saved edits and moves it to the block's latest version.
 func (s *server) slotResync(w nethttp.ResponseWriter, r *nethttp.Request) {
-	kitID, slotKey := chi.URLParam(r, "kitID"), chi.URLParam(r, "slotKey")
-	l, ok := s.loadKit(w, r, kitID, "link.revert")
-	if !ok || !s.allowed(w, r, authz.LinkRebaseApply, l.Kit.TeamID) {
+	blueprintID, slotKey := chi.URLParam(r, "blueprintID"), chi.URLParam(r, "slotKey")
+	l, ok := s.loadBlueprint(w, r, blueprintID, "link.revert")
+	if !ok || !s.allowed(w, r, authz.LinkRebaseApply, l.Blueprint.TeamID) {
 		return
 	}
-	if err := s.kits().Resync(r.Context(), kitID, slotKey); err != nil {
-		s.back(w, r, slotURL(kitID, slotKey), "payload", err)
+	if err := s.blueprints().Resync(r.Context(), blueprintID, slotKey); err != nil {
+		s.back(w, r, slotURL(blueprintID, slotKey), "payload", err)
 		return
 	}
-	s.inertia.Redirect(w, r, slotURL(kitID, slotKey))
+	s.inertia.Redirect(w, r, slotURL(blueprintID, slotKey))
 }
 
-// kitHistoryJSON lists revisions (optionally for one slot) as JSON.
-func (s *server) kitHistoryJSON(w nethttp.ResponseWriter, r *nethttp.Request) {
-	kitID := chi.URLParam(r, "kitID")
-	if _, ok := s.loadKit(w, r, kitID, authz.KitHistoryView); !ok {
+// blueprintHistoryJSON lists revisions (optionally for one slot) as JSON.
+func (s *server) blueprintHistoryJSON(w nethttp.ResponseWriter, r *nethttp.Request) {
+	blueprintID := chi.URLParam(r, "blueprintID")
+	if _, ok := s.loadBlueprint(w, r, blueprintID, authz.BlueprintHistoryView); !ok {
 		return
 	}
-	revs, err := s.kits().History(r.Context(), kitID, r.URL.Query().Get("slot"))
+	revs, err := s.blueprints().History(r.Context(), blueprintID, r.URL.Query().Get("slot"))
 	if err != nil {
 		s.fail(w, r, "history", err)
 		return
@@ -41,14 +41,14 @@ func (s *server) kitHistoryJSON(w nethttp.ResponseWriter, r *nethttp.Request) {
 	writeJSON(w, nethttp.StatusOK, map[string]any{"revisions": revs})
 }
 
-// revisionYAML returns the YAML the kit had at a revision.
+// revisionYAML returns the YAML the blueprint had at a revision.
 func (s *server) revisionYAML(w nethttp.ResponseWriter, r *nethttp.Request) {
-	kitID := chi.URLParam(r, "kitID")
-	if _, ok := s.loadKit(w, r, kitID, authz.KitHistoryView); !ok {
+	blueprintID := chi.URLParam(r, "blueprintID")
+	if _, ok := s.loadBlueprint(w, r, blueprintID, authz.BlueprintHistoryView); !ok {
 		return
 	}
-	y, err := s.kits().RevisionYAML(r.Context(), kitID, chi.URLParam(r, "revID"))
-	if errors.Is(err, kits.ErrNotFound) {
+	y, err := s.blueprints().RevisionYAML(r.Context(), blueprintID, chi.URLParam(r, "revID"))
+	if errors.Is(err, blueprints.ErrNotFound) {
 		nethttp.NotFound(w, r)
 		return
 	}
@@ -64,27 +64,27 @@ type restoreForm struct {
 	SlotKey string `json:"slotKey"`
 }
 
-// revisionRestore restores the whole kit, or one slot, to a revision.
+// revisionRestore restores the whole blueprint, or one slot, to a revision.
 func (s *server) revisionRestore(w nethttp.ResponseWriter, r *nethttp.Request) {
-	kitID, revID := chi.URLParam(r, "kitID"), chi.URLParam(r, "revID")
-	if _, ok := s.loadKit(w, r, kitID, authz.KitEdit); !ok {
+	blueprintID, revID := chi.URLParam(r, "blueprintID"), chi.URLParam(r, "revID")
+	if _, ok := s.loadBlueprint(w, r, blueprintID, authz.BlueprintEdit); !ok {
 		return
 	}
 	var f restoreForm
 	_ = decodeForm(r, &f)
 	if f.SlotKey != "" {
-		if err := s.kits().RestoreSlot(r.Context(), kitID, revID, f.SlotKey); err != nil {
-			s.back(w, r, slotURL(kitID, f.SlotKey), "payload", err)
+		if err := s.blueprints().RestoreSlot(r.Context(), blueprintID, revID, f.SlotKey); err != nil {
+			s.back(w, r, slotURL(blueprintID, f.SlotKey), "payload", err)
 			return
 		}
-		s.inertia.Redirect(w, r, slotURL(kitID, f.SlotKey))
+		s.inertia.Redirect(w, r, slotURL(blueprintID, f.SlotKey))
 		return
 	}
-	if err := s.kits().RestoreKit(r.Context(), kitID, revID); err != nil {
-		s.back(w, r, "/kits/"+kitID+"/history", "restore", err)
+	if err := s.blueprints().RestoreBlueprint(r.Context(), blueprintID, revID); err != nil {
+		s.back(w, r, "/blueprints/"+blueprintID+"/history", "restore", err)
 		return
 	}
-	s.inertia.Redirect(w, r, "/kits/"+kitID+"/history")
+	s.inertia.Redirect(w, r, "/blueprints/"+blueprintID+"/history")
 }
 
 // blockRestoreVersion publishes an old version of a block as its newest.

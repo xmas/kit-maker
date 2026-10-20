@@ -59,7 +59,7 @@ func TestIntegrations(t *testing.T) {
 	t.Run("test failure blocks the save", func(t *testing.T) {
 		_, err := s.Save(ctx, settings.SaveInput{
 			Kind: drivers.KindRegistry, Driver: "zot", Name: "bad",
-			Config: drivers.Config{"host": host, "namespace": "kits", "insecure": "true", "username": "bot", "password": "wrong"},
+			Config: drivers.Config{"host": host, "namespace": "blueprints", "insecure": "true", "username": "bot", "password": "wrong"},
 			Test:   true,
 		})
 		if err == nil || !strings.Contains(err.Error(), "401") {
@@ -71,7 +71,7 @@ func TestIntegrations(t *testing.T) {
 	t.Run("save, seal, redact and default", func(t *testing.T) {
 		i, err := s.Save(ctx, settings.SaveInput{
 			Kind: drivers.KindRegistry, Driver: "zot", Name: "local",
-			Config:    drivers.Config{"host": host, "namespace": "kits", "insecure": "true", "username": "bot", "password": "s3cret"},
+			Config:    drivers.Config{"host": host, "namespace": "blueprints", "insecure": "true", "username": "bot", "password": "s3cret"},
 			IsDefault: true, Test: true,
 		})
 		if err != nil {

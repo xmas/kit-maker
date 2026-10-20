@@ -10,7 +10,7 @@ import (
 	"github.com/docker/kit-maker/internal/auth"
 	"github.com/docker/kit-maker/internal/authz"
 	"github.com/docker/kit-maker/internal/blocks"
-	"github.com/docker/kit-maker/internal/kits/blocktypes"
+	"github.com/docker/kit-maker/internal/blueprints/blocktypes"
 )
 
 func (s *server) blocks() *blocks.Service { return &blocks.Service{Ent: s.Ent} }
@@ -35,7 +35,7 @@ func (s *server) blocksIndex(w nethttp.ResponseWriter, r *nethttp.Request) {
 		s.fail(w, r, "list teams", err)
 		return
 	}
-	s.render(w, r, "Blocks/Index", inertia.Props{"blocks": list, "types": blocktypes.All(), "teams": createTeams})
+	s.render(w, r, "Blocks/Index", inertia.Props{"blocks": list, "types": blocktypes.All(), "abilities": blocktypes.Abilities, "teams": createTeams})
 }
 
 type blockForm struct {
@@ -96,8 +96,10 @@ func (s *server) blockShow(w nethttp.ResponseWriter, r *nethttp.Request) {
 		return
 	}
 	sub := authz.SubjectFrom(r.Context())
+	bt, _ := blocktypes.Get(d.Type)
 	s.render(w, r, "Blocks/Show", inertia.Props{
-		"block": d,
+		"block":     d,
+		"blockType": bt,
 		"can": map[string]bool{
 			"edit":    sub.Can(authz.BlockEdit, d.TeamID),
 			"publish": sub.Can(authz.BlockPublishVersion, d.TeamID),

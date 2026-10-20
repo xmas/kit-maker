@@ -53,21 +53,21 @@ var (
 	viewerPerms = teamPerms(func(p Permission) bool { return p.View })
 
 	contributorPerms = append(append([]Key{}, viewerPerms...), teamPerms(func(p Permission) bool {
-		return has(p.Key, "kit.create", "kit.edit", "kit.checks.edit", "kit.subkit.include", "kit.bundle.download",
+		return has(p.Key, "blueprint.create", "blueprint.edit", "blueprint.checks.edit", "blueprint.include",
 			"block.use", "block.create", "block.edit", "block.fork", "block.import", "block.propose_upstream",
 			"link.", "ai.use", "ai.review.request", "approval.request", "guardrail.exception.request",
-			"blueprint.download", "integration.use", "collection.create", "collection.edit", "collection.kits.manage")
+			"blueprint.download", "integration.use", "collection.create", "collection.edit", "collection.blueprints.manage")
 	})...)
 
 	maintainerPerms = append(append([]Key{}, contributorPerms...), teamPerms(func(p Permission) bool {
-		return has(p.Key, "kit.generate", "kit.publish", "kit.promote", "kit.channel.manage", "kit.archive",
+		return has(p.Key, "blueprint.publish", "blueprint.promote", "blueprint.channel.manage", "blueprint.archive",
 			"approval.decide.", "approval.self_justify", "block.publish_version", "block.archive",
 			"build.run", "image.publish", "reference.open_pr", "reference.pin", "sandbox.revoke",
 			"enrollment_token.manage", "library.hygiene.apply", "collection.archive", "ai.prompts.view")
 	})...)
 
 	teamAdminPerms = append(append([]Key{}, maintainerPerms...), teamPerms(func(p Permission) bool {
-		return has(p.Key, "kit.share", "kit.transfer", "kit.policy.manage", "block.share", "collection.share",
+		return has(p.Key, "blueprint.share", "blueprint.transfer", "blueprint.policy.manage", "block.share", "collection.share",
 			"collection.policy.manage", "team.edit", "team.members.manage", "team.sources.manage", "team.roles.assign")
 	})...)
 
@@ -98,8 +98,8 @@ var BuiltInRoles = []Role{
 	{RoleAdmin, "Admin", ScopeDeployment, true, "Identity, integrations, teams, roles, policies, guardrails, settings.", adminPerms},
 	{RoleAuditor, "Auditor", ScopeDeployment, true, "Read everything and the audit log. No writes.", auditorPerms},
 	{RoleMember, "Member", ScopeDeployment, true, "Sign in and manage own tokens. Sees only what teams grant.", []Key{TokenCreate}},
-	{RoleViewer, "Viewer", ScopeTeam, true, "View kits, blocks, blueprints, references, sandboxes.", viewerPerms},
-	{RoleContributor, "Contributor", ScopeTeam, true, "Viewer + create and edit kits and blocks, use AI, request reviews.", contributorPerms},
+	{RoleViewer, "Viewer", ScopeTeam, true, "View blueprints, blocks, versions, references, sandboxes.", viewerPerms},
+	{RoleContributor, "Contributor", ScopeTeam, true, "Viewer + create and edit blueprints and blocks, use AI, request reviews.", contributorPerms},
 	{RoleMaintainer, "Maintainer", ScopeTeam, true, "Contributor + generate, publish, promote, approve, publish shared block versions.", maintainerPerms},
 	{RoleTeamAdmin, "Team admin", ScopeTeam, true, "Maintainer + membership, membership sources, sharing, team policies.", teamAdminPerms},
 }

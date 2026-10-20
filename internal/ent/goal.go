@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/goal"
-	"github.com/docker/kit-maker/internal/ent/kit"
 )
 
 // Goal is the model entity for the Goal schema.
@@ -23,8 +23,8 @@ type Goal struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// KitID holds the value of the "kit_id" field.
-	KitID string `json:"kit_id,omitempty"`
+	// BlueprintID holds the value of the "blueprint_id" field.
+	BlueprintID string `json:"blueprint_id,omitempty"`
 	// Statement holds the value of the "statement" field.
 	Statement string `json:"statement,omitempty"`
 	// repo, kit yaml, dockerfile, sbx-scan
@@ -37,22 +37,22 @@ type Goal struct {
 
 // GoalEdges holds the relations/edges for other nodes in the graph.
 type GoalEdges struct {
-	// Kit holds the value of the kit edge.
-	Kit *Kit `json:"kit,omitempty"`
+	// Blueprint holds the value of the blueprint edge.
+	Blueprint *Blueprint `json:"blueprint,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [1]bool
 }
 
-// KitOrErr returns the Kit value or an error if the edge
+// BlueprintOrErr returns the Blueprint value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e GoalEdges) KitOrErr() (*Kit, error) {
-	if e.Kit != nil {
-		return e.Kit, nil
+func (e GoalEdges) BlueprintOrErr() (*Blueprint, error) {
+	if e.Blueprint != nil {
+		return e.Blueprint, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: kit.Label}
+		return nil, &NotFoundError{label: blueprint.Label}
 	}
-	return nil, &NotLoadedError{edge: "kit"}
+	return nil, &NotLoadedError{edge: "blueprint"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -62,7 +62,7 @@ func (*Goal) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case goal.FieldSources:
 			values[i] = new([]byte)
-		case goal.FieldID, goal.FieldKitID, goal.FieldStatement:
+		case goal.FieldID, goal.FieldBlueprintID, goal.FieldStatement:
 			values[i] = new(sql.NullString)
 		case goal.FieldCreatedAt, goal.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -99,11 +99,11 @@ func (_m *Goal) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case goal.FieldKitID:
+		case goal.FieldBlueprintID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field kit_id", values[i])
+				return fmt.Errorf("unexpected type %T for field blueprint_id", values[i])
 			} else if value.Valid {
-				_m.KitID = value.String
+				_m.BlueprintID = value.String
 			}
 		case goal.FieldStatement:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -132,9 +132,9 @@ func (_m *Goal) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryKit queries the "kit" edge of the Goal entity.
-func (_m *Goal) QueryKit() *KitQuery {
-	return NewGoalClient(_m.config).QueryKit(_m)
+// QueryBlueprint queries the "blueprint" edge of the Goal entity.
+func (_m *Goal) QueryBlueprint() *BlueprintQuery {
+	return NewGoalClient(_m.config).QueryBlueprint(_m)
 }
 
 // Update returns a builder for updating this Goal.
@@ -166,8 +166,8 @@ func (_m *Goal) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("kit_id=")
-	builder.WriteString(_m.KitID)
+	builder.WriteString("blueprint_id=")
+	builder.WriteString(_m.BlueprintID)
 	builder.WriteString(", ")
 	builder.WriteString("statement=")
 	builder.WriteString(_m.Statement)

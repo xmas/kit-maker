@@ -5,10 +5,10 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 
-	"github.com/docker/kit-maker/internal/kits/patch"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 )
 
-// BlockLink fills a slot with a library block plus local overrides. The kit
+// BlockLink fills a slot with a library block plus local overrides. The blueprint
 // uses base ⊕ overrides, and base_version_id records the version the
 // overrides were last rebased onto (DESIGN.md §2.2).
 type BlockLink struct {

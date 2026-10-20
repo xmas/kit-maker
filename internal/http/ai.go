@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	nethttp "net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/docker/kit-maker/internal/ai"
 	"github.com/docker/kit-maker/internal/auth"
 	"github.com/docker/kit-maker/internal/authz"
+	"github.com/docker/kit-maker/internal/blueprints"
+	"github.com/docker/kit-maker/internal/blueprints/blocktypes"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 )
 
 // sse writes server-sent events and flushes each one. Every wrapper in the
@@ -47,9 +51,9 @@ type explainForm struct {
 
 // slotExplain streams the AI's explanation of one slot.
 func (s *server) slotExplain(w nethttp.ResponseWriter, r *nethttp.Request) {
-	kitID, slotKey := chi.URLParam(r, "kitID"), chi.URLParam(r, "slotKey")
-	l, ok := s.loadKit(w, r, kitID, authz.KitView)
-	if !ok || !s.allowed(w, r, authz.AIUse, l.Kit.TeamID) {
+	blueprintID, slotKey := chi.URLParam(r, "blueprintID"), chi.URLParam(r, "slotKey")
+	l, ok := s.loadBlueprint(w, r, blueprintID, authz.BlueprintView)
+	if !ok || !s.allowed(w, r, authz.AIUse, l.Blueprint.TeamID) {
 		return
 	}
 	slot := l.Slots[slotKey]
@@ -61,7 +65,7 @@ func (s *server) slotExplain(w nethttp.ResponseWriter, r *nethttp.Request) {
 	_ = decodeForm(r, &f) // the question is optional
 
 	in := ai.ExplainInput{
-		Kit: l.Kit.DisplayName, Goal: l.Kit.Goal, Slot: slot.Label,
+		Blueprint: l.Blueprint.DisplayName, Goal: l.Blueprint.Goal, Slot: slot.Label,
 		BlockName: slot.BlockName, BlockType: slot.BlockType, BlockDescription: slot.BlockDescription,
 		Payload: slot.Effective, Question: f.Question,
 	}
@@ -71,7 +75,7 @@ func (s *server) slotExplain(w nethttp.ResponseWriter, r *nethttp.Request) {
 		}
 	}
 	req := ai.ExplainRequest(in)
-	req.TeamID, req.KitID = l.Kit.TeamID, l.Kit.ID
+	req.TeamID, req.BlueprintID = l.Blueprint.TeamID, l.Blueprint.ID
 	if u := auth.UserFrom(r.Context()); u != nil {
 		req.UserID = u.ID
 	}
@@ -99,10 +103,93 @@ func (s *server) slotExplain(w nethttp.ResponseWriter, r *nethttp.Request) {
 			msg = "The model declined to answer this one."
 		}
 		if r.Context().Err() == nil {
-			s.Log.WarnContext(r.Context(), "ai explain", "kit", kitID, "slot", slotKey, "error", err)
+			s.Log.WarnContext(r.Context(), "ai explain", "blueprint", blueprintID, "slot", slotKey, "error", err)
 			_ = out.send("error", map[string]string{"message": msg})
 		}
 		return
 	}
 	_ = out.send("done", map[string]any{"model": res.Model, "usage": res.Usage})
+}
+
+// draft asks the AI for a slot's block content. It returns the payload
+// (validated for the block type, item keys kept) and the model's note; an
+// empty payload with a note means the AI had nothing to offer.
+func (s *server) draft(r *nethttp.Request, l *blueprints.Loaded, slot *blueprints.SlotDetail, request string) (map[string]any, string, error) {
+	if s.AI == nil {
+		return nil, "", errors.New("AI isn't set up for this deployment")
+	}
+	client, err := s.AI.Client(r.Context())
+	if err != nil {
+		return nil, "", errors.New("AI isn't set up for this deployment")
+	}
+	t, ok := blocktypes.Get(slot.BlockType)
+	if !ok {
+		return nil, "", fmt.Errorf("unknown block type %s", slot.BlockType)
+	}
+	current := slot.Effective
+	if current == nil {
+		current = blocktypes.Starter(t.Key, slot.Key)
+	}
+	req := ai.DraftRequest(ai.DraftInput{
+		Blueprint: l.Blueprint.DisplayName, Goal: l.Blueprint.Goal,
+		BlockType: t.Key, TypeLabel: t.Label, TypeDescription: t.Description, Capability: t.Capability,
+		Current: current, Request: request,
+	})
+	req.TeamID, req.BlueprintID, req.UserID = l.Blueprint.TeamID, l.Blueprint.ID, userID(r)
+	res, err := client.Generate(r.Context(), req)
+	switch {
+	case errors.Is(err, ai.ErrOverBudget):
+		return nil, "", errors.New("your team has used its AI budget for this month")
+	case errors.Is(err, ai.ErrRefused):
+		return nil, "", errors.New("the model declined this request")
+	case err != nil:
+		s.Log.WarnContext(r.Context(), "ai draft", "error", err)
+		return nil, "", errors.New("the AI request failed; try again in a moment")
+	}
+	var ans ai.DraftAnswer
+	if err := json.Unmarshal(res.JSON, &ans); err != nil {
+		return nil, "", errors.New("the AI's answer wasn't readable; try again")
+	}
+	if strings.TrimSpace(ans.PayloadJSON) == "" {
+		return nil, ans.Note, nil
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(ans.PayloadJSON), &payload); err != nil {
+		return nil, "", errors.New("the AI's block wasn't valid JSON; try again")
+	}
+	if err := t.Validate(payload); err != nil {
+		return nil, "", fmt.Errorf("the AI's block doesn't fit a %s block: %w", t.Label, err)
+	}
+	patch.AssignKeys(payload)
+	return payload, ans.Note, nil
+}
+
+// slotDraft returns an AI draft of a slot's block as an unsaved payload;
+// the editor shows it as a draft (with its YAML diff) until it's saved.
+func (s *server) slotDraft(w nethttp.ResponseWriter, r *nethttp.Request) {
+	blueprintID, slotKey := chi.URLParam(r, "blueprintID"), chi.URLParam(r, "slotKey")
+	l, ok := s.loadBlueprint(w, r, blueprintID, authz.BlueprintEdit)
+	if !ok || !s.allowed(w, r, authz.AIUse, l.Blueprint.TeamID) {
+		return
+	}
+	slot := l.Slots[slotKey]
+	var f struct {
+		Prompt string `json:"prompt"`
+	}
+	if slot == nil || decodeForm(r, &f) != nil || strings.TrimSpace(f.Prompt) == "" {
+		nethttp.Error(w, "bad request", nethttp.StatusBadRequest)
+		return
+	}
+	out := map[string]any{}
+	payload, note, err := s.draft(r, l, slot, f.Prompt)
+	if err != nil {
+		out["error"] = err.Error()
+	} else {
+		out["note"] = note
+		if payload != nil {
+			out["payload"] = payload
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
 }

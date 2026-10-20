@@ -29,7 +29,7 @@ func main() {
 func rootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "kitmaker",
-		Short:         "Build Docker Sandboxes kits from reusable blocks",
+		Short:         "Build blueprints for Docker Sandboxes kits from reusable blocks",
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,

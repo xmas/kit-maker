@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/check"
-	"github.com/docker/kit-maker/internal/ent/kit"
 )
 
 // CheckCreate is the builder for creating a Check entity.
@@ -52,9 +52,9 @@ func (_c *CheckCreate) SetNillableUpdatedAt(v *time.Time) *CheckCreate {
 	return _c
 }
 
-// SetKitID sets the "kit_id" field.
-func (_c *CheckCreate) SetKitID(v string) *CheckCreate {
-	_c.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_c *CheckCreate) SetBlueprintID(v string) *CheckCreate {
+	_c.mutation.SetBlueprintID(v)
 	return _c
 }
 
@@ -124,9 +124,9 @@ func (_c *CheckCreate) SetNillableID(v *string) *CheckCreate {
 	return _c
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_c *CheckCreate) SetKit(v *Kit) *CheckCreate {
-	return _c.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_c *CheckCreate) SetBlueprint(v *Blueprint) *CheckCreate {
+	return _c.SetBlueprintID(v.ID)
 }
 
 // Mutation returns the CheckMutation object of the builder.
@@ -194,8 +194,8 @@ func (_c *CheckCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Check.updated_at"`)}
 	}
-	if _, ok := _c.mutation.KitID(); !ok {
-		return &ValidationError{Name: "kit_id", err: errors.New(`ent: missing required field "Check.kit_id"`)}
+	if _, ok := _c.mutation.BlueprintID(); !ok {
+		return &ValidationError{Name: "blueprint_id", err: errors.New(`ent: missing required field "Check.blueprint_id"`)}
 	}
 	if _, ok := _c.mutation.Label(); !ok {
 		return &ValidationError{Name: "label", err: errors.New(`ent: missing required field "Check.label"`)}
@@ -240,8 +240,8 @@ func (_c *CheckCreate) check() error {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "Check.id": %w`, err)}
 		}
 	}
-	if len(_c.mutation.KitIDs()) == 0 {
-		return &ValidationError{Name: "kit", err: errors.New(`ent: missing required edge "Check.kit"`)}
+	if len(_c.mutation.BlueprintIDs()) == 0 {
+		return &ValidationError{Name: "blueprint", err: errors.New(`ent: missing required edge "Check.blueprint"`)}
 	}
 	return nil
 }
@@ -311,21 +311,21 @@ func (_c *CheckCreate) createSpec() (*Check, *sqlgraph.CreateSpec) {
 		_spec.SetField(check.FieldAuthoredBy, field.TypeEnum, value)
 		_node.AuthoredBy = value
 	}
-	if nodes := _c.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   check.KitTable,
-			Columns: []string{check.KitColumn},
+			Table:   check.BlueprintTable,
+			Columns: []string{check.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.KitID = nodes[0]
+		_node.BlueprintID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -392,15 +392,15 @@ func (u *CheckUpsert) UpdateUpdatedAt() *CheckUpsert {
 	return u
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *CheckUpsert) SetKitID(v string) *CheckUpsert {
-	u.Set(check.FieldKitID, v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *CheckUpsert) SetBlueprintID(v string) *CheckUpsert {
+	u.Set(check.FieldBlueprintID, v)
 	return u
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *CheckUpsert) UpdateKitID() *CheckUpsert {
-	u.SetExcluded(check.FieldKitID)
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *CheckUpsert) UpdateBlueprintID() *CheckUpsert {
+	u.SetExcluded(check.FieldBlueprintID)
 	return u
 }
 
@@ -547,17 +547,17 @@ func (u *CheckUpsertOne) UpdateUpdatedAt() *CheckUpsertOne {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *CheckUpsertOne) SetKitID(v string) *CheckUpsertOne {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *CheckUpsertOne) SetBlueprintID(v string) *CheckUpsertOne {
 	return u.Update(func(s *CheckUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *CheckUpsertOne) UpdateKitID() *CheckUpsertOne {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *CheckUpsertOne) UpdateBlueprintID() *CheckUpsertOne {
 	return u.Update(func(s *CheckUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 
@@ -884,17 +884,17 @@ func (u *CheckUpsertBulk) UpdateUpdatedAt() *CheckUpsertBulk {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *CheckUpsertBulk) SetKitID(v string) *CheckUpsertBulk {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *CheckUpsertBulk) SetBlueprintID(v string) *CheckUpsertBulk {
 	return u.Update(func(s *CheckUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *CheckUpsertBulk) UpdateKitID() *CheckUpsertBulk {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *CheckUpsertBulk) UpdateBlueprintID() *CheckUpsertBulk {
 	return u.Update(func(s *CheckUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 

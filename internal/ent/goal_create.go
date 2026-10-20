@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/goal"
-	"github.com/docker/kit-maker/internal/ent/kit"
 )
 
 // GoalCreate is the builder for creating a Goal entity.
@@ -52,9 +52,9 @@ func (_c *GoalCreate) SetNillableUpdatedAt(v *time.Time) *GoalCreate {
 	return _c
 }
 
-// SetKitID sets the "kit_id" field.
-func (_c *GoalCreate) SetKitID(v string) *GoalCreate {
-	_c.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_c *GoalCreate) SetBlueprintID(v string) *GoalCreate {
+	_c.mutation.SetBlueprintID(v)
 	return _c
 }
 
@@ -84,9 +84,9 @@ func (_c *GoalCreate) SetNillableID(v *string) *GoalCreate {
 	return _c
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_c *GoalCreate) SetKit(v *Kit) *GoalCreate {
-	return _c.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_c *GoalCreate) SetBlueprint(v *Blueprint) *GoalCreate {
+	return _c.SetBlueprintID(v.ID)
 }
 
 // Mutation returns the GoalMutation object of the builder.
@@ -146,8 +146,8 @@ func (_c *GoalCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Goal.updated_at"`)}
 	}
-	if _, ok := _c.mutation.KitID(); !ok {
-		return &ValidationError{Name: "kit_id", err: errors.New(`ent: missing required field "Goal.kit_id"`)}
+	if _, ok := _c.mutation.BlueprintID(); !ok {
+		return &ValidationError{Name: "blueprint_id", err: errors.New(`ent: missing required field "Goal.blueprint_id"`)}
 	}
 	if _, ok := _c.mutation.Statement(); !ok {
 		return &ValidationError{Name: "statement", err: errors.New(`ent: missing required field "Goal.statement"`)}
@@ -162,8 +162,8 @@ func (_c *GoalCreate) check() error {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "Goal.id": %w`, err)}
 		}
 	}
-	if len(_c.mutation.KitIDs()) == 0 {
-		return &ValidationError{Name: "kit", err: errors.New(`ent: missing required edge "Goal.kit"`)}
+	if len(_c.mutation.BlueprintIDs()) == 0 {
+		return &ValidationError{Name: "blueprint", err: errors.New(`ent: missing required edge "Goal.blueprint"`)}
 	}
 	return nil
 }
@@ -217,21 +217,21 @@ func (_c *GoalCreate) createSpec() (*Goal, *sqlgraph.CreateSpec) {
 		_spec.SetField(goal.FieldSources, field.TypeJSON, value)
 		_node.Sources = value
 	}
-	if nodes := _c.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   goal.KitTable,
-			Columns: []string{goal.KitColumn},
+			Table:   goal.BlueprintTable,
+			Columns: []string{goal.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.KitID = nodes[0]
+		_node.BlueprintID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -298,15 +298,15 @@ func (u *GoalUpsert) UpdateUpdatedAt() *GoalUpsert {
 	return u
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *GoalUpsert) SetKitID(v string) *GoalUpsert {
-	u.Set(goal.FieldKitID, v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *GoalUpsert) SetBlueprintID(v string) *GoalUpsert {
+	u.Set(goal.FieldBlueprintID, v)
 	return u
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *GoalUpsert) UpdateKitID() *GoalUpsert {
-	u.SetExcluded(goal.FieldKitID)
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *GoalUpsert) UpdateBlueprintID() *GoalUpsert {
+	u.SetExcluded(goal.FieldBlueprintID)
 	return u
 }
 
@@ -405,17 +405,17 @@ func (u *GoalUpsertOne) UpdateUpdatedAt() *GoalUpsertOne {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *GoalUpsertOne) SetKitID(v string) *GoalUpsertOne {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *GoalUpsertOne) SetBlueprintID(v string) *GoalUpsertOne {
 	return u.Update(func(s *GoalUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *GoalUpsertOne) UpdateKitID() *GoalUpsertOne {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *GoalUpsertOne) UpdateBlueprintID() *GoalUpsertOne {
 	return u.Update(func(s *GoalUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 
@@ -686,17 +686,17 @@ func (u *GoalUpsertBulk) UpdateUpdatedAt() *GoalUpsertBulk {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *GoalUpsertBulk) SetKitID(v string) *GoalUpsertBulk {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *GoalUpsertBulk) SetBlueprintID(v string) *GoalUpsertBulk {
 	return u.Update(func(s *GoalUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *GoalUpsertBulk) UpdateKitID() *GoalUpsertBulk {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *GoalUpsertBulk) UpdateBlueprintID() *GoalUpsertBulk {
 	return u.Update(func(s *GoalUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 

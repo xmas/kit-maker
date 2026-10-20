@@ -11,19 +11,19 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/check"
-	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 )
 
 // CheckQuery is the builder for querying Check entities.
 type CheckQuery struct {
 	config
-	ctx        *QueryContext
-	order      []check.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Check
-	withKit    *KitQuery
+	ctx           *QueryContext
+	order         []check.OrderOption
+	inters        []Interceptor
+	predicates    []predicate.Check
+	withBlueprint *BlueprintQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -60,9 +60,9 @@ func (_q *CheckQuery) Order(o ...check.OrderOption) *CheckQuery {
 	return _q
 }
 
-// QueryKit chains the current query on the "kit" edge.
-func (_q *CheckQuery) QueryKit() *KitQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// QueryBlueprint chains the current query on the "blueprint" edge.
+func (_q *CheckQuery) QueryBlueprint() *BlueprintQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -73,8 +73,8 @@ func (_q *CheckQuery) QueryKit() *KitQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(check.Table, check.FieldID, selector),
-			sqlgraph.To(kit.Table, kit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, check.KitTable, check.KitColumn),
+			sqlgraph.To(blueprint.Table, blueprint.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, check.BlueprintTable, check.BlueprintColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -269,26 +269,26 @@ func (_q *CheckQuery) Clone() *CheckQuery {
 		return nil
 	}
 	return &CheckQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]check.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Check{}, _q.predicates...),
-		withKit:    _q.withKit.Clone(),
+		config:        _q.config,
+		ctx:           _q.ctx.Clone(),
+		order:         append([]check.OrderOption{}, _q.order...),
+		inters:        append([]Interceptor{}, _q.inters...),
+		predicates:    append([]predicate.Check{}, _q.predicates...),
+		withBlueprint: _q.withBlueprint.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithKit tells the query-builder to eager-load the nodes that are connected to
-// the "kit" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *CheckQuery) WithKit(opts ...func(*KitQuery)) *CheckQuery {
-	query := (&KitClient{config: _q.config}).Query()
+// WithBlueprint tells the query-builder to eager-load the nodes that are connected to
+// the "blueprint" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CheckQuery) WithBlueprint(opts ...func(*BlueprintQuery)) *CheckQuery {
+	query := (&BlueprintClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withKit = query
+	_q.withBlueprint = query
 	return _q
 }
 
@@ -371,7 +371,7 @@ func (_q *CheckQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Check,
 		nodes       = []*Check{}
 		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			_q.withKit != nil,
+			_q.withBlueprint != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -392,20 +392,20 @@ func (_q *CheckQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Check,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withKit; query != nil {
-		if err := _q.loadKit(ctx, query, nodes, nil,
-			func(n *Check, e *Kit) { n.Edges.Kit = e }); err != nil {
+	if query := _q.withBlueprint; query != nil {
+		if err := _q.loadBlueprint(ctx, query, nodes, nil,
+			func(n *Check, e *Blueprint) { n.Edges.Blueprint = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *CheckQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Check, init func(*Check), assign func(*Check, *Kit)) error {
+func (_q *CheckQuery) loadBlueprint(ctx context.Context, query *BlueprintQuery, nodes []*Check, init func(*Check), assign func(*Check, *Blueprint)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*Check)
 	for i := range nodes {
-		fk := nodes[i].KitID
+		fk := nodes[i].BlueprintID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -414,7 +414,7 @@ func (_q *CheckQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Che
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(kit.IDIn(ids...))
+	query.Where(blueprint.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -422,7 +422,7 @@ func (_q *CheckQuery) loadKit(ctx context.Context, query *KitQuery, nodes []*Che
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "kit_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "blueprint_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -456,8 +456,8 @@ func (_q *CheckQuery) querySpec() *sqlgraph.QuerySpec {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withKit != nil {
-			_spec.Node.AddColumnOnce(check.FieldKitID)
+		if _q.withBlueprint != nil {
+			_spec.Node.AddColumnOnce(check.FieldBlueprintID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -8,7 +8,7 @@ import (
 	"sort"
 )
 
-// Key names a permission, e.g. "kit.promote".
+// Key names a permission, e.g. "blueprint.promote".
 type Key string
 
 // Scope says where a permission applies.
@@ -45,22 +45,20 @@ const (
 
 // Permission keys used in code. The catalogue below is the full list.
 const (
-	KitView           Key = "kit.view"
-	KitCreate         Key = "kit.create"
-	KitEdit           Key = "kit.edit"
-	KitArchive        Key = "kit.archive"
-	KitTransfer       Key = "kit.transfer"
-	KitShare          Key = "kit.share"
-	KitChecksEdit     Key = "kit.checks.edit"
-	KitSubkitInclude  Key = "kit.subkit.include"
-	KitHistoryView    Key = "kit.history.view"
-	KitBundleDownload Key = "kit.bundle.download"
-	KitGenerate       Key = "kit.generate"
-	KitPublish        Key = "kit.publish"
-	KitPromote        Key = "kit.promote"
-	KitChannelManage  Key = "kit.channel.manage"
-	BlueprintView     Key = "blueprint.view"
-	BlueprintDownload Key = "blueprint.download"
+	BlueprintView          Key = "blueprint.view"
+	BlueprintCreate        Key = "blueprint.create"
+	BlueprintEdit          Key = "blueprint.edit"
+	BlueprintArchive       Key = "blueprint.archive"
+	BlueprintTransfer      Key = "blueprint.transfer"
+	BlueprintShare         Key = "blueprint.share"
+	BlueprintChecksEdit    Key = "blueprint.checks.edit"
+	BlueprintInclude       Key = "blueprint.include"
+	BlueprintHistoryView   Key = "blueprint.history.view"
+	BlueprintDownload      Key = "blueprint.download"
+	BlueprintPublish       Key = "blueprint.publish"
+	BlueprintPromote       Key = "blueprint.promote"
+	BlueprintChannelManage Key = "blueprint.channel.manage"
+	BlueprintVersionView   Key = "blueprint.version.view"
 
 	BlockView           Key = "block.view"
 	BlockUse            Key = "block.use"
@@ -88,42 +86,40 @@ const (
 )
 
 var catalogue = []Permission{
-	// Kits
-	{KitView, "Kits", ScopeTeam, "View kits, their outline, YAML and checks", true},
-	{KitCreate, "Kits", ScopeTeam, "Create kits", false},
-	{KitEdit, "Kits", ScopeTeam, "Edit kit drafts: slots, links, overrides", false},
-	{KitArchive, "Kits", ScopeTeam, "Archive kits", false},
-	{KitTransfer, "Kits", ScopeTeam, "Move a kit to another owner team", false},
-	{KitShare, "Kits", ScopeTeam, "Share kits with other teams", false},
-	{KitChecksEdit, "Kits", ScopeTeam, "Edit a kit's goal and checks", false},
-	{KitSubkitInclude, "Kits", ScopeTeam, "Include sub-kits", false},
-	{KitHistoryView, "Kits", ScopeTeam, "View a kit's change history", true},
-	{KitBundleDownload, "Kits", ScopeTeam, "Download offline bundles", false},
-	// Revisions & channels
-	{KitGenerate, "Revisions & channels", ScopeTeam, "Generate revisions (blueprints)", false},
-	{KitPublish, "Revisions & channels", ScopeTeam, "Publish revisions as kit images", false},
-	{KitPromote, "Revisions & channels", ScopeTeam, "Promote a revision to stable", false},
-	{KitChannelManage, "Revisions & channels", ScopeTeam, "Create and move channels", false},
-	{BlueprintView, "Revisions & channels", ScopeTeam, "View blueprints and their provenance", true},
-	{BlueprintDownload, "Revisions & channels", ScopeTeam, "Download blueprint descriptors", false},
+	// Blueprints
+	{BlueprintView, "Blueprints", ScopeTeam, "View blueprints, their outline, YAML and checks", true},
+	{BlueprintCreate, "Blueprints", ScopeTeam, "Create blueprints", false},
+	{BlueprintEdit, "Blueprints", ScopeTeam, "Edit blueprint drafts: slots, links, overrides", false},
+	{BlueprintArchive, "Blueprints", ScopeTeam, "Archive blueprints", false},
+	{BlueprintTransfer, "Blueprints", ScopeTeam, "Move a blueprint to another owner team", false},
+	{BlueprintShare, "Blueprints", ScopeTeam, "Share blueprints with other teams", false},
+	{BlueprintChecksEdit, "Blueprints", ScopeTeam, "Edit a blueprint's goal and checks", false},
+	{BlueprintInclude, "Blueprints", ScopeTeam, "Include other blueprints", false},
+	{BlueprintHistoryView, "Blueprints", ScopeTeam, "View a blueprint's change history", true},
+	{BlueprintDownload, "Blueprints", ScopeTeam, "Download blueprint versions (repo reference or file)", false},
+	// Versions & channels
+	{BlueprintPublish, "Versions & channels", ScopeTeam, "Publish a blueprint version", false},
+	{BlueprintPromote, "Versions & channels", ScopeTeam, "Promote a version to stable", false},
+	{BlueprintChannelManage, "Versions & channels", ScopeTeam, "Create and move channels", false},
+	{BlueprintVersionView, "Versions & channels", ScopeTeam, "View published versions and their provenance", true},
 	// Approvals
 	{"approval.request", "Approvals", ScopeTeam, "Request approvals and AI reviews", false},
 	{"approval.decide.widening", "Approvals", ScopeTeam, "Approve permission-widening changes", false},
 	{"approval.decide.promote", "Approvals", ScopeTeam, "Approve promotion to stable", false},
 	{"approval.decide.shared_block", "Approvals", ScopeTeam, "Approve shared block versions", false},
 	{"approval.self_justify", "Approvals", ScopeTeam, "Self-approve with a written justification when no one else can", false},
-	{"kit.policy.manage", "Approvals", ScopeTeam, "Set a kit's approval policy", false},
+	{"blueprint.policy.manage", "Approvals", ScopeTeam, "Set a blueprint's approval policy", false},
 	// Collections
 	{"collection.view", "Collections", ScopeTeam, "View collections", true},
 	{"collection.create", "Collections", ScopeTeam, "Create collections", false},
 	{"collection.edit", "Collections", ScopeTeam, "Rename and describe collections", false},
-	{"collection.kits.manage", "Collections", ScopeTeam, "Move kits in and out of collections", false},
+	{"collection.blueprints.manage", "Collections", ScopeTeam, "Move blueprints in and out of collections", false},
 	{"collection.policy.manage", "Collections", ScopeTeam, "Set a collection's approval policy", false},
 	{"collection.share", "Collections", ScopeTeam, "Share collections", false},
 	{"collection.archive", "Collections", ScopeTeam, "Archive collections", false},
 	// Blocks
 	{BlockView, "Blocks", ScopeTeam, "View library blocks", true},
-	{BlockUse, "Blocks", ScopeTeam, "Link blocks into kits", false},
+	{BlockUse, "Blocks", ScopeTeam, "Link blocks into blueprints", false},
 	{BlockCreate, "Blocks", ScopeTeam, "Create library blocks", false},
 	{BlockEdit, "Blocks", ScopeTeam, "Edit block drafts", false},
 	{BlockPublishVersion, "Blocks", ScopeTeam, "Publish a new version of a shared block", false},
@@ -133,21 +129,21 @@ var catalogue = []Permission{
 	{"block.import", "Blocks", ScopeTeam, "Import kits and repos into blocks", false},
 	{"library.hygiene.apply", "Blocks", ScopeTeam, "Apply AI library clean-ups", false},
 	// Inheritance
-	{LinkRebaseApply, "Inheritance", ScopeTeam, "Rebase a kit's edits onto a new block version", false},
+	{LinkRebaseApply, "Inheritance", ScopeTeam, "Rebase a blueprint's edits onto a new block version", false},
 	{"link.conflict.resolve", "Inheritance", ScopeTeam, "Resolve rebase conflicts", false},
 	{"link.revert", "Inheritance", ScopeTeam, "Revert a linked block to the library version", false},
-	{"block.propose_upstream", "Inheritance", ScopeTeam, "Propose a kit's edits as a new block version", false},
+	{"block.propose_upstream", "Inheritance", ScopeTeam, "Propose a blueprint's edits as a new block version", false},
 	// Guardrails
 	{"guardrail.view", "Guardrails", ScopeTeam, "View guardrails that apply", true},
 	{"guardrail.manage", "Guardrails", ScopeDeployment, "Define mandatory guardrails", false},
 	{"guardrail.exception.request", "Guardrails", ScopeTeam, "Request a guardrail exception", false},
 	{"guardrail.exception.approve", "Guardrails", ScopeDeployment, "Approve guardrail exceptions", false},
 	// Build & publish
-	{"build.run", "Build & publish", ScopeTeam, "Run kit image builds", false},
+	{"build.run", "Build & publish", ScopeTeam, "Run blueprint image builds", false},
 	{"build.logs.view", "Build & publish", ScopeTeam, "View build logs", true},
-	{"image.publish", "Build & publish", ScopeTeam, "Push kit images to the registry", false},
+	{"image.publish", "Build & publish", ScopeTeam, "Push blueprint images to the registry", false},
 	// References & sandboxes
-	{"reference.view", "References & sandboxes", ScopeTeam, "View which repos reference a kit", true},
+	{"reference.view", "References & sandboxes", ScopeTeam, "View which repos reference a blueprint", true},
 	{"reference.open_pr", "References & sandboxes", ScopeTeam, "Open pull requests that add or update references", false},
 	{"reference.pin", "References & sandboxes", ScopeTeam, "Change a repo's pin or channel", false},
 	{"sandbox.view", "References & sandboxes", ScopeTeam, "View registered sandboxes", true},

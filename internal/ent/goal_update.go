@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/goal"
-	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 )
 
@@ -35,16 +35,16 @@ func (_u *GoalUpdate) SetUpdatedAt(v time.Time) *GoalUpdate {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *GoalUpdate) SetKitID(v string) *GoalUpdate {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *GoalUpdate) SetBlueprintID(v string) *GoalUpdate {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *GoalUpdate) SetNillableKitID(v *string) *GoalUpdate {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *GoalUpdate) SetNillableBlueprintID(v *string) *GoalUpdate {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
@@ -75,9 +75,9 @@ func (_u *GoalUpdate) ClearSources() *GoalUpdate {
 	return _u
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_u *GoalUpdate) SetKit(v *Kit) *GoalUpdate {
-	return _u.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_u *GoalUpdate) SetBlueprint(v *Blueprint) *GoalUpdate {
+	return _u.SetBlueprintID(v.ID)
 }
 
 // Mutation returns the GoalMutation object of the builder.
@@ -85,9 +85,9 @@ func (_u *GoalUpdate) Mutation() *GoalMutation {
 	return _u.mutation
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (_u *GoalUpdate) ClearKit() *GoalUpdate {
-	_u.mutation.ClearKit()
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (_u *GoalUpdate) ClearBlueprint() *GoalUpdate {
+	_u.mutation.ClearBlueprint()
 	return _u
 }
 
@@ -134,8 +134,8 @@ func (_u *GoalUpdate) check() error {
 			return &ValidationError{Name: "statement", err: fmt.Errorf(`ent: validator failed for field "Goal.statement": %w`, err)}
 		}
 	}
-	if _u.mutation.KitCleared() && len(_u.mutation.KitIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Goal.kit"`)
+	if _u.mutation.BlueprintCleared() && len(_u.mutation.BlueprintIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Goal.blueprint"`)
 	}
 	return nil
 }
@@ -164,28 +164,28 @@ func (_u *GoalUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.SourcesCleared() {
 		_spec.ClearField(goal.FieldSources, field.TypeJSON)
 	}
-	if _u.mutation.KitCleared() {
+	if _u.mutation.BlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   goal.KitTable,
-			Columns: []string{goal.KitColumn},
+			Table:   goal.BlueprintTable,
+			Columns: []string{goal.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   goal.KitTable,
-			Columns: []string{goal.KitColumn},
+			Table:   goal.BlueprintTable,
+			Columns: []string{goal.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -219,16 +219,16 @@ func (_u *GoalUpdateOne) SetUpdatedAt(v time.Time) *GoalUpdateOne {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *GoalUpdateOne) SetKitID(v string) *GoalUpdateOne {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *GoalUpdateOne) SetBlueprintID(v string) *GoalUpdateOne {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *GoalUpdateOne) SetNillableKitID(v *string) *GoalUpdateOne {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *GoalUpdateOne) SetNillableBlueprintID(v *string) *GoalUpdateOne {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
@@ -259,9 +259,9 @@ func (_u *GoalUpdateOne) ClearSources() *GoalUpdateOne {
 	return _u
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_u *GoalUpdateOne) SetKit(v *Kit) *GoalUpdateOne {
-	return _u.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_u *GoalUpdateOne) SetBlueprint(v *Blueprint) *GoalUpdateOne {
+	return _u.SetBlueprintID(v.ID)
 }
 
 // Mutation returns the GoalMutation object of the builder.
@@ -269,9 +269,9 @@ func (_u *GoalUpdateOne) Mutation() *GoalMutation {
 	return _u.mutation
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (_u *GoalUpdateOne) ClearKit() *GoalUpdateOne {
-	_u.mutation.ClearKit()
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (_u *GoalUpdateOne) ClearBlueprint() *GoalUpdateOne {
+	_u.mutation.ClearBlueprint()
 	return _u
 }
 
@@ -331,8 +331,8 @@ func (_u *GoalUpdateOne) check() error {
 			return &ValidationError{Name: "statement", err: fmt.Errorf(`ent: validator failed for field "Goal.statement": %w`, err)}
 		}
 	}
-	if _u.mutation.KitCleared() && len(_u.mutation.KitIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Goal.kit"`)
+	if _u.mutation.BlueprintCleared() && len(_u.mutation.BlueprintIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Goal.blueprint"`)
 	}
 	return nil
 }
@@ -378,28 +378,28 @@ func (_u *GoalUpdateOne) sqlSave(ctx context.Context) (_node *Goal, err error) {
 	if _u.mutation.SourcesCleared() {
 		_spec.ClearField(goal.FieldSources, field.TypeJSON)
 	}
-	if _u.mutation.KitCleared() {
+	if _u.mutation.BlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   goal.KitTable,
-			Columns: []string{goal.KitColumn},
+			Table:   goal.BlueprintTable,
+			Columns: []string{goal.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
 			Inverse: true,
-			Table:   goal.KitTable,
-			Columns: []string{goal.KitColumn},
+			Table:   goal.BlueprintTable,
+			Columns: []string{goal.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

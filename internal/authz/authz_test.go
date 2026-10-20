@@ -28,10 +28,10 @@ func TestBuiltInRoles(t *testing.T) {
 	}
 	viewer, _ := authz.LookupRole(authz.RoleViewer)
 	maint, _ := authz.LookupRole(authz.RoleMaintainer)
-	if slices.Contains(viewer.Permissions, authz.KitEdit) {
-		t.Error("viewer must not edit kits")
+	if slices.Contains(viewer.Permissions, authz.BlueprintEdit) {
+		t.Error("viewer must not edit blueprints")
 	}
-	for _, k := range []authz.Key{authz.KitPublish, authz.KitPromote, "approval.decide.widening"} {
+	for _, k := range []authz.Key{authz.BlueprintPublish, authz.BlueprintPromote, "approval.decide.widening"} {
 		if !slices.Contains(maint.Permissions, k) {
 			t.Errorf("maintainer missing %s", k)
 		}
@@ -78,7 +78,7 @@ func TestSubject(t *testing.T) {
 
 	s := must(az.Load(ctx, sam.ID))
 	t.Run("direct team role", func(t *testing.T) {
-		if !s.Can(authz.KitPublish, pay.ID) || !s.Can(authz.KitEdit, pay.ID) {
+		if !s.Can(authz.BlueprintPublish, pay.ID) || !s.Can(authz.BlueprintEdit, pay.ID) {
 			t.Error("maintainer of payments should publish and edit there")
 		}
 		if s.Can(authz.TeamCreate, "") {
@@ -87,23 +87,23 @@ func TestSubject(t *testing.T) {
 	})
 	t.Run("parents grant view only", func(t *testing.T) {
 		for _, team := range []string{plat.ID, eng.ID} {
-			if !s.Can(authz.KitView, team) {
+			if !s.Can(authz.BlueprintView, team) {
 				t.Errorf("child member should view parent %s", team)
 			}
-			if s.Can(authz.KitEdit, team) {
+			if s.Can(authz.BlueprintEdit, team) {
 				t.Errorf("child member must not edit parent %s", team)
 			}
 		}
-		if s.Can(authz.KitView, other.ID) {
+		if s.Can(authz.BlueprintView, other.ID) {
 			t.Error("unrelated team must be invisible")
 		}
-		ids, all := s.TeamsWith(authz.KitView)
+		ids, all := s.TeamsWith(authz.BlueprintView)
 		if all || len(ids) != 3 {
-			t.Errorf("TeamsWith(kit.view) = %v all=%v, want payments, platform, engineering", ids, all)
+			t.Errorf("TeamsWith(blueprint.view) = %v all=%v, want payments, platform, engineering", ids, all)
 		}
-		ids, _ = s.TeamsWith(authz.KitEdit)
+		ids, _ = s.TeamsWith(authz.BlueprintEdit)
 		if len(ids) != 1 || ids[0] != pay.ID {
-			t.Errorf("TeamsWith(kit.edit) = %v, want only payments", ids)
+			t.Errorf("TeamsWith(blueprint.edit) = %v, want only payments", ids)
 		}
 	})
 	t.Run("exclusion wins over every source", func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestSubject(t *testing.T) {
 			t.Fatal(err)
 		}
 		s2 := must(az.Load(ctx, sam.ID))
-		if s2.Can(authz.KitView, pay.ID) || s2.Can(authz.KitView, plat.ID) {
+		if s2.Can(authz.BlueprintView, pay.ID) || s2.Can(authz.BlueprintView, plat.ID) {
 			t.Error("excluded member keeps access")
 		}
 	})
@@ -120,16 +120,16 @@ func TestSubject(t *testing.T) {
 		if err := c.TeamMembership.Create().SetTeamID(other.ID).SetUserID(jo.ID).SetRole("release-manager").Exec(ctx); err != nil {
 			t.Fatal(err)
 		}
-		if must(az.Load(ctx, jo.ID)).CanAnywhere(authz.KitView) {
+		if must(az.Load(ctx, jo.ID)).CanAnywhere(authz.BlueprintView) {
 			t.Error("unknown role granted access")
 		}
 	})
 	t.Run("owner can do everything everywhere", func(t *testing.T) {
 		b := must(az.Load(ctx, boss.ID))
-		if !b.Can(authz.TeamCreate, "") || !b.Can(authz.KitPromote, other.ID) {
+		if !b.Can(authz.TeamCreate, "") || !b.Can(authz.BlueprintPromote, other.ID) {
 			t.Error("owner lacks permissions")
 		}
-		if _, all := b.TeamsWith(authz.KitView); !all {
+		if _, all := b.TeamsWith(authz.BlueprintView); !all {
 			t.Error("owner should see all teams")
 		}
 	})

@@ -4,10 +4,10 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { ArrowLeft, Pencil, RotateCcw, Save } from '@lucide/vue'
 import AppShell from '@/components/AppShell.vue'
 import { confirm } from '@/lib/confirm'
-import CredentialEditor from '@/components/kit/CredentialEditor.vue'
-import NetworkRulesEditor from '@/components/kit/NetworkRulesEditor.vue'
-import RawEditor from '@/components/kit/RawEditor.vue'
-import { sectionStyle, slotHref, type SlotDetail } from '@/lib/kit'
+import CredentialEditor from '@/components/blueprint/CredentialEditor.vue'
+import NetworkRulesEditor from '@/components/blueprint/NetworkRulesEditor.vue'
+import RawEditor from '@/components/blueprint/RawEditor.vue'
+import { sectionStyle, slotHref, type BlockType, type SlotDetail } from '@/lib/blueprint'
 
 interface BlockDetail {
   id: string
@@ -23,15 +23,15 @@ interface BlockDetail {
   usedBy: number
   payload: Record<string, any>
   versions: { version: number; changelog: string; authoredBy: string; by?: string; createdAt: string }[]
-  usedIn: { kitId: string; kit: string; slotKey: string; slotLabel: string; version: number; edits: number }[] | null
+  usedIn: { blueprintId: string; blueprint: string; slotKey: string; slotLabel: string; version: number; edits: number }[] | null
 }
 
-const props = defineProps<{ block: BlockDetail; can: { edit: boolean; publish: boolean } }>()
+const props = defineProps<{ block: BlockDetail; blockType?: BlockType; can: { edit: boolean; publish: boolean } }>()
 
 const page = usePage()
 const errors = computed(() => (page.props.errors as Record<string, string> | undefined) ?? {})
 
-// The editors are shared with the kit builder. In the library there's no
+// The editors are shared with the blueprint builder. In the library there's no
 // base to compare against, so every row reads as the block's own.
 const asSlot = computed(
   () =>
@@ -85,7 +85,7 @@ const behind = computed(() => (props.block.usedIn ?? []).filter((u) => u.version
 async function restoreVersion(n: number) {
   const ok = await confirm({
     title: `Restore v${n}?`,
-    message: `v${n}'s content is saved as v${props.block.version + 1}; kits using this block can then update to it.${dirty.value ? ' Your unsaved changes here are thrown away.' : ''}`,
+    message: `v${n}'s content is saved as v${props.block.version + 1}; blueprints using this block can then update to it.${dirty.value ? ' Your unsaved changes here are thrown away.' : ''}`,
     confirmLabel: 'Restore',
   })
   if (ok) router.post(`/blocks/${props.block.id}/versions/${n}/restore`, {}, { preserveScroll: true })
@@ -135,7 +135,7 @@ function when(iso: string) {
 
             <NetworkRulesEditor v-if="block.type === 'network-rules'" v-model="draft" :slot="asSlot" :can-edit="can.publish" />
             <CredentialEditor v-else-if="block.type === 'credential'" :key="block.id + block.version" v-model="draft" :slot="asSlot" :can-edit="can.publish" />
-            <RawEditor v-else :key="block.id + block.version" v-model="draft" :can-edit="can.publish" />
+            <RawEditor v-else :key="block.id + block.version" v-model="draft" :can-edit="can.publish" :type="blockType" />
 
             <div v-if="errors.payload" role="alert" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{{ errors.payload }}</div>
             <div v-if="can.publish" class="flex flex-wrap items-center gap-2">
@@ -143,7 +143,7 @@ function when(iso: string) {
                 v-model="changelog"
                 :disabled="!dirty"
                 aria-label="What changed"
-                placeholder="What changed? (shown to kits that use this block)"
+                placeholder="What changed? (shown to blueprints that use this block)"
                 class="h-9 min-w-[260px] flex-1 rounded-md border bg-background px-2.5 text-[13px] disabled:bg-muted/40"
               />
               <button
@@ -167,17 +167,17 @@ function when(iso: string) {
             </div>
             <Link
               v-for="u in block.usedIn ?? []"
-              :key="u.kitId + u.slotKey"
-              :href="slotHref(u.kitId, u.slotKey)"
+              :key="u.blueprintId + u.slotKey"
+              :href="slotHref(u.blueprintId, u.slotKey)"
               class="flex items-center gap-2 border-t border-slate-100 py-2 text-[13px] hover:text-primary"
             >
-              <span class="min-w-0 flex-1 truncate">{{ u.kit }} <span class="text-muted-foreground">· {{ u.slotLabel }}</span></span>
+              <span class="min-w-0 flex-1 truncate">{{ u.blueprint }} <span class="text-muted-foreground">· {{ u.slotLabel }}</span></span>
               <span v-if="u.edits" class="text-xs text-[#1A4FBF]">{{ u.edits }} edits</span>
               <span class="rounded-full px-1.5 py-px text-[11px] font-semibold" :class="u.version < block.version ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'">
                 v{{ u.version }}
               </span>
             </Link>
-            <p v-if="!block.usedIn?.length" class="text-sm text-muted-foreground">No kits use this block yet.</p>
+            <p v-if="!block.usedIn?.length" class="text-sm text-muted-foreground">No blueprints use this block yet.</p>
           </section>
 
           <section class="rounded-xl border bg-background px-4 py-3.5">

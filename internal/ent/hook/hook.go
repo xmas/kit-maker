@@ -57,6 +57,54 @@ func (f BlockVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlockVersionMutation", m)
 }
 
+// The BlueprintFunc type is an adapter to allow the use of ordinary
+// function as Blueprint mutator.
+type BlueprintFunc func(context.Context, *ent.BlueprintMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BlueprintFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BlueprintMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlueprintMutation", m)
+}
+
+// The BlueprintIncludeFunc type is an adapter to allow the use of ordinary
+// function as BlueprintInclude mutator.
+type BlueprintIncludeFunc func(context.Context, *ent.BlueprintIncludeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BlueprintIncludeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BlueprintIncludeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlueprintIncludeMutation", m)
+}
+
+// The BlueprintRevisionFunc type is an adapter to allow the use of ordinary
+// function as BlueprintRevision mutator.
+type BlueprintRevisionFunc func(context.Context, *ent.BlueprintRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BlueprintRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BlueprintRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlueprintRevisionMutation", m)
+}
+
+// The BlueprintVersionFunc type is an adapter to allow the use of ordinary
+// function as BlueprintVersion mutator.
+type BlueprintVersionFunc func(context.Context, *ent.BlueprintVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BlueprintVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BlueprintVersionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BlueprintVersionMutation", m)
+}
+
 // The CheckFunc type is an adapter to allow the use of ordinary
 // function as Check mutator.
 type CheckFunc func(context.Context, *ent.CheckMutation) (ent.Value, error)
@@ -103,42 +151,6 @@ func (f IntegrationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IntegrationMutation", m)
-}
-
-// The KitFunc type is an adapter to allow the use of ordinary
-// function as Kit mutator.
-type KitFunc func(context.Context, *ent.KitMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f KitFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.KitMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitMutation", m)
-}
-
-// The KitIncludeFunc type is an adapter to allow the use of ordinary
-// function as KitInclude mutator.
-type KitIncludeFunc func(context.Context, *ent.KitIncludeMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f KitIncludeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.KitIncludeMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitIncludeMutation", m)
-}
-
-// The KitRevisionFunc type is an adapter to allow the use of ordinary
-// function as KitRevision mutator.
-type KitRevisionFunc func(context.Context, *ent.KitRevisionMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f KitRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.KitRevisionMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitRevisionMutation", m)
 }
 
 // The RoleAssignmentFunc type is an adapter to allow the use of ordinary

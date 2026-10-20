@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/check"
-	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 )
 
@@ -35,16 +35,16 @@ func (_u *CheckUpdate) SetUpdatedAt(v time.Time) *CheckUpdate {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *CheckUpdate) SetKitID(v string) *CheckUpdate {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *CheckUpdate) SetBlueprintID(v string) *CheckUpdate {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *CheckUpdate) SetNillableKitID(v *string) *CheckUpdate {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *CheckUpdate) SetNillableBlueprintID(v *string) *CheckUpdate {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
@@ -132,9 +132,9 @@ func (_u *CheckUpdate) SetNillableAuthoredBy(v *check.AuthoredBy) *CheckUpdate {
 	return _u
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_u *CheckUpdate) SetKit(v *Kit) *CheckUpdate {
-	return _u.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_u *CheckUpdate) SetBlueprint(v *Blueprint) *CheckUpdate {
+	return _u.SetBlueprintID(v.ID)
 }
 
 // Mutation returns the CheckMutation object of the builder.
@@ -142,9 +142,9 @@ func (_u *CheckUpdate) Mutation() *CheckMutation {
 	return _u.mutation
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (_u *CheckUpdate) ClearKit() *CheckUpdate {
-	_u.mutation.ClearKit()
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (_u *CheckUpdate) ClearBlueprint() *CheckUpdate {
+	_u.mutation.ClearBlueprint()
 	return _u
 }
 
@@ -206,8 +206,8 @@ func (_u *CheckUpdate) check() error {
 			return &ValidationError{Name: "authored_by", err: fmt.Errorf(`ent: validator failed for field "Check.authored_by": %w`, err)}
 		}
 	}
-	if _u.mutation.KitCleared() && len(_u.mutation.KitIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Check.kit"`)
+	if _u.mutation.BlueprintCleared() && len(_u.mutation.BlueprintIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Check.blueprint"`)
 	}
 	return nil
 }
@@ -248,28 +248,28 @@ func (_u *CheckUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AuthoredBy(); ok {
 		_spec.SetField(check.FieldAuthoredBy, field.TypeEnum, value)
 	}
-	if _u.mutation.KitCleared() {
+	if _u.mutation.BlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   check.KitTable,
-			Columns: []string{check.KitColumn},
+			Table:   check.BlueprintTable,
+			Columns: []string{check.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   check.KitTable,
-			Columns: []string{check.KitColumn},
+			Table:   check.BlueprintTable,
+			Columns: []string{check.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -303,16 +303,16 @@ func (_u *CheckUpdateOne) SetUpdatedAt(v time.Time) *CheckUpdateOne {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *CheckUpdateOne) SetKitID(v string) *CheckUpdateOne {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *CheckUpdateOne) SetBlueprintID(v string) *CheckUpdateOne {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *CheckUpdateOne) SetNillableKitID(v *string) *CheckUpdateOne {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *CheckUpdateOne) SetNillableBlueprintID(v *string) *CheckUpdateOne {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
@@ -400,9 +400,9 @@ func (_u *CheckUpdateOne) SetNillableAuthoredBy(v *check.AuthoredBy) *CheckUpdat
 	return _u
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_u *CheckUpdateOne) SetKit(v *Kit) *CheckUpdateOne {
-	return _u.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_u *CheckUpdateOne) SetBlueprint(v *Blueprint) *CheckUpdateOne {
+	return _u.SetBlueprintID(v.ID)
 }
 
 // Mutation returns the CheckMutation object of the builder.
@@ -410,9 +410,9 @@ func (_u *CheckUpdateOne) Mutation() *CheckMutation {
 	return _u.mutation
 }
 
-// ClearKit clears the "kit" edge to the Kit entity.
-func (_u *CheckUpdateOne) ClearKit() *CheckUpdateOne {
-	_u.mutation.ClearKit()
+// ClearBlueprint clears the "blueprint" edge to the Blueprint entity.
+func (_u *CheckUpdateOne) ClearBlueprint() *CheckUpdateOne {
+	_u.mutation.ClearBlueprint()
 	return _u
 }
 
@@ -487,8 +487,8 @@ func (_u *CheckUpdateOne) check() error {
 			return &ValidationError{Name: "authored_by", err: fmt.Errorf(`ent: validator failed for field "Check.authored_by": %w`, err)}
 		}
 	}
-	if _u.mutation.KitCleared() && len(_u.mutation.KitIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "Check.kit"`)
+	if _u.mutation.BlueprintCleared() && len(_u.mutation.BlueprintIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Check.blueprint"`)
 	}
 	return nil
 }
@@ -546,28 +546,28 @@ func (_u *CheckUpdateOne) sqlSave(ctx context.Context) (_node *Check, err error)
 	if value, ok := _u.mutation.AuthoredBy(); ok {
 		_spec.SetField(check.FieldAuthoredBy, field.TypeEnum, value)
 	}
-	if _u.mutation.KitCleared() {
+	if _u.mutation.BlueprintCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   check.KitTable,
-			Columns: []string{check.KitColumn},
+			Table:   check.BlueprintTable,
+			Columns: []string{check.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   check.KitTable,
-			Columns: []string{check.KitColumn},
+			Table:   check.BlueprintTable,
+			Columns: []string{check.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

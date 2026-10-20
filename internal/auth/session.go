@@ -97,6 +97,27 @@ func LoadUser(m *scs.SessionManager, client *ent.Client) func(http.Handler) http
 	}
 }
 
+// AutoSignIn treats every request without a session as the active user with
+// this email. Only `kitmaker dev` turns it on, for local debugging (see
+// devCmd); sessions still work, so signing in as someone else wins.
+func AutoSignIn(client *ent.Client, email string) func(http.Handler) http.Handler {
+	email = NormalizeEmail(email)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if UserFrom(r.Context()) != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			u, err := client.User.Query().Where(user.Email(email), user.StatusEQ(user.StatusActive)).Only(r.Context())
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), u)))
+		})
+	}
+}
+
 // RequireUser sends anyone not signed in to /login.
 func RequireUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

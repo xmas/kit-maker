@@ -15,7 +15,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "team_id", Type: field.TypeString, Nullable: true},
 		{Name: "user_id", Type: field.TypeString, Nullable: true},
-		{Name: "kit_id", Type: field.TypeString, Nullable: true},
+		{Name: "blueprint_id", Type: field.TypeString, Nullable: true},
 		{Name: "route", Type: field.TypeString},
 		{Name: "provider", Type: field.TypeString},
 		{Name: "model", Type: field.TypeString, Nullable: true},
@@ -191,6 +191,161 @@ var (
 			},
 		},
 	}
+	// BlueprintsColumns holds the columns for the "blueprints" table.
+	BlueprintsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "slug", Type: field.TypeString},
+		{Name: "display_name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"workload", "mixin", "set", "environment"}},
+		{Name: "image_repository", Type: field.TypeString, Nullable: true},
+		{Name: "network_preset", Type: field.TypeString, Nullable: true},
+		{Name: "registration_enabled", Type: field.TypeBool, Default: false},
+		{Name: "team_id", Type: field.TypeString},
+	}
+	// BlueprintsTable holds the schema information for the "blueprints" table.
+	BlueprintsTable = &schema.Table{
+		Name:       "blueprints",
+		Columns:    BlueprintsColumns,
+		PrimaryKey: []*schema.Column{BlueprintsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "blueprints_teams_blueprints",
+				Columns:    []*schema.Column{BlueprintsColumns[10]},
+				RefColumns: []*schema.Column{TeamsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "blueprint_team_id_slug",
+				Unique:  true,
+				Columns: []*schema.Column{BlueprintsColumns[10], BlueprintsColumns[3]},
+			},
+		},
+	}
+	// BlueprintIncludesColumns holds the columns for the "blueprint_includes" table.
+	BlueprintIncludesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "track", Type: field.TypeEnum, Enums: []string{"stable", "latest", "pinned"}, Default: "stable"},
+		{Name: "pinned_version_id", Type: field.TypeString, Nullable: true},
+		{Name: "position", Type: field.TypeInt, Default: 0},
+		{Name: "blueprint_id", Type: field.TypeString},
+		{Name: "child_blueprint_id", Type: field.TypeString},
+	}
+	// BlueprintIncludesTable holds the schema information for the "blueprint_includes" table.
+	BlueprintIncludesTable = &schema.Table{
+		Name:       "blueprint_includes",
+		Columns:    BlueprintIncludesColumns,
+		PrimaryKey: []*schema.Column{BlueprintIncludesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "blueprint_includes_blueprints_includes",
+				Columns:    []*schema.Column{BlueprintIncludesColumns[6]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "blueprint_includes_blueprints_included_by",
+				Columns:    []*schema.Column{BlueprintIncludesColumns[7]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "blueprintinclude_blueprint_id_child_blueprint_id",
+				Unique:  true,
+				Columns: []*schema.Column{BlueprintIncludesColumns[6], BlueprintIncludesColumns[7]},
+			},
+			{
+				Name:    "blueprintinclude_child_blueprint_id",
+				Unique:  false,
+				Columns: []*schema.Column{BlueprintIncludesColumns[7]},
+			},
+		},
+	}
+	// BlueprintRevisionsColumns holds the columns for the "blueprint_revisions" table.
+	BlueprintRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "seq", Type: field.TypeInt},
+		{Name: "action", Type: field.TypeString},
+		{Name: "slot_key", Type: field.TypeString, Nullable: true},
+		{Name: "summary", Type: field.TypeString, Size: 2147483647},
+		{Name: "snapshot", Type: field.TypeJSON},
+		{Name: "yaml", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "blueprint_id", Type: field.TypeString},
+		{Name: "actor_user_id", Type: field.TypeString, Nullable: true},
+	}
+	// BlueprintRevisionsTable holds the schema information for the "blueprint_revisions" table.
+	BlueprintRevisionsTable = &schema.Table{
+		Name:       "blueprint_revisions",
+		Columns:    BlueprintRevisionsColumns,
+		PrimaryKey: []*schema.Column{BlueprintRevisionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "blueprint_revisions_blueprints_revisions",
+				Columns:    []*schema.Column{BlueprintRevisionsColumns[8]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "blueprint_revisions_users_blueprint_revisions",
+				Columns:    []*schema.Column{BlueprintRevisionsColumns[9]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "blueprintrevision_blueprint_id_seq",
+				Unique:  true,
+				Columns: []*schema.Column{BlueprintRevisionsColumns[8], BlueprintRevisionsColumns[2]},
+			},
+			{
+				Name:    "blueprintrevision_blueprint_id_slot_key",
+				Unique:  false,
+				Columns: []*schema.Column{BlueprintRevisionsColumns[8], BlueprintRevisionsColumns[4]},
+			},
+		},
+	}
+	// BlueprintVersionsColumns holds the columns for the "blueprint_versions" table.
+	BlueprintVersionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "repository", Type: field.TypeString},
+		{Name: "digest", Type: field.TypeString},
+		{Name: "yaml", Type: field.TypeString, Size: 2147483647},
+		{Name: "published_by", Type: field.TypeString, Nullable: true},
+		{Name: "blueprint_id", Type: field.TypeString},
+	}
+	// BlueprintVersionsTable holds the schema information for the "blueprint_versions" table.
+	BlueprintVersionsTable = &schema.Table{
+		Name:       "blueprint_versions",
+		Columns:    BlueprintVersionsColumns,
+		PrimaryKey: []*schema.Column{BlueprintVersionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "blueprint_versions_blueprints_versions",
+				Columns:    []*schema.Column{BlueprintVersionsColumns[7]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "blueprintversion_blueprint_id_version",
+				Unique:  true,
+				Columns: []*schema.Column{BlueprintVersionsColumns[7], BlueprintVersionsColumns[2]},
+			},
+		},
+	}
 	// ChecksColumns holds the columns for the "checks" table.
 	ChecksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -202,7 +357,7 @@ var (
 		{Name: "expect", Type: field.TypeEnum, Enums: []string{"reach", "blocked", "runs", "present"}},
 		{Name: "position", Type: field.TypeInt, Default: 0},
 		{Name: "authored_by", Type: field.TypeEnum, Enums: []string{"user", "ai"}, Default: "user"},
-		{Name: "kit_id", Type: field.TypeString},
+		{Name: "blueprint_id", Type: field.TypeString},
 	}
 	// ChecksTable holds the schema information for the "checks" table.
 	ChecksTable = &schema.Table{
@@ -211,15 +366,15 @@ var (
 		PrimaryKey: []*schema.Column{ChecksColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "checks_kits_checks",
+				Symbol:     "checks_blueprints_checks",
 				Columns:    []*schema.Column{ChecksColumns[9]},
-				RefColumns: []*schema.Column{KitsColumns[0]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "check_kit_id_position",
+				Name:    "check_blueprint_id_position",
 				Unique:  false,
 				Columns: []*schema.Column{ChecksColumns[9], ChecksColumns[7]},
 			},
@@ -244,7 +399,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "statement", Type: field.TypeString, Size: 2147483647},
 		{Name: "sources", Type: field.TypeJSON, Nullable: true},
-		{Name: "kit_id", Type: field.TypeString, Unique: true},
+		{Name: "blueprint_id", Type: field.TypeString, Unique: true},
 	}
 	// GoalsTable holds the schema information for the "goals" table.
 	GoalsTable = &schema.Table{
@@ -253,9 +408,9 @@ var (
 		PrimaryKey: []*schema.Column{GoalsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "goals_kits_goal",
+				Symbol:     "goals_blueprints_goal",
 				Columns:    []*schema.Column{GoalsColumns[5]},
-				RefColumns: []*schema.Column{KitsColumns[0]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -283,129 +438,6 @@ var (
 				Name:    "integration_kind_name",
 				Unique:  true,
 				Columns: []*schema.Column{IntegrationsColumns[3], IntegrationsColumns[5]},
-			},
-		},
-	}
-	// KitsColumns holds the columns for the "kits" table.
-	KitsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "slug", Type: field.TypeString},
-		{Name: "display_name", Type: field.TypeString},
-		{Name: "description", Type: field.TypeString, Size: 2147483647, Default: ""},
-		{Name: "kind", Type: field.TypeEnum, Enums: []string{"workload", "mixin", "set", "environment"}},
-		{Name: "image_repository", Type: field.TypeString, Nullable: true},
-		{Name: "network_preset", Type: field.TypeString, Nullable: true},
-		{Name: "registration_enabled", Type: field.TypeBool, Default: false},
-		{Name: "team_id", Type: field.TypeString},
-	}
-	// KitsTable holds the schema information for the "kits" table.
-	KitsTable = &schema.Table{
-		Name:       "kits",
-		Columns:    KitsColumns,
-		PrimaryKey: []*schema.Column{KitsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "kits_teams_kits",
-				Columns:    []*schema.Column{KitsColumns[10]},
-				RefColumns: []*schema.Column{TeamsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "kit_team_id_slug",
-				Unique:  true,
-				Columns: []*schema.Column{KitsColumns[10], KitsColumns[3]},
-			},
-		},
-	}
-	// KitIncludesColumns holds the columns for the "kit_includes" table.
-	KitIncludesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "track", Type: field.TypeEnum, Enums: []string{"stable", "latest", "pinned"}, Default: "stable"},
-		{Name: "pinned_blueprint_id", Type: field.TypeString, Nullable: true},
-		{Name: "position", Type: field.TypeInt, Default: 0},
-		{Name: "kit_id", Type: field.TypeString},
-		{Name: "child_kit_id", Type: field.TypeString},
-	}
-	// KitIncludesTable holds the schema information for the "kit_includes" table.
-	KitIncludesTable = &schema.Table{
-		Name:       "kit_includes",
-		Columns:    KitIncludesColumns,
-		PrimaryKey: []*schema.Column{KitIncludesColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "kit_includes_kits_includes",
-				Columns:    []*schema.Column{KitIncludesColumns[6]},
-				RefColumns: []*schema.Column{KitsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "kit_includes_kits_included_by",
-				Columns:    []*schema.Column{KitIncludesColumns[7]},
-				RefColumns: []*schema.Column{KitsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "kitinclude_kit_id_child_kit_id",
-				Unique:  true,
-				Columns: []*schema.Column{KitIncludesColumns[6], KitIncludesColumns[7]},
-			},
-			{
-				Name:    "kitinclude_child_kit_id",
-				Unique:  false,
-				Columns: []*schema.Column{KitIncludesColumns[7]},
-			},
-		},
-	}
-	// KitRevisionsColumns holds the columns for the "kit_revisions" table.
-	KitRevisionsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "seq", Type: field.TypeInt},
-		{Name: "action", Type: field.TypeString},
-		{Name: "slot_key", Type: field.TypeString, Nullable: true},
-		{Name: "summary", Type: field.TypeString, Size: 2147483647},
-		{Name: "snapshot", Type: field.TypeJSON},
-		{Name: "yaml", Type: field.TypeString, Size: 2147483647, Default: ""},
-		{Name: "kit_id", Type: field.TypeString},
-		{Name: "actor_user_id", Type: field.TypeString, Nullable: true},
-	}
-	// KitRevisionsTable holds the schema information for the "kit_revisions" table.
-	KitRevisionsTable = &schema.Table{
-		Name:       "kit_revisions",
-		Columns:    KitRevisionsColumns,
-		PrimaryKey: []*schema.Column{KitRevisionsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "kit_revisions_kits_revisions",
-				Columns:    []*schema.Column{KitRevisionsColumns[8]},
-				RefColumns: []*schema.Column{KitsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "kit_revisions_users_kit_revisions",
-				Columns:    []*schema.Column{KitRevisionsColumns[9]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "kitrevision_kit_id_seq",
-				Unique:  true,
-				Columns: []*schema.Column{KitRevisionsColumns[8], KitRevisionsColumns[2]},
-			},
-			{
-				Name:    "kitrevision_kit_id_slot_key",
-				Unique:  false,
-				Columns: []*schema.Column{KitRevisionsColumns[8], KitRevisionsColumns[4]},
 			},
 		},
 	}
@@ -458,13 +490,14 @@ var (
 		{Name: "key", Type: field.TypeString},
 		{Name: "label", Type: field.TypeString, Default: ""},
 		{Name: "section", Type: field.TypeString},
+		{Name: "block_type", Type: field.TypeString, Default: ""},
 		{Name: "state", Type: field.TypeEnum, Enums: []string{"blank", "suggested", "filled", "optional"}, Default: "blank"},
 		{Name: "required", Type: field.TypeBool, Default: false},
 		{Name: "position", Type: field.TypeInt, Default: 0},
 		{Name: "optional_capability", Type: field.TypeBool, Default: false},
 		{Name: "group_name", Type: field.TypeString, Nullable: true},
-		{Name: "kit_id", Type: field.TypeString},
-		{Name: "origin_kit_id", Type: field.TypeString, Nullable: true},
+		{Name: "blueprint_id", Type: field.TypeString},
+		{Name: "origin_blueprint_id", Type: field.TypeString, Nullable: true},
 		{Name: "overrides_slot_id", Type: field.TypeString, Unique: true, Nullable: true},
 	}
 	// SlotsTable holds the schema information for the "slots" table.
@@ -474,29 +507,29 @@ var (
 		PrimaryKey: []*schema.Column{SlotsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "slots_kits_slots",
-				Columns:    []*schema.Column{SlotsColumns[11]},
-				RefColumns: []*schema.Column{KitsColumns[0]},
+				Symbol:     "slots_blueprints_slots",
+				Columns:    []*schema.Column{SlotsColumns[12]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "slots_kits_origin_slots",
-				Columns:    []*schema.Column{SlotsColumns[12]},
-				RefColumns: []*schema.Column{KitsColumns[0]},
+				Symbol:     "slots_blueprints_origin_slots",
+				Columns:    []*schema.Column{SlotsColumns[13]},
+				RefColumns: []*schema.Column{BlueprintsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "slots_slots_overridden_by",
-				Columns:    []*schema.Column{SlotsColumns[13]},
+				Columns:    []*schema.Column{SlotsColumns[14]},
 				RefColumns: []*schema.Column{SlotsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "slot_kit_id_key",
+				Name:    "slot_blueprint_id_key",
 				Unique:  true,
-				Columns: []*schema.Column{SlotsColumns[11], SlotsColumns[3]},
+				Columns: []*schema.Column{SlotsColumns[12], SlotsColumns[3]},
 			},
 		},
 	}
@@ -594,13 +627,14 @@ var (
 		BlocksTable,
 		BlockLinksTable,
 		BlockVersionsTable,
+		BlueprintsTable,
+		BlueprintIncludesTable,
+		BlueprintRevisionsTable,
+		BlueprintVersionsTable,
 		ChecksTable,
 		DeploymentSettingsTable,
 		GoalsTable,
 		IntegrationsTable,
-		KitsTable,
-		KitIncludesTable,
-		KitRevisionsTable,
 		RoleAssignmentsTable,
 		SessionsTable,
 		SlotsTable,
@@ -621,18 +655,19 @@ func init() {
 	BlockLinksTable.ForeignKeys[3].RefTable = SlotsTable
 	BlockVersionsTable.ForeignKeys[0].RefTable = BlocksTable
 	BlockVersionsTable.ForeignKeys[1].RefTable = UsersTable
-	ChecksTable.ForeignKeys[0].RefTable = KitsTable
-	GoalsTable.ForeignKeys[0].RefTable = KitsTable
-	KitsTable.ForeignKeys[0].RefTable = TeamsTable
-	KitIncludesTable.ForeignKeys[0].RefTable = KitsTable
-	KitIncludesTable.ForeignKeys[1].RefTable = KitsTable
-	KitRevisionsTable.ForeignKeys[0].RefTable = KitsTable
-	KitRevisionsTable.ForeignKeys[1].RefTable = UsersTable
+	BlueprintsTable.ForeignKeys[0].RefTable = TeamsTable
+	BlueprintIncludesTable.ForeignKeys[0].RefTable = BlueprintsTable
+	BlueprintIncludesTable.ForeignKeys[1].RefTable = BlueprintsTable
+	BlueprintRevisionsTable.ForeignKeys[0].RefTable = BlueprintsTable
+	BlueprintRevisionsTable.ForeignKeys[1].RefTable = UsersTable
+	BlueprintVersionsTable.ForeignKeys[0].RefTable = BlueprintsTable
+	ChecksTable.ForeignKeys[0].RefTable = BlueprintsTable
+	GoalsTable.ForeignKeys[0].RefTable = BlueprintsTable
 	SessionsTable.Annotation = &entsql.Annotation{
 		Table: "sessions",
 	}
-	SlotsTable.ForeignKeys[0].RefTable = KitsTable
-	SlotsTable.ForeignKeys[1].RefTable = KitsTable
+	SlotsTable.ForeignKeys[0].RefTable = BlueprintsTable
+	SlotsTable.ForeignKeys[1].RefTable = BlueprintsTable
 	SlotsTable.ForeignKeys[2].RefTable = SlotsTable
 	TeamsTable.ForeignKeys[0].RefTable = TeamsTable
 	TeamMembershipsTable.ForeignKeys[0].RefTable = TeamsTable

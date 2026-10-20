@@ -1,6 +1,8 @@
 package http_test
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,12 +22,14 @@ import (
 
 	"github.com/docker/kit-maker/internal/ai"
 	"github.com/docker/kit-maker/internal/auth"
+	"github.com/docker/kit-maker/internal/blueprints"
 	"github.com/docker/kit-maker/internal/dbmigrate"
 	"github.com/docker/kit-maker/internal/drivers"
 	"github.com/docker/kit-maker/internal/ent"
+	"github.com/docker/kit-maker/internal/ent/aicall"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	kmhttp "github.com/docker/kit-maker/internal/http"
 	"github.com/docker/kit-maker/internal/seed"
 	"github.com/docker/kit-maker/internal/testutil"
@@ -87,8 +91,36 @@ func TestServer(t *testing.T) {
 	anon := newClient(t, srv.URL)
 	signedIn := newClient(t, srv.URL)
 
+	t.Run("kitmaker dev signs requests in as the dev user", func(t *testing.T) {
+		devHandler := func(email string) *httptest.Server {
+			h, err := kmhttp.NewHandler(kmhttp.Deps{
+				Log: testutil.Logger(), DB: db.SQL, Ent: client, Bucket: bucket, Assets: fakeAssets,
+				ViteHotFile: t.TempDir() + "/hot", Sessions: auth.NewSessions(db.Pool, "http://localhost"),
+				Auth: authSvc, DevUser: email,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			srv := httptest.NewServer(h)
+			t.Cleanup(srv.Close)
+			return srv
+		}
+		dev := newClient(t, devHandler("Admin@Example.com").URL)
+		if code, body := dev.get(t, "/blueprints", nil); code != 200 || !strings.Contains(body, "Blueprints/Index") {
+			t.Fatalf("dev user: %d", code)
+		}
+		if code, loc := dev.noFollow(t, "GET", "/login", ""); code != nethttp.StatusSeeOther || loc != "/blueprints" {
+			t.Fatalf("login page with dev user: %d → %q", code, loc)
+		}
+		// An unknown account signs no one in.
+		nobody := newClient(t, devHandler("nobody@example.com").URL)
+		if code, loc := nobody.noFollow(t, "GET", "/blueprints", ""); code != nethttp.StatusSeeOther || loc != "/login" {
+			t.Fatalf("unknown dev user: %d → %q", code, loc)
+		}
+	})
+
 	t.Run("signed out visitors are sent to login", func(t *testing.T) {
-		code, loc := anon.noFollow(t, "GET", "/kits", "")
+		code, loc := anon.noFollow(t, "GET", "/blueprints", "")
 		if code != nethttp.StatusSeeOther || loc != "/login" {
 			t.Fatalf("got %d → %q", code, loc)
 		}
@@ -113,8 +145,8 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("sign in", func(t *testing.T) {
-		code, body := signedIn.post(t, "/login", `{"email":"Admin@Example.com","password":"`+adminPassword+`","next":"/kits"}`)
-		if code != 200 || !strings.Contains(body, "Kits/Index") {
+		code, body := signedIn.post(t, "/login", `{"email":"Admin@Example.com","password":"`+adminPassword+`","next":"/blueprints"}`)
+		if code != 200 || !strings.Contains(body, "Blueprints/Index") {
 			t.Fatalf("status %d: %s", code, body)
 		}
 	})
@@ -145,47 +177,176 @@ func TestServer(t *testing.T) {
 		}
 	})
 
-	t.Run("kits page html", func(t *testing.T) {
-		code, body := signedIn.get(t, "/kits", nil)
+	t.Run("blueprints page html", func(t *testing.T) {
+		code, body := signedIn.get(t, "/blueprints", nil)
 		if code != 200 {
 			t.Fatalf("status %d: %s", code, body)
 		}
-		for _, want := range []string{`data-page=`, `Kits/Index`, `/build/assets/app-abc123.js`, `/build/assets/styles-def456.css`, `acme-shop`} {
+		for _, want := range []string{`data-page=`, `Blueprints/Index`, `/build/assets/app-abc123.js`, `/build/assets/styles-def456.css`, `acme-shop`} {
 			if !strings.Contains(body, want) {
 				t.Errorf("page missing %q", want)
 			}
 		}
 	})
 
-	t.Run("kits page inertia visit", func(t *testing.T) {
+	t.Run("blueprints page inertia visit", func(t *testing.T) {
 		// A stale asset version makes Inertia do a full reload.
-		if code, _ := signedIn.get(t, "/kits", map[string]string{"X-Inertia": "true", "X-Inertia-Version": "stale"}); code != 409 {
+		if code, _ := signedIn.get(t, "/blueprints", map[string]string{"X-Inertia": "true", "X-Inertia-Version": "stale"}); code != 409 {
 			t.Fatalf("stale version: status %d, want 409", code)
 		}
-		_, html := signedIn.get(t, "/kits", nil)
-		code, body := signedIn.get(t, "/kits", map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)})
+		_, html := signedIn.get(t, "/blueprints", nil)
+		code, body := signedIn.get(t, "/blueprints", map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)})
 		if code != 200 {
 			t.Fatalf("status %d: %s", code, body)
 		}
 		var page struct {
 			Component string `json:"component"`
 			Props     struct {
-				Kits []struct {
+				Blueprints []struct {
 					Slug   string `json:"slug"`
 					Blanks int    `json:"blanks"`
-				} `json:"kits"`
+				} `json:"blueprints"`
 			} `json:"props"`
 		}
 		if err := json.Unmarshal([]byte(body), &page); err != nil {
 			t.Fatalf("decode: %v: %s", err, body)
 		}
-		if page.Component != "Kits/Index" || len(page.Props.Kits) != 2 || page.Props.Kits[0].Blanks != 2 {
+		// The demo blueprints plus every spec example (internal/seed/examples).
+		if page.Component != "Blueprints/Index" || len(page.Props.Blueprints) < 30 {
 			t.Fatalf("unexpected page: %s", body)
+		}
+		for _, bp := range page.Props.Blueprints {
+			if bp.Slug == "acme-shop" && bp.Blanks != 2 {
+				t.Fatalf("acme-shop should have 2 blanks: %+v", bp)
+			}
 		}
 	})
 
-	t.Run("kit builder", func(t *testing.T) {
-		_, html := signedIn.get(t, "/kits", nil)
+	t.Run("block search falls back to keywords and says so", func(t *testing.T) {
+		res := signedIn.raw(t, "POST", "/blocks/search", `{"q":"jira read"}`, map[string]string{"Accept": "application/json"})
+		defer res.Body.Close()
+		var out struct {
+			Source, Message string
+			Matches         []struct{ ID, Reason string }
+		}
+		if err := json.NewDecoder(res.Body).Decode(&out); err != nil || res.StatusCode != 200 {
+			t.Fatalf("search: %d %v", res.StatusCode, err)
+		}
+		// The fake AI answers with no matches, so keyword ranking takes over.
+		if out.Source != "keyword" || out.Message == "" || len(out.Matches) == 0 {
+			t.Fatalf("search: %+v", out)
+		}
+		found := false
+		for _, m := range out.Matches {
+			if b, _ := client.Block.Get(context.Background(), m.ID); b != nil && b.Slug == "tickets-readonly" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("tickets-readonly not among %+v", out.Matches)
+		}
+	})
+
+	t.Run("run a blueprint: folder download, sbxenv and commands", func(t *testing.T) {
+		for slug, want := range map[string]string{"shell": "sbx run ./shell/", "motd": "sbx run <workload-kit> --kit ./motd/"} {
+			bp := client.Blueprint.Query().Where(blueprint.Slug(slug)).OnlyX(context.Background())
+			res := signedIn.raw(t, "GET", "/blueprints/"+bp.ID+"/run", "", map[string]string{"Accept": "application/json"})
+			var ri struct {
+				LocalCommand string
+				Valid        bool
+			}
+			_ = json.NewDecoder(res.Body).Decode(&ri)
+			res.Body.Close()
+			if ri.LocalCommand != want || !ri.Valid {
+				t.Fatalf("%s run info: %+v", slug, ri)
+			}
+			res = signedIn.raw(t, "GET", "/blueprints/"+bp.ID+"/download", "", nil)
+			if res.StatusCode != 200 || !strings.Contains(res.Header.Get("Content-Disposition"), slug+".tar.gz") {
+				t.Fatalf("%s download: %d %v", slug, res.StatusCode, res.Header)
+			}
+			gz, err := gzip.NewReader(res.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			tr := tar.NewReader(gz)
+			files := map[string]string{}
+			for {
+				h, err := tr.Next()
+				if err != nil {
+					break
+				}
+				b, _ := io.ReadAll(tr)
+				files[h.Name] = string(b)
+			}
+			res.Body.Close()
+			kit := files[slug+"/"+slug+".yaml"]
+			if !strings.HasPrefix(kit, "# syntax=docker/sandbox-kit:3") || len(files) != 2 {
+				t.Fatalf("%s archive: %v", slug, files)
+			}
+			res = signedIn.raw(t, "GET", "/blueprints/"+bp.ID+"/sbxenv.yaml", "", nil)
+			env, _ := io.ReadAll(res.Body)
+			res.Body.Close()
+			agent := map[string]string{"shell": "shell", "motd": "<workload>"}[slug]
+			if !strings.Contains(string(env), "kits:\n  - ./"+slug+"\n") || !strings.Contains(string(env), "agent: "+agent+"\n") {
+				t.Fatalf("%s sbxenv: %s", slug, env)
+			}
+		}
+	})
+
+	t.Run("published versions: unchanged skips, sbxenv follows latest", func(t *testing.T) {
+		ctx := context.Background()
+		bp := client.Blueprint.Query().Where(blueprint.Slug("hello")).OnlyX(ctx)
+		svc := &blueprints.Service{Ent: client}
+		pushes := 0
+		push := func(_ context.Context, slug string, version int, yaml string) (string, string, error) {
+			pushes++
+			if !strings.Contains(yaml, fmt.Sprintf("version: \"%d\"", version)) {
+				t.Errorf("published YAML lacks version %d", version)
+			}
+			return "localhost:5001/blueprints/sbx-kit-" + slug, fmt.Sprintf("sha256:%064d", version), nil
+		}
+		v, err := svc.Publish(ctx, bp.ID, "", push)
+		if err != nil || v.Version != 1 || v.Unchanged {
+			t.Fatalf("first publish: %+v %v", v, err)
+		}
+		v, err = svc.Publish(ctx, bp.ID, "", push)
+		if err != nil || !v.Unchanged || pushes != 1 {
+			t.Fatalf("second publish should be unchanged: %+v %v (pushes %d)", v, err, pushes)
+		}
+		res := signedIn.raw(t, "GET", "/blueprints/"+bp.ID+"/sbxenv.yaml", "", nil)
+		env, _ := io.ReadAll(res.Body)
+		res.Body.Close()
+		for _, want := range []string{"agent: sbx-kit-hello", "  - source: localhost:5001/blueprints/sbx-kit-hello:latest", "pullPolicy: always"} {
+			if !strings.Contains(string(env), want) {
+				t.Errorf("sbxenv missing %q:\n%s", want, env)
+			}
+		}
+		// A mixin runs on the most recently published workload.
+		motd := client.Blueprint.Query().Where(blueprint.Slug("motd")).OnlyX(ctx)
+		res = signedIn.raw(t, "GET", "/blueprints/"+motd.ID+"/run", "", map[string]string{"Accept": "application/json"})
+		var ri struct{ LocalCommand string }
+		_ = json.NewDecoder(res.Body).Decode(&ri)
+		res.Body.Close()
+		if ri.LocalCommand != "sbx run localhost:5001/blueprints/sbx-kit-hello:latest --kit ./motd/" {
+			t.Errorf("mixin command: %q", ri.LocalCommand)
+		}
+	})
+
+	t.Run("old /kits links redirect to /blueprints", func(t *testing.T) {
+		for path, want := range map[string]string{
+			"/kits":                         "/blueprints",
+			"/kits/new":                     "/blueprints/new",
+			"/kits/kit_01ABC/slots/net?x=1": "/blueprints/bp_01ABC/slots/net?x=1",
+			"/kits/kit_01ABC/history":       "/blueprints/bp_01ABC/history",
+		} {
+			if code, loc := signedIn.noFollow(t, "GET", path, ""); code != 301 || loc != want {
+				t.Errorf("GET %s = %d %q, want 301 %q", path, code, loc, want)
+			}
+		}
+	})
+
+	t.Run("blueprint builder", func(t *testing.T) {
+		_, html := signedIn.get(t, "/blueprints", nil)
 		version := pageVersion(t, html)
 		type slot struct {
 			Key       string         `json:"key"`
@@ -194,16 +355,16 @@ func TestServer(t *testing.T) {
 			BlockSlug string         `json:"blockSlug"`
 			Effective map[string]any `json:"effective"`
 		}
-		type kitPage struct {
+		type blueprintPage struct {
 			Component string `json:"component"`
 			Props     struct {
-				Kit struct {
+				Blueprint struct {
 					ID string `json:"id"`
-				} `json:"kit"`
-				Kits []struct {
+				} `json:"blueprint"`
+				Blueprints []struct {
 					ID     string `json:"id"`
 					Blanks int    `json:"blanks"`
-				} `json:"kits"`
+				} `json:"blueprints"`
 				Selected *slot `json:"selected"`
 				Compiled struct {
 					YAML   string   `json:"yaml"`
@@ -217,13 +378,13 @@ func TestServer(t *testing.T) {
 				Can struct{ Edit bool } `json:"can"`
 			} `json:"props"`
 		}
-		visit := func(path string) kitPage {
+		visit := func(path string) blueprintPage {
 			t.Helper()
 			code, body := signedIn.get(t, path, map[string]string{"X-Inertia": "true", "X-Inertia-Version": version})
 			if code != 200 {
 				t.Fatalf("GET %s: status %d: %s", path, code, body)
 			}
-			var p kitPage
+			var p blueprintPage
 			if err := json.Unmarshal([]byte(body), &p); err != nil {
 				t.Fatalf("decode %s: %v", path, err)
 			}
@@ -238,35 +399,35 @@ func TestServer(t *testing.T) {
 			}
 		}
 
-		kitURL := "/kits/" + visit("/kits").Props.Kits[0].ID
-		overview := visit(kitURL)
-		if overview.Component != "Kits/Show" || overview.Props.Selected != nil || len(overview.Props.Checks) == 0 || !overview.Props.Can.Edit {
+		blueprintURL := "/blueprints/" + visit("/blueprints").Props.Blueprints[0].ID
+		overview := visit(blueprintURL)
+		if overview.Component != "Blueprints/Show" || overview.Props.Selected != nil || len(overview.Props.Checks) == 0 || !overview.Props.Can.Edit {
 			t.Fatalf("overview: %+v", overview)
 		}
 		if !strings.Contains(overview.Props.Compiled.YAML, "network-policy@2") {
 			t.Fatalf("yaml lacks the network policy:\n%s", overview.Props.Compiled.YAML)
 		}
 
-		egress := visit(kitURL + "/slots/github-egress").Props.Selected
+		egress := visit(blueprintURL + "/slots/github-egress").Props.Selected
 		if egress == nil || egress.Origin != "modified" || egress.Edits != 2 {
 			t.Fatalf("github-egress: %+v", egress)
 		}
 
 		// Saving the unchanged effective payload keeps the same overrides.
 		payload, _ := json.Marshal(map[string]any{"payload": egress.Effective})
-		send("PUT", kitURL+"/slots/github-egress", string(payload))
-		if got := visit(kitURL + "/slots/github-egress").Props.Selected; got.Edits != 2 {
+		send("PUT", blueprintURL+"/slots/github-egress", string(payload))
+		if got := visit(blueprintURL + "/slots/github-egress").Props.Selected; got.Edits != 2 {
 			t.Fatalf("after save: %+v", got)
 		}
 
 		// Reverting drops the overrides.
-		send("POST", kitURL+"/slots/github-egress/revert", "{}")
-		if got := visit(kitURL + "/slots/github-egress").Props.Selected; got.Origin != "inherited" || got.Edits != 0 {
+		send("POST", blueprintURL+"/slots/github-egress/revert", "{}")
+		if got := visit(blueprintURL + "/slots/github-egress").Props.Selected; got.Origin != "inherited" || got.Edits != 0 {
 			t.Fatalf("after revert: %+v", got)
 		}
 
 		// A required blank lists library blocks; linking one fills it.
-		blank := visit(kitURL + "/slots/packagist")
+		blank := visit(blueprintURL + "/slots/packagist")
 		if blank.Props.Selected.BlockSlug != "" {
 			t.Fatalf("packagist should be blank: %+v", blank.Props.Selected)
 		}
@@ -279,16 +440,16 @@ func TestServer(t *testing.T) {
 		if blockID == "" {
 			t.Fatalf("packagist-acme not offered: %+v", blank.Props.Candidates)
 		}
-		send("POST", kitURL+"/slots/packagist/link", `{"blockId":"`+blockID+`"}`)
-		if got := visit(kitURL + "/slots/packagist").Props.Selected; got.BlockSlug != "packagist-acme" || got.Origin != "inherited" {
+		send("POST", blueprintURL+"/slots/packagist/link", `{"blockId":"`+blockID+`"}`)
+		if got := visit(blueprintURL + "/slots/packagist").Props.Selected; got.BlockSlug != "packagist-acme" || got.Origin != "inherited" {
 			t.Fatalf("after link: %+v", got)
 		}
-		if b := visit("/kits").Props.Kits[0].Blanks; b != 1 {
+		if b := visit("/blueprints").Props.Blueprints[0].Blanks; b != 1 {
 			t.Fatalf("blanks after link = %d, want 1", b)
 		}
 
 		// Explain streams server-sent events and records the call.
-		res := signedIn.raw(t, "POST", kitURL+"/slots/github-egress/explain", `{}`, nil)
+		res := signedIn.raw(t, "POST", blueprintURL+"/slots/github-egress/explain", `{}`, nil)
 		body, _ := io.ReadAll(res.Body)
 		res.Body.Close()
 		if res.StatusCode != 200 || res.Header.Get("Content-Type") != "text/event-stream" ||
@@ -296,24 +457,24 @@ func TestServer(t *testing.T) {
 			!strings.Contains(string(body), `{"text":"network "}`) {
 			t.Fatalf("explain: %d %q\n%s", res.StatusCode, res.Header.Get("Content-Type"), body)
 		}
-		if n := client.AICall.Query().CountX(context.Background()); n != 1 {
-			t.Fatalf("ai_calls rows = %d, want 1", n)
+		if n := client.AICall.Query().Where(aicall.Route("explain")).CountX(context.Background()); n != 1 {
+			t.Fatalf("explain ai_calls rows = %d, want 1", n)
 		}
-		if res := signedIn.raw(t, "POST", kitURL+"/slots/packagist-token/explain", `{}`, nil); res.StatusCode != 404 {
+		if res := signedIn.raw(t, "POST", blueprintURL+"/slots/packagist-token/explain", `{}`, nil); res.StatusCode != 404 {
 			t.Fatalf("explain on a blank: %d, want 404", res.StatusCode)
 		}
 
 		// Invalid payloads come back as a validation error, not a save.
-		send("PUT", kitURL+"/slots/github-egress", `{"payload":{"runtime":{"allow":[{"hosts":[],"_k":"x"}]}}}`)
-		if got := visit(kitURL + "/slots/github-egress").Props.Selected; got.Edits != 0 {
+		send("PUT", blueprintURL+"/slots/github-egress", `{"payload":{"runtime":{"allow":[{"hosts":[],"_k":"x"}]}}}`)
+		if got := visit(blueprintURL + "/slots/github-egress").Props.Selected; got.Edits != 0 {
 			t.Fatalf("invalid payload was saved: %+v", got)
 		}
 	})
 
-	t.Run("polyglot demo kit splits a block across the policy", func(t *testing.T) {
-		_, html := signedIn.get(t, "/kits", nil)
-		k := client.Kit.Query().Where(kit.Slug("polyglot-ci")).OnlyX(context.Background())
-		code, body := signedIn.get(t, "/kits/"+k.ID, map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)})
+	t.Run("polyglot demo blueprint splits a block across the policy", func(t *testing.T) {
+		_, html := signedIn.get(t, "/blueprints", nil)
+		k := client.Blueprint.Query().Where(blueprint.Slug("polyglot-ci")).OnlyX(context.Background())
+		code, body := signedIn.get(t, "/blueprints/"+k.ID, map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)})
 		var page struct {
 			Props struct {
 				Compiled struct {
@@ -329,7 +490,7 @@ func TestServer(t *testing.T) {
 		}
 		c := page.Props.Compiled
 		if !c.Valid {
-			t.Fatalf("polyglot kit is not valid: %s\n%s", c.Error, c.YAML)
+			t.Fatalf("polyglot blueprint is not valid: %s\n%s", c.Error, c.YAML)
 		}
 		// Node has install allow, install deny, runtime allow and runtime deny:
 		// four separate places in the YAML, interleaved with other blocks.
@@ -341,8 +502,8 @@ func TestServer(t *testing.T) {
 		}
 	})
 
-	t.Run("create a kit and fill it", func(t *testing.T) {
-		_, html := signedIn.get(t, "/kits", nil)
+	t.Run("create a blueprint and fill it", func(t *testing.T) {
+		_, html := signedIn.get(t, "/blueprints", nil)
 		hdr := map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)}
 		type page struct {
 			Component string `json:"component"`
@@ -351,12 +512,18 @@ func TestServer(t *testing.T) {
 				Errors   map[string]string `json:"errors"`
 				Selected *struct {
 					Key, Origin, BlockSlug string
+					BlockType              string `json:"blockType"`
 					Version, Latest, Edits int
 					Effective              map[string]any
 				} `json:"selected"`
 				Sections []struct{ Items []struct{ Key string } } `json:"sections"`
 				Checks   []struct{ ID, Status string }            `json:"checks"`
-				Block    struct {
+				Compiled struct {
+					YAML      string                  `json:"yaml"`
+					Valid     bool                    `json:"valid"`
+					Conflicts []struct{ Kind string } `json:"conflicts"`
+				} `json:"compiled"`
+				Block struct {
 					ID      string
 					Version int
 					Payload map[string]any
@@ -380,49 +547,98 @@ func TestServer(t *testing.T) {
 		}
 		teamID := client.Team.Query().OnlyX(context.Background()).ID
 
-		if p := call("GET", "/kits/new", ""); p.Component != "Kits/New" {
-			t.Fatalf("new kit page: %+v", p)
+		if p := call("GET", "/blueprints/new", ""); p.Component != "Blueprints/New" {
+			t.Fatalf("new blueprint page: %+v", p)
 		}
-		p := call("POST", "/kits", `{"teamId":"`+teamID+`","displayName":"Payments API","kind":"workload","goal":"Run the payments test suite."}`)
-		if p.Component != "Kits/Show" || !strings.HasPrefix(p.URL, "/kits/kit_") || len(p.Props.Sections) != 6 || len(p.Props.Sections[1].Items) != 1 {
+		p := call("POST", "/blueprints", `{"teamId":"`+teamID+`","displayName":"Payments API","kind":"workload","goal":"Run the payments test suite."}`)
+		if p.Component != "Blueprints/Show" || !strings.HasPrefix(p.URL, "/blueprints/bp_") || len(p.Props.Sections) != 6 || len(p.Props.Sections[1].Items) != 1 {
 			t.Fatalf("after create: %+v", p)
 		}
-		kitURL := p.URL
-		if p := call("POST", "/kits", `{"teamId":"`+teamID+`","displayName":"Payments API","kind":"workload"}`); p.Props.Errors["form"] == "" {
+		blueprintURL := p.URL
+		if p := call("POST", "/blueprints", `{"teamId":"`+teamID+`","displayName":"Payments API","kind":"workload"}`); p.Props.Errors["form"] == "" {
 			t.Fatalf("duplicate slug accepted: %+v", p.Props.Errors)
 		}
 
 		// Adding without a label numbers the type's name.
-		call("POST", kitURL+"/slots", `{"type":"network-rules","required":true}`)
-		p = call("POST", kitURL+"/slots", `{"type":"network-rules","required":true}`)
+		call("POST", blueprintURL+"/slots", `{"type":"network-rules","required":true}`)
+		p = call("POST", blueprintURL+"/slots", `{"type":"network-rules","required":true}`)
 		if p.Props.Selected == nil || p.Props.Selected.Key != "network-rules-2" {
 			t.Fatalf("second unnamed network slot: %+v", p.Props.Selected)
 		}
-		call("DELETE", kitURL+"/slots/network-rules", "")
-		call("DELETE", kitURL+"/slots/network-rules-2", "")
+		call("DELETE", blueprintURL+"/slots/network-rules", "")
+		call("DELETE", blueprintURL+"/slots/network-rules-2", "")
 
-		// Add a credential slot and fill it with a new block just for this kit.
-		p = call("POST", kitURL+"/slots", `{"label":"Stripe key","type":"credential","required":true}`)
+		// Every block type has its own slot: a Resources slot remembers its
+		// type, starts a Resources block, and compiles to resources@1.
+		p = call("POST", blueprintURL+"/slots", `{"type":"resources","required":true}`)
+		if p.Props.Selected == nil || p.Props.Selected.Key != "resources" || p.Props.Selected.BlockType != "resources" {
+			t.Fatalf("resources slot: %+v", p.Props.Selected)
+		}
+		p = call("POST", blueprintURL+"/slots/resources/custom", `{}`)
+		if p.Props.Selected == nil || p.Props.Selected.BlockSlug == "" || !strings.Contains(p.Props.Compiled.YAML, "com.docker.sandbox/resources@1") {
+			t.Fatalf("resources block: %+v\n%s", p.Props.Selected, p.Props.Compiled.YAML)
+		}
+		call("DELETE", blueprintURL+"/slots/resources", "")
+
+		// Conflicts: an outright allow cancels another block's read-only
+		// rule; hiding the outright allow in this blueprint resolves it.
+		call("POST", blueprintURL+"/slots", `{"label":"Open internal","type":"network-rules","required":true}`)
+		call("POST", blueprintURL+"/slots/open-internal/custom", `{}`)
+		call("PUT", blueprintURL+"/slots/open-internal", `{"payload":{"runtime":{"allow":[{"_k":"j","hosts":["jira.acme.internal"]},{"_k":"w","hosts":["wiki.acme.internal"]}]}}}`)
+		call("POST", blueprintURL+"/slots", `{"label":"Read tickets","type":"network-rules","required":true}`)
+		call("POST", blueprintURL+"/slots/read-tickets/custom", `{}`)
+		p = call("PUT", blueprintURL+"/slots/read-tickets", `{"payload":{"runtime":{"allow":[{"_k":"r","hosts":["jira.acme.internal"],"methods":["GET"]}]}}}`)
+		if len(p.Props.Compiled.Conflicts) != 1 || p.Props.Compiled.Conflicts[0].Kind != "widened" {
+			t.Fatalf("want one widened conflict, got %+v", p.Props.Compiled.Conflicts)
+		}
+		p = call("POST", blueprintURL+"/slots/open-internal/hide", `{"path":"/runtime/allow","key":"j","back":"`+blueprintURL+`"}`)
+		if len(p.Props.Compiled.Conflicts) != 0 || p.URL != blueprintURL || !strings.Contains(p.Props.Compiled.YAML, "wiki.acme.internal") {
+			t.Fatalf("after hide: %s %+v\n%s", p.URL, p.Props.Compiled.Conflicts, p.Props.Compiled.YAML)
+		}
+		call("DELETE", blueprintURL+"/slots/open-internal", "")
+		call("DELETE", blueprintURL+"/slots/read-tickets", "")
+
+		// Start a block with AI: the (fake) model's draft becomes its content.
+		call("POST", blueprintURL+"/slots", `{"label":"AI net","type":"network-rules","required":true}`)
+		p = call("POST", blueprintURL+"/slots/ai-net/custom", `{"prompt":"read the example API"}`)
+		if p.Props.Selected == nil || !strings.Contains(p.Props.Compiled.YAML, "api.example.com") {
+			t.Fatalf("AI-started block: %+v\n%s", p.Props.Selected, p.Props.Compiled.YAML)
+		}
+		// A draft for a filled slot comes back unsaved.
+		dres := signedIn.raw(t, "POST", blueprintURL+"/slots/ai-net/draft", `{"prompt":"read the example API"}`, map[string]string{"Accept": "application/json"})
+		var d struct {
+			Payload map[string]any
+			Note    string
+		}
+		_ = json.NewDecoder(dres.Body).Decode(&d)
+		dres.Body.Close()
+		if d.Payload == nil || !strings.Contains(d.Note, "Fake AI") {
+			t.Fatalf("draft: %+v", d)
+		}
+		call("DELETE", blueprintURL+"/slots/ai-net", "")
+
+		// Add a credential slot and fill it with a new block just for this blueprint.
+		p = call("POST", blueprintURL+"/slots", `{"label":"Stripe key","type":"credential","required":true}`)
 		if p.Props.Selected == nil || p.Props.Selected.Key != "stripe-key" || p.Props.Selected.BlockSlug != "" {
 			t.Fatalf("after add slot: %+v", p.Props.Selected)
 		}
-		p = call("POST", kitURL+"/slots/stripe-key/custom", `{}`)
+		p = call("POST", blueprintURL+"/slots/stripe-key/custom", `{}`)
 		if sel := p.Props.Selected; sel == nil || sel.Origin != "custom" || sel.BlockSlug != "payments-api-stripe-key" {
 			t.Fatalf("after custom block: %+v", sel)
 		}
 
 		// Fill the starter network slot from the library, then publish v2 of
-		// that block and update the kit to it, keeping its edit.
+		// that block and update the blueprint to it, keeping its edit.
 		egress := client.Block.Query().Where(block.Slug("github-egress")).OnlyX(context.Background())
-		call("POST", kitURL+"/slots/network-access/link", `{"blockId":"`+egress.ID+`"}`)
-		p = call("GET", kitURL+"/slots/network-access", "")
+		call("POST", blueprintURL+"/slots/network-access/link", `{"blockId":"`+egress.ID+`"}`)
+		p = call("GET", blueprintURL+"/slots/network-access", "")
 		eff := p.Props.Selected.Effective
 		eff["runtime"].(map[string]any)["allow"] = append(eff["runtime"].(map[string]any)["allow"].([]any),
 			map[string]any{"label": "Stripe", "hosts": []any{"api.stripe.com"}})
 		b, _ := json.Marshal(map[string]any{"payload": eff})
 
 		// Preview compiles the draft without saving it.
-		res := signedIn.raw(t, "POST", kitURL+"/slots/network-access/preview", string(b), nil)
+		res := signedIn.raw(t, "POST", blueprintURL+"/slots/network-access/preview", string(b), nil)
 		var pv struct {
 			Compiled struct {
 				YAML  string
@@ -434,13 +650,13 @@ func TestServer(t *testing.T) {
 		if res.StatusCode != 200 || !strings.Contains(pv.Compiled.YAML, "api.stripe.com") || !strings.Contains(pv.Compiled.YAML, "1 edit here") {
 			t.Fatalf("preview: %d\n%s", res.StatusCode, pv.Compiled.YAML)
 		}
-		if p := call("GET", kitURL+"/slots/network-access", ""); p.Props.Selected.Edits != 0 {
+		if p := call("GET", blueprintURL+"/slots/network-access", ""); p.Props.Selected.Edits != 0 {
 			t.Fatalf("preview saved the draft: %+v", p.Props.Selected)
 		}
 
-		p = call("PUT", kitURL+"/slots/network-access", string(b))
+		p = call("PUT", blueprintURL+"/slots/network-access", string(b))
 		if p.Props.Selected.Edits != 1 {
-			t.Fatalf("kit edit: %+v", p.Props.Selected)
+			t.Fatalf("blueprint edit: %+v", p.Props.Selected)
 		}
 
 		bp := call("GET", "/blocks/"+egress.ID, "")
@@ -457,63 +673,63 @@ func TestServer(t *testing.T) {
 			t.Fatalf("an unchanged save made a version: %d", bp.Props.Block.Version)
 		}
 
-		p = call("GET", kitURL+"/slots/network-access", "")
+		p = call("GET", blueprintURL+"/slots/network-access", "")
 		if sel := p.Props.Selected; sel.Version != v || sel.Latest != v+1 {
 			t.Fatalf("before update: %+v", sel)
 		}
-		p = call("POST", kitURL+"/slots/network-access/update", `{}`)
+		p = call("POST", blueprintURL+"/slots/network-access/update", `{}`)
 		sel := p.Props.Selected
 		if sel.Version != v+1 || sel.Edits != 1 {
 			t.Fatalf("after update: %+v", sel)
 		}
 		hosts := fmt.Sprint(sel.Effective["runtime"])
 		if !strings.Contains(hosts, "api.stripe.com") || !strings.Contains(hosts, "codeload.github.com") {
-			t.Fatalf("update lost the kit's edit or the new version: %s", hosts)
+			t.Fatalf("update lost the blueprint's edit or the new version: %s", hosts)
 		}
 
 		// The YAML says which lines each slot produced.
-		code, raw := signedIn.get(t, kitURL+"/slots/network-access", hdr)
+		code, raw := signedIn.get(t, blueprintURL+"/slots/network-access", hdr)
 		if code != 200 || !strings.Contains(raw, `"spans":{`) || !strings.Contains(raw, `"network-access":[[`) {
 			t.Fatalf("compiled spans missing: %d", code)
 		}
 
 		// Save the slot's block plus its edit as a new library block: the slot
 		// then links it with no edits, and the original block is untouched.
-		p = call("POST", kitURL+"/slots/network-access/save-as-block", `{"name":"Payments egress"}`)
+		p = call("POST", blueprintURL+"/slots/network-access/save-as-block", `{"name":"Payments egress"}`)
 		if sel := p.Props.Selected; sel.BlockSlug != "payments-egress" || sel.Edits != 0 || sel.Version != 1 {
 			t.Fatalf("after save as block: %+v (%v)", sel, p.Props.Errors)
 		}
 		if !strings.Contains(fmt.Sprint(p.Props.Selected.Effective), "api.stripe.com") {
-			t.Fatalf("the new block lost the kit's edit: %v", p.Props.Selected.Effective)
+			t.Fatalf("the new block lost the blueprint's edit: %v", p.Props.Selected.Effective)
 		}
 		if n := client.BlockVersion.Query().Where(blockversion.BlockID(egress.ID)).CountX(context.Background()); n != v+1 {
 			t.Fatalf("save as block changed the original block: %d versions", n)
 		}
 
 		// Re-link the slot back to github-egress.
-		p = call("POST", kitURL+"/slots/network-access/relink", `{"blockId":"`+egress.ID+`"}`)
+		p = call("POST", blueprintURL+"/slots/network-access/relink", `{"blockId":"`+egress.ID+`"}`)
 		if sel := p.Props.Selected; sel.BlockSlug != "github-egress" || sel.Edits != 0 || sel.Version != v+1 {
 			t.Fatalf("after relink: %+v", sel)
 		}
 
 		// Checks.
-		p = call("POST", kitURL+"/checks", `{"method":"GET","url":"https://api.github.com/repos/acme/docs","expect":"reach"}`)
+		p = call("POST", blueprintURL+"/checks", `{"method":"GET","url":"https://api.github.com/repos/acme/docs","expect":"reach"}`)
 		if len(p.Props.Checks) != 1 || p.Props.Checks[0].Status != "pass" {
 			t.Fatalf("after add check: %+v", p.Props.Checks)
 		}
-		if p := call("POST", kitURL+"/checks", `{"url":"not a url","expect":"reach"}`); p.Props.Errors["check"] == "" {
+		if p := call("POST", blueprintURL+"/checks", `{"url":"not a url","expect":"reach"}`); p.Props.Errors["check"] == "" {
 			t.Fatal("bad check URL accepted")
 		}
-		p = call("DELETE", kitURL+"/checks/"+p.Props.Checks[0].ID, "")
+		p = call("DELETE", blueprintURL+"/checks/"+p.Props.Checks[0].ID, "")
 		if len(p.Props.Checks) != 0 {
 			t.Fatalf("after remove check: %+v", p.Props.Checks)
 		}
 
-		// Removing the custom slot keeps its kit-only block (history can bring
+		// Removing the custom slot keeps its blueprint-only block (history can bring
 		// it back), unlinked and out of the library.
-		call("DELETE", kitURL+"/slots/stripe-key", "")
+		call("DELETE", blueprintURL+"/slots/stripe-key", "")
 		if !client.Block.Query().Where(block.Slug("payments-api-stripe-key")).ExistX(context.Background()) {
-			t.Fatal("kit-only block was deleted with its slot")
+			t.Fatal("blueprint-only block was deleted with its slot")
 		}
 
 		// Blocks library: create one and find it in the list.
@@ -527,8 +743,8 @@ func TestServer(t *testing.T) {
 		}
 	})
 
-	t.Run("history: record, restore a slot or the kit, resync", func(t *testing.T) {
-		_, html := signedIn.get(t, "/kits", nil)
+	t.Run("history: record, restore a slot or the blueprint, resync", func(t *testing.T) {
+		_, html := signedIn.get(t, "/blueprints", nil)
 		hdr := map[string]string{"X-Inertia": "true", "X-Inertia-Version": pageVersion(t, html)}
 		type rev struct {
 			ID, Action, Summary, SlotKey string
@@ -567,9 +783,9 @@ func TestServer(t *testing.T) {
 			}
 			return p
 		}
-		history := func(kitURL, slot string) []rev {
+		history := func(blueprintURL, slot string) []rev {
 			t.Helper()
-			code, body := signedIn.get(t, kitURL+"/history.json?slot="+slot, nil)
+			code, body := signedIn.get(t, blueprintURL+"/history.json?slot="+slot, nil)
 			var out struct{ Revisions []rev }
 			if err := json.Unmarshal([]byte(body), &out); code != 200 || err != nil {
 				t.Fatalf("history: %d %v", code, err)
@@ -579,60 +795,60 @@ func TestServer(t *testing.T) {
 		teamID := client.Team.Query().OnlyX(context.Background()).ID
 		egress := client.Block.Query().Where(block.Slug("github-egress")).OnlyX(context.Background())
 
-		kitURL := call("POST", "/kits", `{"teamId":"`+teamID+`","displayName":"History Kit","kind":"mixin"}`).URL
-		if h := history(kitURL, ""); len(h) != 1 || h[0].Action != "create" {
+		blueprintURL := call("POST", "/blueprints", `{"teamId":"`+teamID+`","displayName":"History Blueprint","kind":"mixin"}`).URL
+		if h := history(blueprintURL, ""); len(h) != 1 || h[0].Action != "create" {
 			t.Fatalf("after create: %+v", h)
 		}
-		created := history(kitURL, "")[0]
+		created := history(blueprintURL, "")[0]
 
-		call("POST", kitURL+"/slots/network-access/link", `{"blockId":"`+egress.ID+`"}`)
-		linked := history(kitURL, "")[0]
-		eff := call("GET", kitURL+"/slots/network-access", "").Props.Selected.Effective
+		call("POST", blueprintURL+"/slots/network-access/link", `{"blockId":"`+egress.ID+`"}`)
+		linked := history(blueprintURL, "")[0]
+		eff := call("GET", blueprintURL+"/slots/network-access", "").Props.Selected.Effective
 		rt := eff["runtime"].(map[string]any)
 		rt["allow"] = append(rt["allow"].([]any), map[string]any{"label": "Extra", "hosts": []any{"extra.example.com"}})
 		b, _ := json.Marshal(map[string]any{"payload": eff})
-		call("PUT", kitURL+"/slots/network-access", string(b))
+		call("PUT", blueprintURL+"/slots/network-access", string(b))
 
-		slotHist := history(kitURL, "network-access")
+		slotHist := history(blueprintURL, "network-access")
 		if len(slotHist) < 3 || slotHist[0].Action != "edit" || slotHist[0].Slot == nil || len(slotHist[0].Slot.Overrides) != 1 ||
 			!strings.Contains(slotHist[0].Summary, "1 edit") {
 			t.Fatalf("slot history: %+v", slotHist)
 		}
 
 		// The revision's YAML is kept for previews.
-		code, body := signedIn.get(t, kitURL+"/revisions/"+slotHist[0].ID+"/yaml", nil)
+		code, body := signedIn.get(t, blueprintURL+"/revisions/"+slotHist[0].ID+"/yaml", nil)
 		if code != 200 || !strings.Contains(body, "extra.example.com") {
 			t.Fatalf("revision yaml: %d %s", code, body)
 		}
 
 		// Restore the slot to just after it was linked: the edit is gone.
-		p := call("POST", kitURL+"/revisions/"+linked.ID+"/restore", `{"slotKey":"network-access"}`)
+		p := call("POST", blueprintURL+"/revisions/"+linked.ID+"/restore", `{"slotKey":"network-access"}`)
 		if p.Props.Selected == nil || p.Props.Selected.Edits != 0 || p.Props.Selected.BlockSlug != "github-egress" {
 			t.Fatalf("after slot restore: %+v", p.Props.Selected)
 		}
 		// …and back again to the edited state.
-		p = call("POST", kitURL+"/revisions/"+slotHist[0].ID+"/restore", `{"slotKey":"network-access"}`)
+		p = call("POST", blueprintURL+"/revisions/"+slotHist[0].ID+"/restore", `{"slotKey":"network-access"}`)
 		if p.Props.Selected.Edits != 1 {
 			t.Fatalf("restore forward: %+v", p.Props.Selected)
 		}
 
 		// Resync drops the edits and takes the block's latest version.
-		p = call("POST", kitURL+"/slots/network-access/resync", `{}`)
+		p = call("POST", blueprintURL+"/slots/network-access/resync", `{}`)
 		if sel := p.Props.Selected; sel.Edits != 0 || sel.Version != sel.Latest {
 			t.Fatalf("after resync: %+v", sel)
 		}
-		if h := history(kitURL, ""); h[0].Action != "resync" {
+		if h := history(blueprintURL, ""); h[0].Action != "resync" {
 			t.Fatalf("resync not recorded: %+v", h[0])
 		}
 
-		// Restore the whole kit to when it was created: an empty starter slot.
-		p = call("POST", kitURL+"/revisions/"+created.ID+"/restore", `{}`)
+		// Restore the whole blueprint to when it was created: an empty starter slot.
+		p = call("POST", blueprintURL+"/revisions/"+created.ID+"/restore", `{}`)
 		if !strings.HasSuffix(p.URL, "/history") || len(p.Props.History) == 0 || p.Props.History[0].Action != "restore" {
-			t.Fatalf("after kit restore: %s %+v", p.URL, p.Props.History)
+			t.Fatalf("after blueprint restore: %s %+v", p.URL, p.Props.History)
 		}
-		p = call("GET", kitURL+"/slots/network-access", "")
+		p = call("GET", blueprintURL+"/slots/network-access", "")
 		if p.Props.Selected.BlockSlug != "" {
-			t.Fatalf("kit restore left the slot filled: %+v", p.Props.Selected)
+			t.Fatalf("blueprint restore left the slot filled: %+v", p.Props.Selected)
 		}
 
 		// Blocks: restore an old version as the newest.
@@ -667,22 +883,22 @@ func TestServer(t *testing.T) {
 		// A signed-in browser tricked into posting from another site sends
 		// Sec-Fetch-Site: cross-site (or a foreign Origin); both are refused
 		// before any handler runs, session cookie or not.
-		before := client.Kit.Query().CountX(context.Background())
+		before := client.Blueprint.Query().CountX(context.Background())
 		for _, h := range []map[string]string{
 			{"Sec-Fetch-Site": "cross-site"},
 			{"Origin": "https://evil.example"},
 		} {
-			res := signedIn.raw(t, "POST", "/kits", `{"teamId":"x","displayName":"Evil","kind":"workload"}`, h)
+			res := signedIn.raw(t, "POST", "/blueprints", `{"teamId":"x","displayName":"Evil","kind":"workload"}`, h)
 			res.Body.Close()
 			if res.StatusCode != nethttp.StatusForbidden {
 				t.Fatalf("%v: status %d, want 403", h, res.StatusCode)
 			}
 		}
-		if after := client.Kit.Query().CountX(context.Background()); after != before {
-			t.Fatal("a cross-site post created a kit")
+		if after := client.Blueprint.Query().CountX(context.Background()); after != before {
+			t.Fatal("a cross-site post created a blueprint")
 		}
 		// Same-origin requests still work.
-		res := signedIn.raw(t, "GET", "/kits", "", map[string]string{"Sec-Fetch-Site": "same-origin"})
+		res := signedIn.raw(t, "GET", "/blueprints", "", map[string]string{"Sec-Fetch-Site": "same-origin"})
 		res.Body.Close()
 		if res.StatusCode != 200 {
 			t.Fatalf("same-origin GET: %d", res.StatusCode)
@@ -697,7 +913,7 @@ func TestServer(t *testing.T) {
 		if code, _ := signedIn.post(t, "/account/sign-out-everywhere", `{}`); code != 200 {
 			t.Fatalf("sign out everywhere: %d", code)
 		}
-		if code, loc := other.noFollow(t, "GET", "/kits", ""); code != nethttp.StatusSeeOther || loc != "/login" {
+		if code, loc := other.noFollow(t, "GET", "/blueprints", ""); code != nethttp.StatusSeeOther || loc != "/login" {
 			t.Fatalf("other session still works: %d → %q", code, loc)
 		}
 	})

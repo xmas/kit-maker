@@ -6,7 +6,7 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// Team is the unit of ownership: every kit, block, blueprint and integration
+// Team is the unit of ownership: every blueprint, block and integration
 // has an owner team. Teams nest, with view-only inheritance (DESIGN.md §13).
 type Team struct {
 	ent.Schema
@@ -30,6 +30,6 @@ func (Team) Edges() []ent.Edge {
 			From("parent").Field("parent_team_id").Unique(),
 		edge.To("memberships", TeamMembership.Type),
 		edge.To("blocks", Block.Type),
-		edge.To("kits", Kit.Type),
+		edge.To("blueprints", Blueprint.Type),
 	}
 }

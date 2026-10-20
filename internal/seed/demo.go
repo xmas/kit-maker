@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/docker/kit-maker/internal/blueprints/blocktypes"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 	"github.com/docker/kit-maker/internal/ent"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/check"
 	"github.com/docker/kit-maker/internal/ent/goal"
-	"github.com/docker/kit-maker/internal/ent/kit"
 	"github.com/docker/kit-maker/internal/ent/slot"
-	"github.com/docker/kit-maker/internal/kits/patch"
 )
 
 type demoBlock struct {
@@ -89,7 +90,7 @@ type demoSlot struct {
 	key, label, section string
 	required            bool
 	block               string     // linked block slug, "" = blank
-	overrides           []patch.Op // edits kept in this kit
+	overrides           []patch.Op // edits kept in this blueprint
 }
 
 var demoSlots = []demoSlot{
@@ -117,7 +118,7 @@ var demoChecks = []demoCheck{
 	{"Never post to Slack", "POST", "https://slack.com/api/chat.postMessage", "blocked"},
 }
 
-// demo seeds the starter blocks and the Acme Shop kit. It upgrades a kit
+// demo seeds the starter blocks and the Acme Shop blueprint. It upgrades a blueprint
 // seeded by the phase-0 skeleton in place.
 func demo(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User) error {
 	versions := map[string]*ent.BlockVersion{}
@@ -130,38 +131,44 @@ func demo(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User) error {
 		blocks[db.slug], versions[db.slug] = b, v
 	}
 	if err := polyglot(ctx, c, t, blocks, versions); err != nil {
-		return fmt.Errorf("polyglot kit: %w", err)
+		return fmt.Errorf("polyglot blueprint: %w", err)
+	}
+	if err := examples(ctx, c, t, u); err != nil {
+		return fmt.Errorf("spec examples: %w", err)
+	}
+	if err := profileSamples(ctx, c, t, u, blocks, versions); err != nil {
+		return fmt.Errorf("sample profiles: %w", err)
 	}
 
-	k, err := c.Kit.Query().Where(kit.TeamID(t.ID), kit.Slug("acme-shop")).Only(ctx)
+	k, err := c.Blueprint.Query().Where(blueprint.TeamID(t.ID), blueprint.Slug("acme-shop")).Only(ctx)
 	switch {
 	case ent.IsNotFound(err):
-		k, err = c.Kit.Create().SetTeam(t).SetSlug("acme-shop").SetDisplayName("Acme Shop").
-			SetKind(kit.KindMixin).SetImageRepository("acme/sbx-kit-acme-shop").Save(ctx)
+		k, err = c.Blueprint.Create().SetTeam(t).SetSlug("acme-shop").SetDisplayName("Acme Shop").
+			SetKind(blueprint.KindMixin).SetImageRepository("acme/sbx-kit-acme-shop").Save(ctx)
 		if err != nil {
-			return fmt.Errorf("kit: %w", err)
+			return fmt.Errorf("blueprint: %w", err)
 		}
 	case err != nil:
 		return err
 	}
-	if upgraded, err := c.Slot.Query().Where(slot.KitID(k.ID), slot.Key("deny-metadata")).Exist(ctx); err != nil {
+	if upgraded, err := c.Slot.Query().Where(slot.BlueprintID(k.ID), slot.Key("deny-metadata")).Exist(ctx); err != nil {
 		return err
 	} else if upgraded {
 		return nil
 	}
 
-	// Rebuild the outline (phase-0 skeleton kits had a placeholder layout).
-	old, err := c.Slot.Query().Where(slot.KitID(k.ID)).IDs(ctx)
+	// Rebuild the outline (phase-0 skeleton blueprints had a placeholder layout).
+	old, err := c.Slot.Query().Where(slot.BlueprintID(k.ID)).IDs(ctx)
 	if err != nil {
 		return err
 	}
 	if _, err := c.BlockLink.Delete().Where(blocklink.SlotIDIn(old...)).Exec(ctx); err != nil {
 		return err
 	}
-	if _, err := c.Slot.Delete().Where(slot.KitID(k.ID)).Exec(ctx); err != nil {
+	if _, err := c.Slot.Delete().Where(slot.BlueprintID(k.ID)).Exec(ctx); err != nil {
 		return err
 	}
-	if err := k.Update().SetKind(kit.KindMixin).
+	if err := k.Update().SetKind(blueprint.KindMixin).
 		SetDescription("Claude Code for the acme/shop Laravel monorepo: tests, GitHub, private Packagist.").Exec(ctx); err != nil {
 		return err
 	}
@@ -173,8 +180,8 @@ func demo(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User) error {
 		case !ds.required:
 			state = slot.StateOptional
 		}
-		sl, err := c.Slot.Create().SetKit(k).SetKey(ds.key).SetLabel(ds.label).SetSection(ds.section).
-			SetRequired(ds.required).SetState(state).SetPosition(i).Save(ctx)
+		sl, err := c.Slot.Create().SetBlueprint(k).SetKey(ds.key).SetLabel(ds.label).SetSection(ds.section).
+			SetBlockType(demoSlotType(ds, blocks)).SetRequired(ds.required).SetState(state).SetPosition(i).Save(ctx)
 		if err != nil {
 			return fmt.Errorf("slot %s: %w", ds.key, err)
 		}
@@ -187,19 +194,19 @@ func demo(ctx context.Context, c *ent.Client, t *ent.Team, u *ent.User) error {
 		}
 	}
 
-	if _, err := c.Goal.Delete().Where(goal.KitID(k.ID)).Exec(ctx); err != nil {
+	if _, err := c.Goal.Delete().Where(goal.BlueprintID(k.ID)).Exec(ctx); err != nil {
 		return err
 	}
-	if err := c.Goal.Create().SetKit(k).SetStatement("A Claude Code sandbox for our Laravel monorepo (acme/shop). " +
+	if err := c.Goal.Create().SetBlueprint(k).SetStatement("A Claude Code sandbox for our Laravel monorepo (acme/shop). " +
 		"It should run the test suite, push branches to GitHub and install packages from our private Packagist. " +
 		"It must never reach production or post to Slack.").Exec(ctx); err != nil {
 		return err
 	}
-	if _, err := c.Check.Delete().Where(check.KitID(k.ID)).Exec(ctx); err != nil {
+	if _, err := c.Check.Delete().Where(check.BlueprintID(k.ID)).Exec(ctx); err != nil {
 		return err
 	}
 	for i, dc := range demoChecks {
-		if err := c.Check.Create().SetKit(k).SetLabel(dc.label).SetType(check.TypeNetwork).
+		if err := c.Check.Create().SetBlueprint(k).SetLabel(dc.label).SetType(check.TypeNetwork).
 			SetSpec(map[string]any{"url": dc.url, "method": dc.method}).
 			SetExpect(check.Expect(dc.expect)).SetPosition(i).Exec(ctx); err != nil {
 			return err
@@ -259,25 +266,25 @@ var polyglotSlots = []demoSlot{
 	{"github-token", "GitHub token", "credentials", true, "github-token", nil},
 }
 
-// polyglot seeds the "Polyglot CI" kit once; after that it is the user's.
+// polyglot seeds the "Polyglot CI" blueprint once; after that it is the user's.
 func polyglot(ctx context.Context, c *ent.Client, t *ent.Team, blocks map[string]*ent.Block, versions map[string]*ent.BlockVersion) error {
-	exists, err := c.Kit.Query().Where(kit.TeamID(t.ID), kit.Slug("polyglot-ci")).Exist(ctx)
+	exists, err := c.Blueprint.Query().Where(blueprint.TeamID(t.ID), blueprint.Slug("polyglot-ci")).Exist(ctx)
 	if err != nil || exists {
 		return err
 	}
 	// The seed already runs in a transaction (seed.Run).
-	k, err := c.Kit.Create().SetTeam(t).SetSlug("polyglot-ci").SetDisplayName("Polyglot CI").SetKind(kit.KindWorkload).
+	k, err := c.Blueprint.Create().SetTeam(t).SetSlug("polyglot-ci").SetDisplayName("Polyglot CI").SetKind(blueprint.KindWorkload).
 		SetDescription("Demo: blocks with install and runtime, allow and deny rules, merged into one policy.").Save(ctx)
 	if err != nil {
 		return err
 	}
-	if err := c.Goal.Create().SetKit(k).SetStatement("A CI agent for acme's Node and Python services. It installs packages, " +
+	if err := c.Goal.Create().SetBlueprint(k).SetStatement("A CI agent for acme's Node and Python services. It installs packages, " +
 		"reports errors to Sentry and calls acme's v1 API. It must never publish packages, touch the admin console or write to prod.").Exec(ctx); err != nil {
 		return err
 	}
 	for i, ds := range polyglotSlots {
-		sl, err := c.Slot.Create().SetKit(k).SetKey(ds.key).SetLabel(ds.label).SetSection(ds.section).
-			SetRequired(ds.required).SetState(slot.StateFilled).SetPosition(i).Save(ctx)
+		sl, err := c.Slot.Create().SetBlueprint(k).SetKey(ds.key).SetLabel(ds.label).SetSection(ds.section).
+			SetBlockType(demoSlotType(ds, blocks)).SetRequired(ds.required).SetState(slot.StateFilled).SetPosition(i).Save(ctx)
 		if err != nil {
 			return fmt.Errorf("slot %s: %w", ds.key, err)
 		}
@@ -287,4 +294,19 @@ func polyglot(ctx context.Context, c *ent.Client, t *ent.Team, blocks map[string
 		}
 	}
 	return nil
+}
+
+// demoSlotType is the block type a demo slot takes: its block's, or for a
+// blank, the type its section held before slots stored one.
+func demoSlotType(ds demoSlot, blocks map[string]*ent.Block) string {
+	if b := blocks[ds.block]; b != nil {
+		return b.Type
+	}
+	switch ds.section {
+	case "network":
+		return blocktypes.NetworkRules
+	case "credentials":
+		return blocktypes.Credential
+	}
+	return blocktypes.RawCapability
 }

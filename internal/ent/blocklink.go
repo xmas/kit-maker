@@ -10,11 +10,11 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
 	"github.com/docker/kit-maker/internal/ent/slot"
-	"github.com/docker/kit-maker/internal/kits/patch"
 )
 
 // BlockLink is the model entity for the BlockLink schema.

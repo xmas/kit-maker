@@ -20,8 +20,8 @@ const (
 	FieldTeamID = "team_id"
 	// FieldUserID holds the string denoting the user_id field in the database.
 	FieldUserID = "user_id"
-	// FieldKitID holds the string denoting the kit_id field in the database.
-	FieldKitID = "kit_id"
+	// FieldBlueprintID holds the string denoting the blueprint_id field in the database.
+	FieldBlueprintID = "blueprint_id"
 	// FieldRoute holds the string denoting the route field in the database.
 	FieldRoute = "route"
 	// FieldProvider holds the string denoting the provider field in the database.
@@ -52,7 +52,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldTeamID,
 	FieldUserID,
-	FieldKitID,
+	FieldBlueprintID,
 	FieldRoute,
 	FieldProvider,
 	FieldModel,
@@ -142,9 +142,9 @@ func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUserID, opts...).ToFunc()
 }
 
-// ByKitID orders the results by the kit_id field.
-func ByKitID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKitID, opts...).ToFunc()
+// ByBlueprintID orders the results by the blueprint_id field.
+func ByBlueprintID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBlueprintID, opts...).ToFunc()
 }
 
 // ByRoute orders the results by the route field.

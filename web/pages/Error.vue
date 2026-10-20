@@ -18,7 +18,7 @@ defineProps<{ status: number; title: string; message: string }>()
         <h1 class="text-xl font-semibold">{{ title }}</h1>
         <p class="text-sm text-muted-foreground">{{ message }}</p>
       </div>
-      <Link href="/kits" class="text-sm font-medium text-primary hover:underline">Back to kits</Link>
+      <Link href="/blueprints" class="text-sm font-medium text-primary hover:underline">Back to blueprints</Link>
     </main>
   </AppShell>
 </template>

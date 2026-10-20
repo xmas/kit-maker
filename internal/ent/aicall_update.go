@@ -67,23 +67,23 @@ func (_u *AICallUpdate) ClearUserID() *AICallUpdate {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *AICallUpdate) SetKitID(v string) *AICallUpdate {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *AICallUpdate) SetBlueprintID(v string) *AICallUpdate {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *AICallUpdate) SetNillableKitID(v *string) *AICallUpdate {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *AICallUpdate) SetNillableBlueprintID(v *string) *AICallUpdate {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
 
-// ClearKitID clears the value of the "kit_id" field.
-func (_u *AICallUpdate) ClearKitID() *AICallUpdate {
-	_u.mutation.ClearKitID()
+// ClearBlueprintID clears the value of the "blueprint_id" field.
+func (_u *AICallUpdate) ClearBlueprintID() *AICallUpdate {
+	_u.mutation.ClearBlueprintID()
 	return _u
 }
 
@@ -340,11 +340,11 @@ func (_u *AICallUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.UserIDCleared() {
 		_spec.ClearField(aicall.FieldUserID, field.TypeString)
 	}
-	if value, ok := _u.mutation.KitID(); ok {
-		_spec.SetField(aicall.FieldKitID, field.TypeString, value)
+	if value, ok := _u.mutation.BlueprintID(); ok {
+		_spec.SetField(aicall.FieldBlueprintID, field.TypeString, value)
 	}
-	if _u.mutation.KitIDCleared() {
-		_spec.ClearField(aicall.FieldKitID, field.TypeString)
+	if _u.mutation.BlueprintIDCleared() {
+		_spec.ClearField(aicall.FieldBlueprintID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Route(); ok {
 		_spec.SetField(aicall.FieldRoute, field.TypeString, value)
@@ -457,23 +457,23 @@ func (_u *AICallUpdateOne) ClearUserID() *AICallUpdateOne {
 	return _u
 }
 
-// SetKitID sets the "kit_id" field.
-func (_u *AICallUpdateOne) SetKitID(v string) *AICallUpdateOne {
-	_u.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_u *AICallUpdateOne) SetBlueprintID(v string) *AICallUpdateOne {
+	_u.mutation.SetBlueprintID(v)
 	return _u
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_u *AICallUpdateOne) SetNillableKitID(v *string) *AICallUpdateOne {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_u *AICallUpdateOne) SetNillableBlueprintID(v *string) *AICallUpdateOne {
 	if v != nil {
-		_u.SetKitID(*v)
+		_u.SetBlueprintID(*v)
 	}
 	return _u
 }
 
-// ClearKitID clears the value of the "kit_id" field.
-func (_u *AICallUpdateOne) ClearKitID() *AICallUpdateOne {
-	_u.mutation.ClearKitID()
+// ClearBlueprintID clears the value of the "blueprint_id" field.
+func (_u *AICallUpdateOne) ClearBlueprintID() *AICallUpdateOne {
+	_u.mutation.ClearBlueprintID()
 	return _u
 }
 
@@ -760,11 +760,11 @@ func (_u *AICallUpdateOne) sqlSave(ctx context.Context) (_node *AICall, err erro
 	if _u.mutation.UserIDCleared() {
 		_spec.ClearField(aicall.FieldUserID, field.TypeString)
 	}
-	if value, ok := _u.mutation.KitID(); ok {
-		_spec.SetField(aicall.FieldKitID, field.TypeString, value)
+	if value, ok := _u.mutation.BlueprintID(); ok {
+		_spec.SetField(aicall.FieldBlueprintID, field.TypeString, value)
 	}
-	if _u.mutation.KitIDCleared() {
-		_spec.ClearField(aicall.FieldKitID, field.TypeString)
+	if _u.mutation.BlueprintIDCleared() {
+		_spec.ClearField(aicall.FieldBlueprintID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Route(); ok {
 		_spec.SetField(aicall.FieldRoute, field.TypeString, value)

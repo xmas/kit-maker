@@ -467,21 +467,21 @@ func HasBlocksWith(preds ...predicate.Block) predicate.Team {
 	})
 }
 
-// HasKits applies the HasEdge predicate on the "kits" edge.
-func HasKits() predicate.Team {
+// HasBlueprints applies the HasEdge predicate on the "blueprints" edge.
+func HasBlueprints() predicate.Team {
 	return predicate.Team(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, KitsTable, KitsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, BlueprintsTable, BlueprintsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasKitsWith applies the HasEdge predicate on the "kits" edge with a given conditions (other predicates).
-func HasKitsWith(preds ...predicate.Kit) predicate.Team {
+// HasBlueprintsWith applies the HasEdge predicate on the "blueprints" edge with a given conditions (other predicates).
+func HasBlueprintsWith(preds ...predicate.Blueprint) predicate.Team {
 	return predicate.Team(func(s *sql.Selector) {
-		step := newKitsStep()
+		step := newBlueprintsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

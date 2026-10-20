@@ -7,7 +7,7 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// Goal is a kit's purpose in plain language; checks are derived from it.
+// Goal is a blueprint's purpose in plain language; checks are derived from it.
 type Goal struct {
 	ent.Schema
 }
@@ -18,7 +18,7 @@ func (Goal) Mixin() []ent.Mixin {
 
 func (Goal) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("kit_id").Unique(),
+		field.String("blueprint_id").Unique(),
 		field.Text("statement").NotEmpty(),
 		field.JSON("sources", map[string]any{}).Optional().Comment("repo, kit yaml, dockerfile, sbx-scan"),
 	}
@@ -26,11 +26,11 @@ func (Goal) Fields() []ent.Field {
 
 func (Goal) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("kit", Kit.Type).Ref("goal").Field("kit_id").Unique().Required(),
+		edge.From("blueprint", Blueprint.Type).Ref("goal").Field("blueprint_id").Unique().Required(),
 	}
 }
 
-// Check is one testable expectation of a kit (DESIGN.md §2).
+// Check is one testable expectation of a blueprint (DESIGN.md §2).
 type Check struct {
 	ent.Schema
 }
@@ -41,7 +41,7 @@ func (Check) Mixin() []ent.Mixin {
 
 func (Check) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("kit_id"),
+		field.String("blueprint_id"),
 		field.String("label").NotEmpty(),
 		field.Enum("type").Values("network", "credential", "tool", "setup", "agent", "manual"),
 		field.JSON("spec", map[string]any{}).Comment("network: {url, method}"),
@@ -53,10 +53,10 @@ func (Check) Fields() []ent.Field {
 
 func (Check) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("kit", Kit.Type).Ref("checks").Field("kit_id").Unique().Required(),
+		edge.From("blueprint", Blueprint.Type).Ref("checks").Field("blueprint_id").Unique().Required(),
 	}
 }
 
 func (Check) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("kit_id", "position")}
+	return []ent.Index{index.Fields("blueprint_id", "position")}
 }

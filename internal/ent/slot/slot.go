@@ -19,10 +19,10 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldKitID holds the string denoting the kit_id field in the database.
-	FieldKitID = "kit_id"
-	// FieldOriginKitID holds the string denoting the origin_kit_id field in the database.
-	FieldOriginKitID = "origin_kit_id"
+	// FieldBlueprintID holds the string denoting the blueprint_id field in the database.
+	FieldBlueprintID = "blueprint_id"
+	// FieldOriginBlueprintID holds the string denoting the origin_blueprint_id field in the database.
+	FieldOriginBlueprintID = "origin_blueprint_id"
 	// FieldOverridesSlotID holds the string denoting the overrides_slot_id field in the database.
 	FieldOverridesSlotID = "overrides_slot_id"
 	// FieldKey holds the string denoting the key field in the database.
@@ -31,6 +31,8 @@ const (
 	FieldLabel = "label"
 	// FieldSection holds the string denoting the section field in the database.
 	FieldSection = "section"
+	// FieldBlockType holds the string denoting the block_type field in the database.
+	FieldBlockType = "block_type"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
 	// FieldRequired holds the string denoting the required field in the database.
@@ -41,10 +43,10 @@ const (
 	FieldOptionalCapability = "optional_capability"
 	// FieldGroupName holds the string denoting the group_name field in the database.
 	FieldGroupName = "group_name"
-	// EdgeKit holds the string denoting the kit edge name in mutations.
-	EdgeKit = "kit"
-	// EdgeOriginKit holds the string denoting the origin_kit edge name in mutations.
-	EdgeOriginKit = "origin_kit"
+	// EdgeBlueprint holds the string denoting the blueprint edge name in mutations.
+	EdgeBlueprint = "blueprint"
+	// EdgeOriginBlueprint holds the string denoting the origin_blueprint edge name in mutations.
+	EdgeOriginBlueprint = "origin_blueprint"
 	// EdgeOverrides holds the string denoting the overrides edge name in mutations.
 	EdgeOverrides = "overrides"
 	// EdgeOverriddenBy holds the string denoting the overridden_by edge name in mutations.
@@ -53,20 +55,20 @@ const (
 	EdgeLink = "link"
 	// Table holds the table name of the slot in the database.
 	Table = "slots"
-	// KitTable is the table that holds the kit relation/edge.
-	KitTable = "slots"
-	// KitInverseTable is the table name for the Kit entity.
-	// It exists in this package in order to avoid circular dependency with the "kit" package.
-	KitInverseTable = "kits"
-	// KitColumn is the table column denoting the kit relation/edge.
-	KitColumn = "kit_id"
-	// OriginKitTable is the table that holds the origin_kit relation/edge.
-	OriginKitTable = "slots"
-	// OriginKitInverseTable is the table name for the Kit entity.
-	// It exists in this package in order to avoid circular dependency with the "kit" package.
-	OriginKitInverseTable = "kits"
-	// OriginKitColumn is the table column denoting the origin_kit relation/edge.
-	OriginKitColumn = "origin_kit_id"
+	// BlueprintTable is the table that holds the blueprint relation/edge.
+	BlueprintTable = "slots"
+	// BlueprintInverseTable is the table name for the Blueprint entity.
+	// It exists in this package in order to avoid circular dependency with the "blueprint" package.
+	BlueprintInverseTable = "blueprints"
+	// BlueprintColumn is the table column denoting the blueprint relation/edge.
+	BlueprintColumn = "blueprint_id"
+	// OriginBlueprintTable is the table that holds the origin_blueprint relation/edge.
+	OriginBlueprintTable = "slots"
+	// OriginBlueprintInverseTable is the table name for the Blueprint entity.
+	// It exists in this package in order to avoid circular dependency with the "blueprint" package.
+	OriginBlueprintInverseTable = "blueprints"
+	// OriginBlueprintColumn is the table column denoting the origin_blueprint relation/edge.
+	OriginBlueprintColumn = "origin_blueprint_id"
 	// OverridesTable is the table that holds the overrides relation/edge.
 	OverridesTable = "slots"
 	// OverridesColumn is the table column denoting the overrides relation/edge.
@@ -89,12 +91,13 @@ var Columns = []string{
 	FieldID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldKitID,
-	FieldOriginKitID,
+	FieldBlueprintID,
+	FieldOriginBlueprintID,
 	FieldOverridesSlotID,
 	FieldKey,
 	FieldLabel,
 	FieldSection,
+	FieldBlockType,
 	FieldState,
 	FieldRequired,
 	FieldPosition,
@@ -125,6 +128,8 @@ var (
 	DefaultLabel string
 	// SectionValidator is a validator for the "section" field. It is called by the builders before save.
 	SectionValidator func(string) error
+	// DefaultBlockType holds the default value on creation for the "block_type" field.
+	DefaultBlockType string
 	// DefaultRequired holds the default value on creation for the "required" field.
 	DefaultRequired bool
 	// DefaultPosition holds the default value on creation for the "position" field.
@@ -183,14 +188,14 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByKitID orders the results by the kit_id field.
-func ByKitID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldKitID, opts...).ToFunc()
+// ByBlueprintID orders the results by the blueprint_id field.
+func ByBlueprintID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBlueprintID, opts...).ToFunc()
 }
 
-// ByOriginKitID orders the results by the origin_kit_id field.
-func ByOriginKitID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOriginKitID, opts...).ToFunc()
+// ByOriginBlueprintID orders the results by the origin_blueprint_id field.
+func ByOriginBlueprintID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOriginBlueprintID, opts...).ToFunc()
 }
 
 // ByOverridesSlotID orders the results by the overrides_slot_id field.
@@ -211,6 +216,11 @@ func ByLabel(opts ...sql.OrderTermOption) OrderOption {
 // BySection orders the results by the section field.
 func BySection(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSection, opts...).ToFunc()
+}
+
+// ByBlockType orders the results by the block_type field.
+func ByBlockType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBlockType, opts...).ToFunc()
 }
 
 // ByState orders the results by the state field.
@@ -238,17 +248,17 @@ func ByGroupName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldGroupName, opts...).ToFunc()
 }
 
-// ByKitField orders the results by kit field.
-func ByKitField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByBlueprintField orders the results by blueprint field.
+func ByBlueprintField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newKitStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newBlueprintStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByOriginKitField orders the results by origin_kit field.
-func ByOriginKitField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByOriginBlueprintField orders the results by origin_blueprint field.
+func ByOriginBlueprintField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOriginKitStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newOriginBlueprintStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -272,18 +282,18 @@ func ByLinkField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newLinkStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newKitStep() *sqlgraph.Step {
+func newBlueprintStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(KitInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, KitTable, KitColumn),
+		sqlgraph.To(BlueprintInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BlueprintTable, BlueprintColumn),
 	)
 }
-func newOriginKitStep() *sqlgraph.Step {
+func newOriginBlueprintStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(OriginKitInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, OriginKitTable, OriginKitColumn),
+		sqlgraph.To(OriginBlueprintInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OriginBlueprintTable, OriginBlueprintColumn),
 	)
 }
 func newOverridesStep() *sqlgraph.Step {

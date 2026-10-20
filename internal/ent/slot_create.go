@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/slot"
 )
 
@@ -53,22 +53,22 @@ func (_c *SlotCreate) SetNillableUpdatedAt(v *time.Time) *SlotCreate {
 	return _c
 }
 
-// SetKitID sets the "kit_id" field.
-func (_c *SlotCreate) SetKitID(v string) *SlotCreate {
-	_c.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_c *SlotCreate) SetBlueprintID(v string) *SlotCreate {
+	_c.mutation.SetBlueprintID(v)
 	return _c
 }
 
-// SetOriginKitID sets the "origin_kit_id" field.
-func (_c *SlotCreate) SetOriginKitID(v string) *SlotCreate {
-	_c.mutation.SetOriginKitID(v)
+// SetOriginBlueprintID sets the "origin_blueprint_id" field.
+func (_c *SlotCreate) SetOriginBlueprintID(v string) *SlotCreate {
+	_c.mutation.SetOriginBlueprintID(v)
 	return _c
 }
 
-// SetNillableOriginKitID sets the "origin_kit_id" field if the given value is not nil.
-func (_c *SlotCreate) SetNillableOriginKitID(v *string) *SlotCreate {
+// SetNillableOriginBlueprintID sets the "origin_blueprint_id" field if the given value is not nil.
+func (_c *SlotCreate) SetNillableOriginBlueprintID(v *string) *SlotCreate {
 	if v != nil {
-		_c.SetOriginKitID(*v)
+		_c.SetOriginBlueprintID(*v)
 	}
 	return _c
 }
@@ -110,6 +110,20 @@ func (_c *SlotCreate) SetNillableLabel(v *string) *SlotCreate {
 // SetSection sets the "section" field.
 func (_c *SlotCreate) SetSection(v string) *SlotCreate {
 	_c.mutation.SetSection(v)
+	return _c
+}
+
+// SetBlockType sets the "block_type" field.
+func (_c *SlotCreate) SetBlockType(v string) *SlotCreate {
+	_c.mutation.SetBlockType(v)
+	return _c
+}
+
+// SetNillableBlockType sets the "block_type" field if the given value is not nil.
+func (_c *SlotCreate) SetNillableBlockType(v *string) *SlotCreate {
+	if v != nil {
+		_c.SetBlockType(*v)
+	}
 	return _c
 }
 
@@ -197,14 +211,14 @@ func (_c *SlotCreate) SetNillableID(v *string) *SlotCreate {
 	return _c
 }
 
-// SetKit sets the "kit" edge to the Kit entity.
-func (_c *SlotCreate) SetKit(v *Kit) *SlotCreate {
-	return _c.SetKitID(v.ID)
+// SetBlueprint sets the "blueprint" edge to the Blueprint entity.
+func (_c *SlotCreate) SetBlueprint(v *Blueprint) *SlotCreate {
+	return _c.SetBlueprintID(v.ID)
 }
 
-// SetOriginKit sets the "origin_kit" edge to the Kit entity.
-func (_c *SlotCreate) SetOriginKit(v *Kit) *SlotCreate {
-	return _c.SetOriginKitID(v.ID)
+// SetOriginBlueprint sets the "origin_blueprint" edge to the Blueprint entity.
+func (_c *SlotCreate) SetOriginBlueprint(v *Blueprint) *SlotCreate {
+	return _c.SetOriginBlueprintID(v.ID)
 }
 
 // SetOverridesID sets the "overrides" edge to the Slot entity by ID.
@@ -311,6 +325,10 @@ func (_c *SlotCreate) defaults() {
 		v := slot.DefaultLabel
 		_c.mutation.SetLabel(v)
 	}
+	if _, ok := _c.mutation.BlockType(); !ok {
+		v := slot.DefaultBlockType
+		_c.mutation.SetBlockType(v)
+	}
 	if _, ok := _c.mutation.State(); !ok {
 		v := slot.DefaultState
 		_c.mutation.SetState(v)
@@ -341,8 +359,8 @@ func (_c *SlotCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Slot.updated_at"`)}
 	}
-	if _, ok := _c.mutation.KitID(); !ok {
-		return &ValidationError{Name: "kit_id", err: errors.New(`ent: missing required field "Slot.kit_id"`)}
+	if _, ok := _c.mutation.BlueprintID(); !ok {
+		return &ValidationError{Name: "blueprint_id", err: errors.New(`ent: missing required field "Slot.blueprint_id"`)}
 	}
 	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`ent: missing required field "Slot.key"`)}
@@ -362,6 +380,9 @@ func (_c *SlotCreate) check() error {
 		if err := slot.SectionValidator(v); err != nil {
 			return &ValidationError{Name: "section", err: fmt.Errorf(`ent: validator failed for field "Slot.section": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.BlockType(); !ok {
+		return &ValidationError{Name: "block_type", err: errors.New(`ent: missing required field "Slot.block_type"`)}
 	}
 	if _, ok := _c.mutation.State(); !ok {
 		return &ValidationError{Name: "state", err: errors.New(`ent: missing required field "Slot.state"`)}
@@ -385,8 +406,8 @@ func (_c *SlotCreate) check() error {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "Slot.id": %w`, err)}
 		}
 	}
-	if len(_c.mutation.KitIDs()) == 0 {
-		return &ValidationError{Name: "kit", err: errors.New(`ent: missing required edge "Slot.kit"`)}
+	if len(_c.mutation.BlueprintIDs()) == 0 {
+		return &ValidationError{Name: "blueprint", err: errors.New(`ent: missing required edge "Slot.blueprint"`)}
 	}
 	return nil
 }
@@ -444,6 +465,10 @@ func (_c *SlotCreate) createSpec() (*Slot, *sqlgraph.CreateSpec) {
 		_spec.SetField(slot.FieldSection, field.TypeString, value)
 		_node.Section = value
 	}
+	if value, ok := _c.mutation.BlockType(); ok {
+		_spec.SetField(slot.FieldBlockType, field.TypeString, value)
+		_node.BlockType = value
+	}
 	if value, ok := _c.mutation.State(); ok {
 		_spec.SetField(slot.FieldState, field.TypeEnum, value)
 		_node.State = value
@@ -464,38 +489,38 @@ func (_c *SlotCreate) createSpec() (*Slot, *sqlgraph.CreateSpec) {
 		_spec.SetField(slot.FieldGroupName, field.TypeString, value)
 		_node.GroupName = &value
 	}
-	if nodes := _c.mutation.KitIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.KitTable,
-			Columns: []string{slot.KitColumn},
+			Table:   slot.BlueprintTable,
+			Columns: []string{slot.BlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.KitID = nodes[0]
+		_node.BlueprintID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.OriginKitIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.OriginBlueprintIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   slot.OriginKitTable,
-			Columns: []string{slot.OriginKitColumn},
+			Table:   slot.OriginBlueprintTable,
+			Columns: []string{slot.OriginBlueprintColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.OriginKitID = &nodes[0]
+		_node.OriginBlueprintID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.OverridesIDs(); len(nodes) > 0 {
@@ -611,33 +636,33 @@ func (u *SlotUpsert) UpdateUpdatedAt() *SlotUpsert {
 	return u
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *SlotUpsert) SetKitID(v string) *SlotUpsert {
-	u.Set(slot.FieldKitID, v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *SlotUpsert) SetBlueprintID(v string) *SlotUpsert {
+	u.Set(slot.FieldBlueprintID, v)
 	return u
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *SlotUpsert) UpdateKitID() *SlotUpsert {
-	u.SetExcluded(slot.FieldKitID)
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *SlotUpsert) UpdateBlueprintID() *SlotUpsert {
+	u.SetExcluded(slot.FieldBlueprintID)
 	return u
 }
 
-// SetOriginKitID sets the "origin_kit_id" field.
-func (u *SlotUpsert) SetOriginKitID(v string) *SlotUpsert {
-	u.Set(slot.FieldOriginKitID, v)
+// SetOriginBlueprintID sets the "origin_blueprint_id" field.
+func (u *SlotUpsert) SetOriginBlueprintID(v string) *SlotUpsert {
+	u.Set(slot.FieldOriginBlueprintID, v)
 	return u
 }
 
-// UpdateOriginKitID sets the "origin_kit_id" field to the value that was provided on create.
-func (u *SlotUpsert) UpdateOriginKitID() *SlotUpsert {
-	u.SetExcluded(slot.FieldOriginKitID)
+// UpdateOriginBlueprintID sets the "origin_blueprint_id" field to the value that was provided on create.
+func (u *SlotUpsert) UpdateOriginBlueprintID() *SlotUpsert {
+	u.SetExcluded(slot.FieldOriginBlueprintID)
 	return u
 }
 
-// ClearOriginKitID clears the value of the "origin_kit_id" field.
-func (u *SlotUpsert) ClearOriginKitID() *SlotUpsert {
-	u.SetNull(slot.FieldOriginKitID)
+// ClearOriginBlueprintID clears the value of the "origin_blueprint_id" field.
+func (u *SlotUpsert) ClearOriginBlueprintID() *SlotUpsert {
+	u.SetNull(slot.FieldOriginBlueprintID)
 	return u
 }
 
@@ -692,6 +717,18 @@ func (u *SlotUpsert) SetSection(v string) *SlotUpsert {
 // UpdateSection sets the "section" field to the value that was provided on create.
 func (u *SlotUpsert) UpdateSection() *SlotUpsert {
 	u.SetExcluded(slot.FieldSection)
+	return u
+}
+
+// SetBlockType sets the "block_type" field.
+func (u *SlotUpsert) SetBlockType(v string) *SlotUpsert {
+	u.Set(slot.FieldBlockType, v)
+	return u
+}
+
+// UpdateBlockType sets the "block_type" field to the value that was provided on create.
+func (u *SlotUpsert) UpdateBlockType() *SlotUpsert {
+	u.SetExcluded(slot.FieldBlockType)
 	return u
 }
 
@@ -832,38 +869,38 @@ func (u *SlotUpsertOne) UpdateUpdatedAt() *SlotUpsertOne {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *SlotUpsertOne) SetKitID(v string) *SlotUpsertOne {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *SlotUpsertOne) SetBlueprintID(v string) *SlotUpsertOne {
 	return u.Update(func(s *SlotUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *SlotUpsertOne) UpdateKitID() *SlotUpsertOne {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *SlotUpsertOne) UpdateBlueprintID() *SlotUpsertOne {
 	return u.Update(func(s *SlotUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 
-// SetOriginKitID sets the "origin_kit_id" field.
-func (u *SlotUpsertOne) SetOriginKitID(v string) *SlotUpsertOne {
+// SetOriginBlueprintID sets the "origin_blueprint_id" field.
+func (u *SlotUpsertOne) SetOriginBlueprintID(v string) *SlotUpsertOne {
 	return u.Update(func(s *SlotUpsert) {
-		s.SetOriginKitID(v)
+		s.SetOriginBlueprintID(v)
 	})
 }
 
-// UpdateOriginKitID sets the "origin_kit_id" field to the value that was provided on create.
-func (u *SlotUpsertOne) UpdateOriginKitID() *SlotUpsertOne {
+// UpdateOriginBlueprintID sets the "origin_blueprint_id" field to the value that was provided on create.
+func (u *SlotUpsertOne) UpdateOriginBlueprintID() *SlotUpsertOne {
 	return u.Update(func(s *SlotUpsert) {
-		s.UpdateOriginKitID()
+		s.UpdateOriginBlueprintID()
 	})
 }
 
-// ClearOriginKitID clears the value of the "origin_kit_id" field.
-func (u *SlotUpsertOne) ClearOriginKitID() *SlotUpsertOne {
+// ClearOriginBlueprintID clears the value of the "origin_blueprint_id" field.
+func (u *SlotUpsertOne) ClearOriginBlueprintID() *SlotUpsertOne {
 	return u.Update(func(s *SlotUpsert) {
-		s.ClearOriginKitID()
+		s.ClearOriginBlueprintID()
 	})
 }
 
@@ -927,6 +964,20 @@ func (u *SlotUpsertOne) SetSection(v string) *SlotUpsertOne {
 func (u *SlotUpsertOne) UpdateSection() *SlotUpsertOne {
 	return u.Update(func(s *SlotUpsert) {
 		s.UpdateSection()
+	})
+}
+
+// SetBlockType sets the "block_type" field.
+func (u *SlotUpsertOne) SetBlockType(v string) *SlotUpsertOne {
+	return u.Update(func(s *SlotUpsert) {
+		s.SetBlockType(v)
+	})
+}
+
+// UpdateBlockType sets the "block_type" field to the value that was provided on create.
+func (u *SlotUpsertOne) UpdateBlockType() *SlotUpsertOne {
+	return u.Update(func(s *SlotUpsert) {
+		s.UpdateBlockType()
 	})
 }
 
@@ -1246,38 +1297,38 @@ func (u *SlotUpsertBulk) UpdateUpdatedAt() *SlotUpsertBulk {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *SlotUpsertBulk) SetKitID(v string) *SlotUpsertBulk {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *SlotUpsertBulk) SetBlueprintID(v string) *SlotUpsertBulk {
 	return u.Update(func(s *SlotUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *SlotUpsertBulk) UpdateKitID() *SlotUpsertBulk {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *SlotUpsertBulk) UpdateBlueprintID() *SlotUpsertBulk {
 	return u.Update(func(s *SlotUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 
-// SetOriginKitID sets the "origin_kit_id" field.
-func (u *SlotUpsertBulk) SetOriginKitID(v string) *SlotUpsertBulk {
+// SetOriginBlueprintID sets the "origin_blueprint_id" field.
+func (u *SlotUpsertBulk) SetOriginBlueprintID(v string) *SlotUpsertBulk {
 	return u.Update(func(s *SlotUpsert) {
-		s.SetOriginKitID(v)
+		s.SetOriginBlueprintID(v)
 	})
 }
 
-// UpdateOriginKitID sets the "origin_kit_id" field to the value that was provided on create.
-func (u *SlotUpsertBulk) UpdateOriginKitID() *SlotUpsertBulk {
+// UpdateOriginBlueprintID sets the "origin_blueprint_id" field to the value that was provided on create.
+func (u *SlotUpsertBulk) UpdateOriginBlueprintID() *SlotUpsertBulk {
 	return u.Update(func(s *SlotUpsert) {
-		s.UpdateOriginKitID()
+		s.UpdateOriginBlueprintID()
 	})
 }
 
-// ClearOriginKitID clears the value of the "origin_kit_id" field.
-func (u *SlotUpsertBulk) ClearOriginKitID() *SlotUpsertBulk {
+// ClearOriginBlueprintID clears the value of the "origin_blueprint_id" field.
+func (u *SlotUpsertBulk) ClearOriginBlueprintID() *SlotUpsertBulk {
 	return u.Update(func(s *SlotUpsert) {
-		s.ClearOriginKitID()
+		s.ClearOriginBlueprintID()
 	})
 }
 
@@ -1341,6 +1392,20 @@ func (u *SlotUpsertBulk) SetSection(v string) *SlotUpsertBulk {
 func (u *SlotUpsertBulk) UpdateSection() *SlotUpsertBulk {
 	return u.Update(func(s *SlotUpsert) {
 		s.UpdateSection()
+	})
+}
+
+// SetBlockType sets the "block_type" field.
+func (u *SlotUpsertBulk) SetBlockType(v string) *SlotUpsertBulk {
+	return u.Update(func(s *SlotUpsert) {
+		s.SetBlockType(v)
+	})
+}
+
+// UpdateBlockType sets the "block_type" field to the value that was provided on create.
+func (u *SlotUpsertBulk) UpdateBlockType() *SlotUpsertBulk {
+	return u.Update(func(s *SlotUpsert) {
+		s.UpdateBlockType()
 	})
 }
 

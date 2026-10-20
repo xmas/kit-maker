@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/block"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/team"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
@@ -149,19 +149,19 @@ func (_u *TeamUpdate) AddBlocks(v ...*Block) *TeamUpdate {
 	return _u.AddBlockIDs(ids...)
 }
 
-// AddKitIDs adds the "kits" edge to the Kit entity by IDs.
-func (_u *TeamUpdate) AddKitIDs(ids ...string) *TeamUpdate {
-	_u.mutation.AddKitIDs(ids...)
+// AddBlueprintIDs adds the "blueprints" edge to the Blueprint entity by IDs.
+func (_u *TeamUpdate) AddBlueprintIDs(ids ...string) *TeamUpdate {
+	_u.mutation.AddBlueprintIDs(ids...)
 	return _u
 }
 
-// AddKits adds the "kits" edges to the Kit entity.
-func (_u *TeamUpdate) AddKits(v ...*Kit) *TeamUpdate {
+// AddBlueprints adds the "blueprints" edges to the Blueprint entity.
+func (_u *TeamUpdate) AddBlueprints(v ...*Blueprint) *TeamUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddKitIDs(ids...)
+	return _u.AddBlueprintIDs(ids...)
 }
 
 // Mutation returns the TeamMutation object of the builder.
@@ -238,25 +238,25 @@ func (_u *TeamUpdate) RemoveBlocks(v ...*Block) *TeamUpdate {
 	return _u.RemoveBlockIDs(ids...)
 }
 
-// ClearKits clears all "kits" edges to the Kit entity.
-func (_u *TeamUpdate) ClearKits() *TeamUpdate {
-	_u.mutation.ClearKits()
+// ClearBlueprints clears all "blueprints" edges to the Blueprint entity.
+func (_u *TeamUpdate) ClearBlueprints() *TeamUpdate {
+	_u.mutation.ClearBlueprints()
 	return _u
 }
 
-// RemoveKitIDs removes the "kits" edge to Kit entities by IDs.
-func (_u *TeamUpdate) RemoveKitIDs(ids ...string) *TeamUpdate {
-	_u.mutation.RemoveKitIDs(ids...)
+// RemoveBlueprintIDs removes the "blueprints" edge to Blueprint entities by IDs.
+func (_u *TeamUpdate) RemoveBlueprintIDs(ids ...string) *TeamUpdate {
+	_u.mutation.RemoveBlueprintIDs(ids...)
 	return _u
 }
 
-// RemoveKits removes "kits" edges to Kit entities.
-func (_u *TeamUpdate) RemoveKits(v ...*Kit) *TeamUpdate {
+// RemoveBlueprints removes "blueprints" edges to Blueprint entities.
+func (_u *TeamUpdate) RemoveBlueprints(v ...*Blueprint) *TeamUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveKitIDs(ids...)
+	return _u.RemoveBlueprintIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -495,28 +495,28 @@ func (_u *TeamUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.KitsCleared() {
+	if _u.mutation.BlueprintsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   team.KitsTable,
-			Columns: []string{team.KitsColumn},
+			Table:   team.BlueprintsTable,
+			Columns: []string{team.BlueprintsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedKitsIDs(); len(nodes) > 0 && !_u.mutation.KitsCleared() {
+	if nodes := _u.mutation.RemovedBlueprintsIDs(); len(nodes) > 0 && !_u.mutation.BlueprintsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   team.KitsTable,
-			Columns: []string{team.KitsColumn},
+			Table:   team.BlueprintsTable,
+			Columns: []string{team.BlueprintsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -524,15 +524,15 @@ func (_u *TeamUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   team.KitsTable,
-			Columns: []string{team.KitsColumn},
+			Table:   team.BlueprintsTable,
+			Columns: []string{team.BlueprintsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -678,19 +678,19 @@ func (_u *TeamUpdateOne) AddBlocks(v ...*Block) *TeamUpdateOne {
 	return _u.AddBlockIDs(ids...)
 }
 
-// AddKitIDs adds the "kits" edge to the Kit entity by IDs.
-func (_u *TeamUpdateOne) AddKitIDs(ids ...string) *TeamUpdateOne {
-	_u.mutation.AddKitIDs(ids...)
+// AddBlueprintIDs adds the "blueprints" edge to the Blueprint entity by IDs.
+func (_u *TeamUpdateOne) AddBlueprintIDs(ids ...string) *TeamUpdateOne {
+	_u.mutation.AddBlueprintIDs(ids...)
 	return _u
 }
 
-// AddKits adds the "kits" edges to the Kit entity.
-func (_u *TeamUpdateOne) AddKits(v ...*Kit) *TeamUpdateOne {
+// AddBlueprints adds the "blueprints" edges to the Blueprint entity.
+func (_u *TeamUpdateOne) AddBlueprints(v ...*Blueprint) *TeamUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddKitIDs(ids...)
+	return _u.AddBlueprintIDs(ids...)
 }
 
 // Mutation returns the TeamMutation object of the builder.
@@ -767,25 +767,25 @@ func (_u *TeamUpdateOne) RemoveBlocks(v ...*Block) *TeamUpdateOne {
 	return _u.RemoveBlockIDs(ids...)
 }
 
-// ClearKits clears all "kits" edges to the Kit entity.
-func (_u *TeamUpdateOne) ClearKits() *TeamUpdateOne {
-	_u.mutation.ClearKits()
+// ClearBlueprints clears all "blueprints" edges to the Blueprint entity.
+func (_u *TeamUpdateOne) ClearBlueprints() *TeamUpdateOne {
+	_u.mutation.ClearBlueprints()
 	return _u
 }
 
-// RemoveKitIDs removes the "kits" edge to Kit entities by IDs.
-func (_u *TeamUpdateOne) RemoveKitIDs(ids ...string) *TeamUpdateOne {
-	_u.mutation.RemoveKitIDs(ids...)
+// RemoveBlueprintIDs removes the "blueprints" edge to Blueprint entities by IDs.
+func (_u *TeamUpdateOne) RemoveBlueprintIDs(ids ...string) *TeamUpdateOne {
+	_u.mutation.RemoveBlueprintIDs(ids...)
 	return _u
 }
 
-// RemoveKits removes "kits" edges to Kit entities.
-func (_u *TeamUpdateOne) RemoveKits(v ...*Kit) *TeamUpdateOne {
+// RemoveBlueprints removes "blueprints" edges to Blueprint entities.
+func (_u *TeamUpdateOne) RemoveBlueprints(v ...*Blueprint) *TeamUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveKitIDs(ids...)
+	return _u.RemoveBlueprintIDs(ids...)
 }
 
 // Where appends a list predicates to the TeamUpdate builder.
@@ -1054,28 +1054,28 @@ func (_u *TeamUpdateOne) sqlSave(ctx context.Context) (_node *Team, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.KitsCleared() {
+	if _u.mutation.BlueprintsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   team.KitsTable,
-			Columns: []string{team.KitsColumn},
+			Table:   team.BlueprintsTable,
+			Columns: []string{team.BlueprintsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedKitsIDs(); len(nodes) > 0 && !_u.mutation.KitsCleared() {
+	if nodes := _u.mutation.RemovedBlueprintsIDs(); len(nodes) > 0 && !_u.mutation.BlueprintsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   team.KitsTable,
-			Columns: []string{team.KitsColumn},
+			Table:   team.BlueprintsTable,
+			Columns: []string{team.BlueprintsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1083,15 +1083,15 @@ func (_u *TeamUpdateOne) sqlSave(ctx context.Context) (_node *Team, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.KitsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BlueprintsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   team.KitsTable,
-			Columns: []string{team.KitsColumn},
+			Table:   team.BlueprintsTable,
+			Columns: []string{team.BlueprintsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(kit.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(blueprint.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

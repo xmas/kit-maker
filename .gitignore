@@ -13,6 +13,7 @@ web/hot
 # Local
 deploy/compose/.env
 deploy/compose/kitmaker.env
+deploy/compose/certs/
 .DS_Store
 
 # Beads / Dolt files (added by bd init)

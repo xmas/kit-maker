@@ -26,6 +26,9 @@ x-kitmaker: &kitmaker
     KITMAKER_BASE_URL: http://localhost:${KITMAKER_PORT:-8080}
     # Drivers come later; these are where the local ones live.
     KITMAKER_REGISTRY_URL: zot:5000
+    KITMAKER_REGISTRY_PULL_HOST: localhost:${ZOT_PORT:-5000}
+    # false once the stack serves zot over TLS (compose.tls.yaml, make certs)
+    KITMAKER_REGISTRY_INSECURE: ${KITMAKER_REGISTRY_INSECURE:-true}
     KITMAKER_BUILDKIT_ADDR: tcp://buildkit:1234
     KITMAKER_SMTP_URL: smtp://mailpit:1025
 
@@ -77,6 +80,8 @@ services:
   buildkit:
     image: moby/buildkit:v0.34.0
     privileged: true
+    # Loopback only: buildkitd's TCP port has no auth. make dev publishes from the host.
+    ports: ["127.0.0.1:${BUILDKIT_PORT:-1234}:1234"]
     command: ["--addr", "tcp://0.0.0.0:1234", "--addr", "unix:///run/buildkit/buildkitd.sock"]
     volumes: [buildkit:/var/lib/buildkit]
 

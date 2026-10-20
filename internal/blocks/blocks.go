@@ -1,6 +1,6 @@
 // Package blocks manages the block library: creating blocks, editing their
-// details and publishing immutable versions (DESIGN.md §2.1–2.2). Kits link
-// a block version and keep their own edits as overrides (internal/kits).
+// details and publishing immutable versions (DESIGN.md §2.1–2.2). Blueprints link
+// a block version and keep their own edits as overrides (internal/blueprints).
 package blocks
 
 import (
@@ -11,15 +11,16 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/docker/kit-maker/internal/blueprints/blocktypes"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 	"github.com/docker/kit-maker/internal/ent"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
-	"github.com/docker/kit-maker/internal/kits/blocktypes"
-	"github.com/docker/kit-maker/internal/kits/patch"
 )
 
 // SpecVersion is the sandbox-kit-spec release new versions are written for.
@@ -233,6 +234,12 @@ type Summary struct {
 	Version     int       `json:"version"`
 	UsedBy      int       `json:"usedBy"`
 	UpdatedAt   time.Time `json:"updatedAt"`
+	// Abilities are what the current version lets a sandbox do
+	// (blocktypes.Abilities keys), for filtering the library.
+	Abilities []string `json:"abilities"`
+	// Text is the current version's values (hosts, commands, services…),
+	// so search finds a block by what's in it.
+	Text string `json:"text"`
 }
 
 func summarize(b *ent.Block) Summary {
@@ -246,6 +253,8 @@ func summarize(b *ent.Block) Summary {
 	}
 	if cv := b.Edges.CurrentVersion; cv != nil {
 		s.Version = cv.Version
+		s.Abilities = blocktypes.AbilitiesOf(b.Type, cv.Payload)
+		s.Text = SearchText(cv.Payload)
 		if cv.CreatedAt.After(s.UpdatedAt) {
 			s.UpdatedAt = cv.CreatedAt
 		}
@@ -254,7 +263,7 @@ func summarize(b *ent.Block) Summary {
 }
 
 // List returns the shared blocks owned by teamIDs (or every team when all).
-// Private blocks belong to one kit and show there instead.
+// Private blocks belong to one blueprint and show there instead.
 func (s *Service) List(ctx context.Context, teamIDs []string, all bool) ([]Summary, error) {
 	q := s.Ent.Block.Query().Where(block.VisibilityNEQ(block.VisibilityPrivate)).
 		WithTeam().WithCurrentVersion().WithLinks().Order(ent.Asc(block.FieldName))
@@ -281,14 +290,14 @@ type Version struct {
 	CreatedAt  time.Time `json:"createdAt"`
 }
 
-// Use is one kit slot linking the block.
+// Use is one blueprint slot linking the block.
 type Use struct {
-	KitID     string `json:"kitId"`
-	Kit       string `json:"kit"`
-	SlotKey   string `json:"slotKey"`
-	SlotLabel string `json:"slotLabel"`
-	Version   int    `json:"version"`
-	Edits     int    `json:"edits"`
+	BlueprintID string `json:"blueprintId"`
+	Blueprint   string `json:"blueprint"`
+	SlotKey     string `json:"slotKey"`
+	SlotLabel   string `json:"slotLabel"`
+	Version     int    `json:"version"`
+	Edits       int    `json:"edits"`
 }
 
 // Detail is a block with its current payload, history and uses.
@@ -326,16 +335,16 @@ func (s *Service) Get(ctx context.Context, id string) (*Detail, error) {
 		d.Versions = append(d.Versions, e)
 	}
 	links, err := s.Ent.BlockLink.Query().Where(blocklink.BlockID(id)).
-		WithBaseVersion().WithSlot(func(q *ent.SlotQuery) { q.WithKit() }).All(ctx)
+		WithBaseVersion().WithSlot(func(q *ent.SlotQuery) { q.WithBlueprint() }).All(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, l := range links {
 		sl := l.Edges.Slot
-		if sl == nil || sl.Edges.Kit == nil {
+		if sl == nil || sl.Edges.Blueprint == nil {
 			continue
 		}
-		u := Use{KitID: sl.KitID, Kit: sl.Edges.Kit.DisplayName, SlotKey: sl.Key, SlotLabel: sl.Label, Edits: len(l.Overrides)}
+		u := Use{BlueprintID: sl.BlueprintID, Blueprint: sl.Edges.Blueprint.DisplayName, SlotKey: sl.Key, SlotLabel: sl.Label, Edits: len(l.Overrides)}
 		if l.Edges.BaseVersion != nil {
 			u.Version = l.Edges.BaseVersion.Version
 		}
@@ -357,7 +366,7 @@ func (s *Service) TeamOf(ctx context.Context, id string) (string, error) {
 }
 
 // RestoreVersion publishes an earlier version's payload as the newest
-// version, so kits following the block can take it like any update.
+// version, so blueprints following the block can take it like any update.
 func (s *Service) RestoreVersion(ctx context.Context, blockID string, version int, userID string) (*ent.BlockVersion, error) {
 	old, err := s.Ent.BlockVersion.Query().Where(blockversion.BlockID(blockID), blockversion.Version(version)).Only(ctx)
 	if ent.IsNotFound(err) {
@@ -374,4 +383,44 @@ func (s *Service) RestoreVersion(ctx context.Context, blockID string, version in
 		return nil, fmt.Errorf("v%d is the same as the current version", version)
 	}
 	return v, nil
+}
+
+// SearchText flattens a payload's values (not item keys) into one string
+// for search, capped so a large Dockerfile doesn't swamp the page.
+func SearchText(p map[string]any) string {
+	var b strings.Builder
+	var walk func(v any)
+	walk = func(v any) {
+		if b.Len() > 4000 {
+			return
+		}
+		switch t := v.(type) {
+		case map[string]any:
+			keys := make([]string, 0, len(t))
+			for k := range t {
+				if k != "_k" {
+					keys = append(keys, k)
+				}
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				walk(t[k])
+			}
+		case []any:
+			for _, x := range t {
+				walk(x)
+			}
+		case string:
+			b.WriteString(t)
+			b.WriteByte(' ')
+		case float64, bool:
+			fmt.Fprint(&b, t, " ")
+		}
+	}
+	walk(p)
+	s := b.String()
+	if len(s) > 4000 {
+		s = s[:4000]
+	}
+	return strings.TrimSpace(s)
 }

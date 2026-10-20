@@ -9,13 +9,14 @@ import (
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
+	"github.com/docker/kit-maker/internal/ent/blueprintinclude"
+	"github.com/docker/kit-maker/internal/ent/blueprintrevision"
+	"github.com/docker/kit-maker/internal/ent/blueprintversion"
 	"github.com/docker/kit-maker/internal/ent/check"
 	"github.com/docker/kit-maker/internal/ent/deploymentsetting"
 	"github.com/docker/kit-maker/internal/ent/goal"
 	"github.com/docker/kit-maker/internal/ent/integration"
-	"github.com/docker/kit-maker/internal/ent/kit"
-	"github.com/docker/kit-maker/internal/ent/kitinclude"
-	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/schema"
 	"github.com/docker/kit-maker/internal/ent/session"
@@ -165,6 +166,118 @@ func init() {
 	blockversion.DefaultID = blockversionDescID.Default.(func() string)
 	// blockversion.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	blockversion.IDValidator = blockversionDescID.Validators[0].(func(string) error)
+	blueprintMixin := schema.Blueprint{}.Mixin()
+	blueprintMixinFields0 := blueprintMixin[0].Fields()
+	_ = blueprintMixinFields0
+	blueprintMixinFields1 := blueprintMixin[1].Fields()
+	_ = blueprintMixinFields1
+	blueprintFields := schema.Blueprint{}.Fields()
+	_ = blueprintFields
+	// blueprintDescCreatedAt is the schema descriptor for created_at field.
+	blueprintDescCreatedAt := blueprintMixinFields1[0].Descriptor()
+	// blueprint.DefaultCreatedAt holds the default value on creation for the created_at field.
+	blueprint.DefaultCreatedAt = blueprintDescCreatedAt.Default.(func() time.Time)
+	// blueprintDescUpdatedAt is the schema descriptor for updated_at field.
+	blueprintDescUpdatedAt := blueprintMixinFields1[1].Descriptor()
+	// blueprint.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	blueprint.DefaultUpdatedAt = blueprintDescUpdatedAt.Default.(func() time.Time)
+	// blueprint.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	blueprint.UpdateDefaultUpdatedAt = blueprintDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// blueprintDescSlug is the schema descriptor for slug field.
+	blueprintDescSlug := blueprintFields[1].Descriptor()
+	// blueprint.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	blueprint.SlugValidator = blueprintDescSlug.Validators[0].(func(string) error)
+	// blueprintDescDisplayName is the schema descriptor for display_name field.
+	blueprintDescDisplayName := blueprintFields[2].Descriptor()
+	// blueprint.DisplayNameValidator is a validator for the "display_name" field. It is called by the builders before save.
+	blueprint.DisplayNameValidator = blueprintDescDisplayName.Validators[0].(func(string) error)
+	// blueprintDescDescription is the schema descriptor for description field.
+	blueprintDescDescription := blueprintFields[3].Descriptor()
+	// blueprint.DefaultDescription holds the default value on creation for the description field.
+	blueprint.DefaultDescription = blueprintDescDescription.Default.(string)
+	// blueprintDescRegistrationEnabled is the schema descriptor for registration_enabled field.
+	blueprintDescRegistrationEnabled := blueprintFields[7].Descriptor()
+	// blueprint.DefaultRegistrationEnabled holds the default value on creation for the registration_enabled field.
+	blueprint.DefaultRegistrationEnabled = blueprintDescRegistrationEnabled.Default.(bool)
+	// blueprintDescID is the schema descriptor for id field.
+	blueprintDescID := blueprintMixinFields0[0].Descriptor()
+	// blueprint.DefaultID holds the default value on creation for the id field.
+	blueprint.DefaultID = blueprintDescID.Default.(func() string)
+	// blueprint.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	blueprint.IDValidator = blueprintDescID.Validators[0].(func(string) error)
+	blueprintincludeMixin := schema.BlueprintInclude{}.Mixin()
+	blueprintincludeMixinFields0 := blueprintincludeMixin[0].Fields()
+	_ = blueprintincludeMixinFields0
+	blueprintincludeMixinFields1 := blueprintincludeMixin[1].Fields()
+	_ = blueprintincludeMixinFields1
+	blueprintincludeFields := schema.BlueprintInclude{}.Fields()
+	_ = blueprintincludeFields
+	// blueprintincludeDescCreatedAt is the schema descriptor for created_at field.
+	blueprintincludeDescCreatedAt := blueprintincludeMixinFields1[0].Descriptor()
+	// blueprintinclude.DefaultCreatedAt holds the default value on creation for the created_at field.
+	blueprintinclude.DefaultCreatedAt = blueprintincludeDescCreatedAt.Default.(func() time.Time)
+	// blueprintincludeDescUpdatedAt is the schema descriptor for updated_at field.
+	blueprintincludeDescUpdatedAt := blueprintincludeMixinFields1[1].Descriptor()
+	// blueprintinclude.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	blueprintinclude.DefaultUpdatedAt = blueprintincludeDescUpdatedAt.Default.(func() time.Time)
+	// blueprintinclude.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	blueprintinclude.UpdateDefaultUpdatedAt = blueprintincludeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// blueprintincludeDescPosition is the schema descriptor for position field.
+	blueprintincludeDescPosition := blueprintincludeFields[4].Descriptor()
+	// blueprintinclude.DefaultPosition holds the default value on creation for the position field.
+	blueprintinclude.DefaultPosition = blueprintincludeDescPosition.Default.(int)
+	// blueprintincludeDescID is the schema descriptor for id field.
+	blueprintincludeDescID := blueprintincludeMixinFields0[0].Descriptor()
+	// blueprintinclude.DefaultID holds the default value on creation for the id field.
+	blueprintinclude.DefaultID = blueprintincludeDescID.Default.(func() string)
+	// blueprintinclude.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	blueprintinclude.IDValidator = blueprintincludeDescID.Validators[0].(func(string) error)
+	blueprintrevisionMixin := schema.BlueprintRevision{}.Mixin()
+	blueprintrevisionMixinFields0 := blueprintrevisionMixin[0].Fields()
+	_ = blueprintrevisionMixinFields0
+	blueprintrevisionMixinFields1 := blueprintrevisionMixin[1].Fields()
+	_ = blueprintrevisionMixinFields1
+	blueprintrevisionFields := schema.BlueprintRevision{}.Fields()
+	_ = blueprintrevisionFields
+	// blueprintrevisionDescCreatedAt is the schema descriptor for created_at field.
+	blueprintrevisionDescCreatedAt := blueprintrevisionMixinFields1[0].Descriptor()
+	// blueprintrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	blueprintrevision.DefaultCreatedAt = blueprintrevisionDescCreatedAt.Default.(func() time.Time)
+	// blueprintrevisionDescSeq is the schema descriptor for seq field.
+	blueprintrevisionDescSeq := blueprintrevisionFields[1].Descriptor()
+	// blueprintrevision.SeqValidator is a validator for the "seq" field. It is called by the builders before save.
+	blueprintrevision.SeqValidator = blueprintrevisionDescSeq.Validators[0].(func(int) error)
+	// blueprintrevisionDescYaml is the schema descriptor for yaml field.
+	blueprintrevisionDescYaml := blueprintrevisionFields[7].Descriptor()
+	// blueprintrevision.DefaultYaml holds the default value on creation for the yaml field.
+	blueprintrevision.DefaultYaml = blueprintrevisionDescYaml.Default.(string)
+	// blueprintrevisionDescID is the schema descriptor for id field.
+	blueprintrevisionDescID := blueprintrevisionMixinFields0[0].Descriptor()
+	// blueprintrevision.DefaultID holds the default value on creation for the id field.
+	blueprintrevision.DefaultID = blueprintrevisionDescID.Default.(func() string)
+	// blueprintrevision.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	blueprintrevision.IDValidator = blueprintrevisionDescID.Validators[0].(func(string) error)
+	blueprintversionMixin := schema.BlueprintVersion{}.Mixin()
+	blueprintversionMixinFields0 := blueprintversionMixin[0].Fields()
+	_ = blueprintversionMixinFields0
+	blueprintversionMixinFields1 := blueprintversionMixin[1].Fields()
+	_ = blueprintversionMixinFields1
+	blueprintversionFields := schema.BlueprintVersion{}.Fields()
+	_ = blueprintversionFields
+	// blueprintversionDescCreatedAt is the schema descriptor for created_at field.
+	blueprintversionDescCreatedAt := blueprintversionMixinFields1[0].Descriptor()
+	// blueprintversion.DefaultCreatedAt holds the default value on creation for the created_at field.
+	blueprintversion.DefaultCreatedAt = blueprintversionDescCreatedAt.Default.(func() time.Time)
+	// blueprintversionDescVersion is the schema descriptor for version field.
+	blueprintversionDescVersion := blueprintversionFields[1].Descriptor()
+	// blueprintversion.VersionValidator is a validator for the "version" field. It is called by the builders before save.
+	blueprintversion.VersionValidator = blueprintversionDescVersion.Validators[0].(func(int) error)
+	// blueprintversionDescID is the schema descriptor for id field.
+	blueprintversionDescID := blueprintversionMixinFields0[0].Descriptor()
+	// blueprintversion.DefaultID holds the default value on creation for the id field.
+	blueprintversion.DefaultID = blueprintversionDescID.Default.(func() string)
+	// blueprintversion.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	blueprintversion.IDValidator = blueprintversionDescID.Validators[0].(func(string) error)
 	checkMixin := schema.Check{}.Mixin()
 	checkMixinFields0 := checkMixin[0].Fields()
 	_ = checkMixinFields0
@@ -274,97 +387,6 @@ func init() {
 	integration.DefaultID = integrationDescID.Default.(func() string)
 	// integration.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	integration.IDValidator = integrationDescID.Validators[0].(func(string) error)
-	kitMixin := schema.Kit{}.Mixin()
-	kitMixinFields0 := kitMixin[0].Fields()
-	_ = kitMixinFields0
-	kitMixinFields1 := kitMixin[1].Fields()
-	_ = kitMixinFields1
-	kitFields := schema.Kit{}.Fields()
-	_ = kitFields
-	// kitDescCreatedAt is the schema descriptor for created_at field.
-	kitDescCreatedAt := kitMixinFields1[0].Descriptor()
-	// kit.DefaultCreatedAt holds the default value on creation for the created_at field.
-	kit.DefaultCreatedAt = kitDescCreatedAt.Default.(func() time.Time)
-	// kitDescUpdatedAt is the schema descriptor for updated_at field.
-	kitDescUpdatedAt := kitMixinFields1[1].Descriptor()
-	// kit.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	kit.DefaultUpdatedAt = kitDescUpdatedAt.Default.(func() time.Time)
-	// kit.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	kit.UpdateDefaultUpdatedAt = kitDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// kitDescSlug is the schema descriptor for slug field.
-	kitDescSlug := kitFields[1].Descriptor()
-	// kit.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
-	kit.SlugValidator = kitDescSlug.Validators[0].(func(string) error)
-	// kitDescDisplayName is the schema descriptor for display_name field.
-	kitDescDisplayName := kitFields[2].Descriptor()
-	// kit.DisplayNameValidator is a validator for the "display_name" field. It is called by the builders before save.
-	kit.DisplayNameValidator = kitDescDisplayName.Validators[0].(func(string) error)
-	// kitDescDescription is the schema descriptor for description field.
-	kitDescDescription := kitFields[3].Descriptor()
-	// kit.DefaultDescription holds the default value on creation for the description field.
-	kit.DefaultDescription = kitDescDescription.Default.(string)
-	// kitDescRegistrationEnabled is the schema descriptor for registration_enabled field.
-	kitDescRegistrationEnabled := kitFields[7].Descriptor()
-	// kit.DefaultRegistrationEnabled holds the default value on creation for the registration_enabled field.
-	kit.DefaultRegistrationEnabled = kitDescRegistrationEnabled.Default.(bool)
-	// kitDescID is the schema descriptor for id field.
-	kitDescID := kitMixinFields0[0].Descriptor()
-	// kit.DefaultID holds the default value on creation for the id field.
-	kit.DefaultID = kitDescID.Default.(func() string)
-	// kit.IDValidator is a validator for the "id" field. It is called by the builders before save.
-	kit.IDValidator = kitDescID.Validators[0].(func(string) error)
-	kitincludeMixin := schema.KitInclude{}.Mixin()
-	kitincludeMixinFields0 := kitincludeMixin[0].Fields()
-	_ = kitincludeMixinFields0
-	kitincludeMixinFields1 := kitincludeMixin[1].Fields()
-	_ = kitincludeMixinFields1
-	kitincludeFields := schema.KitInclude{}.Fields()
-	_ = kitincludeFields
-	// kitincludeDescCreatedAt is the schema descriptor for created_at field.
-	kitincludeDescCreatedAt := kitincludeMixinFields1[0].Descriptor()
-	// kitinclude.DefaultCreatedAt holds the default value on creation for the created_at field.
-	kitinclude.DefaultCreatedAt = kitincludeDescCreatedAt.Default.(func() time.Time)
-	// kitincludeDescUpdatedAt is the schema descriptor for updated_at field.
-	kitincludeDescUpdatedAt := kitincludeMixinFields1[1].Descriptor()
-	// kitinclude.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	kitinclude.DefaultUpdatedAt = kitincludeDescUpdatedAt.Default.(func() time.Time)
-	// kitinclude.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	kitinclude.UpdateDefaultUpdatedAt = kitincludeDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// kitincludeDescPosition is the schema descriptor for position field.
-	kitincludeDescPosition := kitincludeFields[4].Descriptor()
-	// kitinclude.DefaultPosition holds the default value on creation for the position field.
-	kitinclude.DefaultPosition = kitincludeDescPosition.Default.(int)
-	// kitincludeDescID is the schema descriptor for id field.
-	kitincludeDescID := kitincludeMixinFields0[0].Descriptor()
-	// kitinclude.DefaultID holds the default value on creation for the id field.
-	kitinclude.DefaultID = kitincludeDescID.Default.(func() string)
-	// kitinclude.IDValidator is a validator for the "id" field. It is called by the builders before save.
-	kitinclude.IDValidator = kitincludeDescID.Validators[0].(func(string) error)
-	kitrevisionMixin := schema.KitRevision{}.Mixin()
-	kitrevisionMixinFields0 := kitrevisionMixin[0].Fields()
-	_ = kitrevisionMixinFields0
-	kitrevisionMixinFields1 := kitrevisionMixin[1].Fields()
-	_ = kitrevisionMixinFields1
-	kitrevisionFields := schema.KitRevision{}.Fields()
-	_ = kitrevisionFields
-	// kitrevisionDescCreatedAt is the schema descriptor for created_at field.
-	kitrevisionDescCreatedAt := kitrevisionMixinFields1[0].Descriptor()
-	// kitrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
-	kitrevision.DefaultCreatedAt = kitrevisionDescCreatedAt.Default.(func() time.Time)
-	// kitrevisionDescSeq is the schema descriptor for seq field.
-	kitrevisionDescSeq := kitrevisionFields[1].Descriptor()
-	// kitrevision.SeqValidator is a validator for the "seq" field. It is called by the builders before save.
-	kitrevision.SeqValidator = kitrevisionDescSeq.Validators[0].(func(int) error)
-	// kitrevisionDescYaml is the schema descriptor for yaml field.
-	kitrevisionDescYaml := kitrevisionFields[7].Descriptor()
-	// kitrevision.DefaultYaml holds the default value on creation for the yaml field.
-	kitrevision.DefaultYaml = kitrevisionDescYaml.Default.(string)
-	// kitrevisionDescID is the schema descriptor for id field.
-	kitrevisionDescID := kitrevisionMixinFields0[0].Descriptor()
-	// kitrevision.DefaultID holds the default value on creation for the id field.
-	kitrevision.DefaultID = kitrevisionDescID.Default.(func() string)
-	// kitrevision.IDValidator is a validator for the "id" field. It is called by the builders before save.
-	kitrevision.IDValidator = kitrevisionDescID.Validators[0].(func(string) error)
 	roleassignmentMixin := schema.RoleAssignment{}.Mixin()
 	roleassignmentMixinFields0 := roleassignmentMixin[0].Fields()
 	_ = roleassignmentMixinFields0
@@ -431,16 +453,20 @@ func init() {
 	slotDescSection := slotFields[5].Descriptor()
 	// slot.SectionValidator is a validator for the "section" field. It is called by the builders before save.
 	slot.SectionValidator = slotDescSection.Validators[0].(func(string) error)
+	// slotDescBlockType is the schema descriptor for block_type field.
+	slotDescBlockType := slotFields[6].Descriptor()
+	// slot.DefaultBlockType holds the default value on creation for the block_type field.
+	slot.DefaultBlockType = slotDescBlockType.Default.(string)
 	// slotDescRequired is the schema descriptor for required field.
-	slotDescRequired := slotFields[7].Descriptor()
+	slotDescRequired := slotFields[8].Descriptor()
 	// slot.DefaultRequired holds the default value on creation for the required field.
 	slot.DefaultRequired = slotDescRequired.Default.(bool)
 	// slotDescPosition is the schema descriptor for position field.
-	slotDescPosition := slotFields[8].Descriptor()
+	slotDescPosition := slotFields[9].Descriptor()
 	// slot.DefaultPosition holds the default value on creation for the position field.
 	slot.DefaultPosition = slotDescPosition.Default.(int)
 	// slotDescOptionalCapability is the schema descriptor for optional_capability field.
-	slotDescOptionalCapability := slotFields[9].Descriptor()
+	slotDescOptionalCapability := slotFields[10].Descriptor()
 	// slot.DefaultOptionalCapability holds the default value on creation for the optional_capability field.
 	slot.DefaultOptionalCapability = slotDescOptionalCapability.Default.(bool)
 	// slotDescID is the schema descriptor for id field.

@@ -1,5 +1,5 @@
 // Package drivers is the registry of per-deployment drivers (DESIGN.md
-// §1.2): kit registries, build runners, git hosts and AI providers. Each
+// §1.2): registries for blueprint images, build runners, git hosts and AI providers. Each
 // driver declares the config fields it takes, validates a config, and can
 // test one against the real service before it is saved. AI drivers register
 // from internal/ai, which owns the model clients.

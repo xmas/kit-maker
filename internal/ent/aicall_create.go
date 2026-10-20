@@ -65,16 +65,16 @@ func (_c *AICallCreate) SetNillableUserID(v *string) *AICallCreate {
 	return _c
 }
 
-// SetKitID sets the "kit_id" field.
-func (_c *AICallCreate) SetKitID(v string) *AICallCreate {
-	_c.mutation.SetKitID(v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (_c *AICallCreate) SetBlueprintID(v string) *AICallCreate {
+	_c.mutation.SetBlueprintID(v)
 	return _c
 }
 
-// SetNillableKitID sets the "kit_id" field if the given value is not nil.
-func (_c *AICallCreate) SetNillableKitID(v *string) *AICallCreate {
+// SetNillableBlueprintID sets the "blueprint_id" field if the given value is not nil.
+func (_c *AICallCreate) SetNillableBlueprintID(v *string) *AICallCreate {
 	if v != nil {
-		_c.SetKitID(*v)
+		_c.SetBlueprintID(*v)
 	}
 	return _c
 }
@@ -361,9 +361,9 @@ func (_c *AICallCreate) createSpec() (*AICall, *sqlgraph.CreateSpec) {
 		_spec.SetField(aicall.FieldUserID, field.TypeString, value)
 		_node.UserID = &value
 	}
-	if value, ok := _c.mutation.KitID(); ok {
-		_spec.SetField(aicall.FieldKitID, field.TypeString, value)
-		_node.KitID = &value
+	if value, ok := _c.mutation.BlueprintID(); ok {
+		_spec.SetField(aicall.FieldBlueprintID, field.TypeString, value)
+		_node.BlueprintID = &value
 	}
 	if value, ok := _c.mutation.Route(); ok {
 		_spec.SetField(aicall.FieldRoute, field.TypeString, value)
@@ -493,21 +493,21 @@ func (u *AICallUpsert) ClearUserID() *AICallUpsert {
 	return u
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *AICallUpsert) SetKitID(v string) *AICallUpsert {
-	u.Set(aicall.FieldKitID, v)
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *AICallUpsert) SetBlueprintID(v string) *AICallUpsert {
+	u.Set(aicall.FieldBlueprintID, v)
 	return u
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *AICallUpsert) UpdateKitID() *AICallUpsert {
-	u.SetExcluded(aicall.FieldKitID)
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *AICallUpsert) UpdateBlueprintID() *AICallUpsert {
+	u.SetExcluded(aicall.FieldBlueprintID)
 	return u
 }
 
-// ClearKitID clears the value of the "kit_id" field.
-func (u *AICallUpsert) ClearKitID() *AICallUpsert {
-	u.SetNull(aicall.FieldKitID)
+// ClearBlueprintID clears the value of the "blueprint_id" field.
+func (u *AICallUpsert) ClearBlueprintID() *AICallUpsert {
+	u.SetNull(aicall.FieldBlueprintID)
 	return u
 }
 
@@ -766,24 +766,24 @@ func (u *AICallUpsertOne) ClearUserID() *AICallUpsertOne {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *AICallUpsertOne) SetKitID(v string) *AICallUpsertOne {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *AICallUpsertOne) SetBlueprintID(v string) *AICallUpsertOne {
 	return u.Update(func(s *AICallUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *AICallUpsertOne) UpdateKitID() *AICallUpsertOne {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *AICallUpsertOne) UpdateBlueprintID() *AICallUpsertOne {
 	return u.Update(func(s *AICallUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 
-// ClearKitID clears the value of the "kit_id" field.
-func (u *AICallUpsertOne) ClearKitID() *AICallUpsertOne {
+// ClearBlueprintID clears the value of the "blueprint_id" field.
+func (u *AICallUpsertOne) ClearBlueprintID() *AICallUpsertOne {
 	return u.Update(func(s *AICallUpsert) {
-		s.ClearKitID()
+		s.ClearBlueprintID()
 	})
 }
 
@@ -1236,24 +1236,24 @@ func (u *AICallUpsertBulk) ClearUserID() *AICallUpsertBulk {
 	})
 }
 
-// SetKitID sets the "kit_id" field.
-func (u *AICallUpsertBulk) SetKitID(v string) *AICallUpsertBulk {
+// SetBlueprintID sets the "blueprint_id" field.
+func (u *AICallUpsertBulk) SetBlueprintID(v string) *AICallUpsertBulk {
 	return u.Update(func(s *AICallUpsert) {
-		s.SetKitID(v)
+		s.SetBlueprintID(v)
 	})
 }
 
-// UpdateKitID sets the "kit_id" field to the value that was provided on create.
-func (u *AICallUpsertBulk) UpdateKitID() *AICallUpsertBulk {
+// UpdateBlueprintID sets the "blueprint_id" field to the value that was provided on create.
+func (u *AICallUpsertBulk) UpdateBlueprintID() *AICallUpsertBulk {
 	return u.Update(func(s *AICallUpsert) {
-		s.UpdateKitID()
+		s.UpdateBlueprintID()
 	})
 }
 
-// ClearKitID clears the value of the "kit_id" field.
-func (u *AICallUpsertBulk) ClearKitID() *AICallUpsertBulk {
+// ClearBlueprintID clears the value of the "blueprint_id" field.
+func (u *AICallUpsertBulk) ClearBlueprintID() *AICallUpsertBulk {
 	return u.Update(func(s *AICallUpsert) {
-		s.ClearKitID()
+		s.ClearBlueprintID()
 	})
 }
 

@@ -22,6 +22,14 @@ type Tx struct {
 	BlockLink *BlockLinkClient
 	// BlockVersion is the client for interacting with the BlockVersion builders.
 	BlockVersion *BlockVersionClient
+	// Blueprint is the client for interacting with the Blueprint builders.
+	Blueprint *BlueprintClient
+	// BlueprintInclude is the client for interacting with the BlueprintInclude builders.
+	BlueprintInclude *BlueprintIncludeClient
+	// BlueprintRevision is the client for interacting with the BlueprintRevision builders.
+	BlueprintRevision *BlueprintRevisionClient
+	// BlueprintVersion is the client for interacting with the BlueprintVersion builders.
+	BlueprintVersion *BlueprintVersionClient
 	// Check is the client for interacting with the Check builders.
 	Check *CheckClient
 	// DeploymentSetting is the client for interacting with the DeploymentSetting builders.
@@ -30,12 +38,6 @@ type Tx struct {
 	Goal *GoalClient
 	// Integration is the client for interacting with the Integration builders.
 	Integration *IntegrationClient
-	// Kit is the client for interacting with the Kit builders.
-	Kit *KitClient
-	// KitInclude is the client for interacting with the KitInclude builders.
-	KitInclude *KitIncludeClient
-	// KitRevision is the client for interacting with the KitRevision builders.
-	KitRevision *KitRevisionClient
 	// RoleAssignment is the client for interacting with the RoleAssignment builders.
 	RoleAssignment *RoleAssignmentClient
 	// Session is the client for interacting with the Session builders.
@@ -183,13 +185,14 @@ func (tx *Tx) init() {
 	tx.Block = NewBlockClient(tx.config)
 	tx.BlockLink = NewBlockLinkClient(tx.config)
 	tx.BlockVersion = NewBlockVersionClient(tx.config)
+	tx.Blueprint = NewBlueprintClient(tx.config)
+	tx.BlueprintInclude = NewBlueprintIncludeClient(tx.config)
+	tx.BlueprintRevision = NewBlueprintRevisionClient(tx.config)
+	tx.BlueprintVersion = NewBlueprintVersionClient(tx.config)
 	tx.Check = NewCheckClient(tx.config)
 	tx.DeploymentSetting = NewDeploymentSettingClient(tx.config)
 	tx.Goal = NewGoalClient(tx.config)
 	tx.Integration = NewIntegrationClient(tx.config)
-	tx.Kit = NewKitClient(tx.config)
-	tx.KitInclude = NewKitIncludeClient(tx.config)
-	tx.KitRevision = NewKitRevisionClient(tx.config)
 	tx.RoleAssignment = NewRoleAssignmentClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
 	tx.Slot = NewSlotClient(tx.config)

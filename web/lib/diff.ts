@@ -1,4 +1,4 @@
-// Line diff for the YAML panel: what the saved kit was vs. what the unsaved
+// Line diff for the YAML panel: what the saved blueprint was vs. what the unsaved
 // edits will make it. Common prefix/suffix are trimmed first (edits are
 // local), then the middle is diffed with an LCS table.
 

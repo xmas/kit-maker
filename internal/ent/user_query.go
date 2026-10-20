@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
-	"github.com/docker/kit-maker/internal/ent/kitrevision"
+	"github.com/docker/kit-maker/internal/ent/blueprintrevision"
 	"github.com/docker/kit-maker/internal/ent/predicate"
 	"github.com/docker/kit-maker/internal/ent/teammembership"
 	"github.com/docker/kit-maker/internal/ent/user"
@@ -28,7 +28,7 @@ type UserQuery struct {
 	predicates                []predicate.User
 	withMemberships           *TeamMembershipQuery
 	withAcceptedBlockVersions *BlockVersionQuery
-	withKitRevisions          *KitRevisionQuery
+	withBlueprintRevisions    *BlueprintRevisionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -109,9 +109,9 @@ func (_q *UserQuery) QueryAcceptedBlockVersions() *BlockVersionQuery {
 	return query
 }
 
-// QueryKitRevisions chains the current query on the "kit_revisions" edge.
-func (_q *UserQuery) QueryKitRevisions() *KitRevisionQuery {
-	query := (&KitRevisionClient{config: _q.config}).Query()
+// QueryBlueprintRevisions chains the current query on the "blueprint_revisions" edge.
+func (_q *UserQuery) QueryBlueprintRevisions() *BlueprintRevisionQuery {
+	query := (&BlueprintRevisionClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -122,8 +122,8 @@ func (_q *UserQuery) QueryKitRevisions() *KitRevisionQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(kitrevision.Table, kitrevision.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.KitRevisionsTable, user.KitRevisionsColumn),
+			sqlgraph.To(blueprintrevision.Table, blueprintrevision.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.BlueprintRevisionsTable, user.BlueprintRevisionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -325,7 +325,7 @@ func (_q *UserQuery) Clone() *UserQuery {
 		predicates:                append([]predicate.User{}, _q.predicates...),
 		withMemberships:           _q.withMemberships.Clone(),
 		withAcceptedBlockVersions: _q.withAcceptedBlockVersions.Clone(),
-		withKitRevisions:          _q.withKitRevisions.Clone(),
+		withBlueprintRevisions:    _q.withBlueprintRevisions.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -354,14 +354,14 @@ func (_q *UserQuery) WithAcceptedBlockVersions(opts ...func(*BlockVersionQuery))
 	return _q
 }
 
-// WithKitRevisions tells the query-builder to eager-load the nodes that are connected to
-// the "kit_revisions" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithKitRevisions(opts ...func(*KitRevisionQuery)) *UserQuery {
-	query := (&KitRevisionClient{config: _q.config}).Query()
+// WithBlueprintRevisions tells the query-builder to eager-load the nodes that are connected to
+// the "blueprint_revisions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *UserQuery) WithBlueprintRevisions(opts ...func(*BlueprintRevisionQuery)) *UserQuery {
+	query := (&BlueprintRevisionClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withKitRevisions = query
+	_q.withBlueprintRevisions = query
 	return _q
 }
 
@@ -446,7 +446,7 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		loadedTypes = [3]bool{
 			_q.withMemberships != nil,
 			_q.withAcceptedBlockVersions != nil,
-			_q.withKitRevisions != nil,
+			_q.withBlueprintRevisions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -483,10 +483,12 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 			return nil, err
 		}
 	}
-	if query := _q.withKitRevisions; query != nil {
-		if err := _q.loadKitRevisions(ctx, query, nodes,
-			func(n *User) { n.Edges.KitRevisions = []*KitRevision{} },
-			func(n *User, e *KitRevision) { n.Edges.KitRevisions = append(n.Edges.KitRevisions, e) }); err != nil {
+	if query := _q.withBlueprintRevisions; query != nil {
+		if err := _q.loadBlueprintRevisions(ctx, query, nodes,
+			func(n *User) { n.Edges.BlueprintRevisions = []*BlueprintRevision{} },
+			func(n *User, e *BlueprintRevision) {
+				n.Edges.BlueprintRevisions = append(n.Edges.BlueprintRevisions, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -556,7 +558,7 @@ func (_q *UserQuery) loadAcceptedBlockVersions(ctx context.Context, query *Block
 	}
 	return nil
 }
-func (_q *UserQuery) loadKitRevisions(ctx context.Context, query *KitRevisionQuery, nodes []*User, init func(*User), assign func(*User, *KitRevision)) error {
+func (_q *UserQuery) loadBlueprintRevisions(ctx context.Context, query *BlueprintRevisionQuery, nodes []*User, init func(*User), assign func(*User, *BlueprintRevision)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*User)
 	for i := range nodes {
@@ -567,10 +569,10 @@ func (_q *UserQuery) loadKitRevisions(ctx context.Context, query *KitRevisionQue
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(kitrevision.FieldActorUserID)
+		query.ctx.AppendFieldOnce(blueprintrevision.FieldActorUserID)
 	}
-	query.Where(predicate.KitRevision(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.KitRevisionsColumn), fks...))
+	query.Where(predicate.BlueprintRevision(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(user.BlueprintRevisionsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

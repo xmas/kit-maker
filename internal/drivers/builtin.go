@@ -23,7 +23,7 @@ func (b base) Name() string    { return b.name }
 func (b base) Label() string   { return b.label }
 func (b base) Fields() []Field { return b.fields }
 
-// --- Kit registries ----------------------------------------------------------
+// --- Registries (blueprint images) -------------------------------------------
 
 // ociRegistry is any registry speaking the OCI distribution API. Test pings
 // /v2/ with the configured credentials. A 401 without credentials still proves
@@ -34,8 +34,9 @@ type ociRegistry struct {
 }
 
 var registryFields = []Field{
-	{Key: "host", Label: "Registry host", Placeholder: "registry.example.com"},
-	{Key: "namespace", Label: "Namespace", Required: true, Placeholder: "acme", Help: "Kits are pushed as <namespace>/sbx-kit-<slug>."},
+	{Key: "host", Label: "Registry host", Placeholder: "registry.example.com", Help: "Where blueprint images are pushed."},
+	{Key: "pull_host", Label: "Pull host", Placeholder: "localhost:5001", Help: "Where people pull from, when it differs from the push host (local stacks)."},
+	{Key: "namespace", Label: "Namespace", Required: true, Placeholder: "acme", Help: "Blueprint versions are pushed as <namespace>/sbx-kit-<slug>."},
 	{Key: "username", Label: "Username"},
 	{Key: "password", Label: "Token or password", Secret: true},
 	{Key: "insecure", Label: "Plain HTTP", Help: "Only for local registries such as zot in the compose stack."},
@@ -153,7 +154,7 @@ func init() {
 		Register(r)
 	}
 
-	Register(noBuildRunner{base{KindBuildRunner, "none", "None (content-free kits only)", nil}})
+	Register(noBuildRunner{base{KindBuildRunner, "none", "None (blueprints without Dockerfile content only)", nil}})
 	Register(buildkitRunner{base{KindBuildRunner, "buildkit", "BuildKit daemon", []Field{
 		{Key: "address", Label: "buildkitd address", Required: true, Placeholder: "tcp://buildkit:1234"},
 	}}})
@@ -162,8 +163,8 @@ func init() {
 		{Key: "token", Label: "Docker access token", Secret: true, Required: true},
 	}}})
 	Register(validateOnly{base{KindBuildRunner, "github_actions", "GitHub Actions", []Field{
-		{Key: "repository", Label: "Repository that runs builds", Required: true, Placeholder: "acme/kit-builds"},
-		{Key: "workflow", Label: "Workflow file", Required: true, Placeholder: "build-kit.yml"},
+		{Key: "repository", Label: "Repository that runs builds", Required: true, Placeholder: "acme/blueprint-builds"},
+		{Key: "workflow", Label: "Workflow file", Required: true, Placeholder: "build-blueprint.yml"},
 	}}})
 
 	Register(validateOnly{base{KindGitHost, "github_app", "GitHub App", []Field{
@@ -172,4 +173,23 @@ func init() {
 		{Key: "private_key", Label: "Private key (PEM)", Secret: true, Required: true},
 		{Key: "api_url", Label: "API URL", Placeholder: "https://api.github.com", Help: "Change for GitHub Enterprise Server."},
 	}}})
+}
+
+// RegistryHosts returns where a registry integration pushes and where
+// people pull from (pull_host, Docker Hub's docker.io, or the push host).
+func RegistryHosts(d Driver, c Config) (push, pull string) {
+	r, ok := d.(ociRegistry)
+	if !ok {
+		return c["host"], c["pull_host"]
+	}
+	push = r.host(c)
+	switch {
+	case c["pull_host"] != "":
+		pull = c["pull_host"]
+	case r.name == "dockerhub":
+		pull = "docker.io"
+	default:
+		pull = push
+	}
+	return push, pull
 }

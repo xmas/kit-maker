@@ -5,11 +5,12 @@ work, plans and decisions still to make are in beads (`bd ready`, `bd show <id>`
 made are `decision` beads (`bd list --type decision --all`). Section numbers are stable because beads
 cite them.
 
-Kit Maker is a web app for building **Docker Sandboxes Kit v3** kits by stating a goal and
-filling in the blanks, with AI drafting, explaining and reviewing every step.
-Kits are composed from reusable, versioned, inheritable blocks, published as OCI kit images, and
-referenced from repos' `sbxenv.yaml`. Every generated kit carries a **blueprint ID**, so we
-can trace where it came from and which sandboxes it is running in.
+Kit Maker is a web app for building **blueprints**, the designs for **Docker Sandboxes Kit v3**
+kits, by stating a goal and filling in the blanks, with AI drafting, explaining and reviewing
+every step. Blueprints are composed from reusable, versioned, inheritable blocks; each published
+version is an OCI kit image that people download or reference from a repo's `sbxenv.yaml`. Every
+version carries its **blueprint ID**, so we can trace where a sandbox came from, who made and
+downloaded it, which project it served and what network access it used (§2, §5).
 
 Stack: **Go** (one static binary) · Vue 3 + TypeScript + Inertia (via
 `gonertia`) · Tailwind + shadcn-vue · Postgres + pgvector · Ent + Atlas
@@ -28,15 +29,15 @@ vendored and pinned.
 
 ---
 
-## 1. What the app produces: a cloud kit, referenced from code
+## 1. What the app produces: a blueprint, referenced from code
 
-The kit lives **in the cloud**. Repos never hold the kit itself. They hold a
-small **code-level reference** that points at the cloud kit, either at a
+The blueprint lives **in the cloud**. Repos never hold the blueprint itself. They hold a
+small **code-level reference** that points at the blueprint, either at a
 moving channel (current) or pinned to one revision.
 
 | Output | Where | Changes when |
 |---|---|---|
-| **Cloud kit**: each revision published as an OCI kit image (v3 kits are ordinary OCI images) | `docker.io/acme/sbx-kit-acme-shop` with tags `rev-N` (immutable), `latest` (newest rev) and `stable` (promoted rev), all with digests | every time you generate a rev |
+| **Blueprint version**: each publish is an OCI kit image (v3 kits are ordinary OCI images) | `docker.io/acme/sbx-kit-acme-shop` with tags `vN` (immutable), `latest` (newest version) and `stable` (promoted version), all with digests | every time you publish |
 | **Code-level reference**: a small `sbxenv.yaml` in the repo | `acme/shop/sbxenv.yaml`, added once by PR | rarely: switching follow/pin |
 | **SANDBOX.md** (optional) | in the repo, written by AI | with the reference |
 | **Offline bundle** (fallback) | zip of the descriptor + files + sbxenv | on demand |
@@ -44,13 +45,13 @@ moving channel (current) or pinned to one revision.
 The code-level reference:
 
 ```yaml
-# sbxenv.yaml: managed by Kit Maker (kit_01JAC2W8F3). Edit the kit at kitmaker.app/k/acme-shop
+# sbxenv.yaml: managed by Kit Maker (bp_01JAC2W8F3). Edit the blueprint at kitmaker.app/k/acme-shop
 schemaVersion: "1"
 name: acme-shop
 agent: sbx-kit-acme-shop
 kits:
   - source: docker.io/acme/sbx-kit-acme-shop:stable   # follow: stable channel
-  # pinned instead:   docker.io/acme/sbx-kit-acme-shop:rev-2
+  # pinned instead:   docker.io/acme/sbx-kit-acme-shop:v2
   # exact:            docker.io/acme/sbx-kit-acme-shop@sha256:7d02…c3e1
 workspace: .
 sandboxOptions:
@@ -65,20 +66,20 @@ lifecycle:
 ```
 
 - **Following vs pinning.** `:stable` or `:latest` means each new sandbox gets
-  the current cloud kit. `pullPolicy: always` re-resolves the tag, and the
-  sbx runtime's update gate (spec §7.4) asks for approval whenever a new rev
-  widens permissions. `:rev-N` or `@sha256:` pins the kit until someone
+  the current blueprint. `pullPolicy: always` re-resolves the tag, and the
+  sbx runtime's update gate (spec §7.4) asks for approval whenever a new version
+  widens permissions. `:vN` or `@sha256:` pins the version until someone
   changes the reference.
 - **Channels.** `latest` moves on every generate. `stable` moves only when
   someone **promotes** a rev, after its checks pass. Teams point repos at
   `stable`.
-- **Content split.** Everything about *the kit* (agent, toolchain, network,
-  credentials, setup, context) lives in the cloud kit. Things about *the repo
+- **Content split.** Everything about *the blueprint* (agent, toolchain, network,
+  credentials, setup, context) lives in the blueprint. Things about *the repo
   or host* stay in the reference: workspace, env overrides, the registration
   hook and, optionally, bindings (§1.1). The
-  cloud kit is compiled as a `kind: set`, so one reference carries the agent
+  blueprint is compiled as a `kind: set`, so one reference carries the agent
   workload and every mixin (publishing a set merges them into one kit).
-- **Reference tracking.** The app knows which repos point at which kit, and at
+- **Reference tracking.** The app knows which repos point at which blueprint, and at
   what channel or pin. It learns this from a GitHub App scan of
   `sbxenv.yaml`, and from the registration hook, which reports the reference
   and the digest it resolved to. That powers "acme/admin is pinned to rev 1,
@@ -86,9 +87,9 @@ lifecycle:
 - **New credentials don't need a repo PR** when someone is at the keyboard
   (§1.1). The app warns about the non-interactive gap before a rev that adds
   a credential is promoted to `stable`.
-- **Publishing.** A cloud kit with no Dockerfile content is a staged
+- **Publishing.** A blueprint with no Dockerfile content is a staged
   descriptor plus file layers (a content-free kit is one layer), so a queue
-  worker assembles and pushes it through the OCI distribution API. Kits with
+  worker assembles and pushes it through the OCI distribution API. Blueprints with
   Dockerfile content go to a build runner. The registry and the build runner
   are both **set per deployment** (§1.2).
 
@@ -112,8 +113,8 @@ reading the echoed request headers. Background docs:
   file's `bindings:` block merges into the global file. `sbx env rm` keeps
   the bindings unless you pass `--prune-bindings`.
 - **An interactive `sbx env run` prompts. Confirmed.** `sbx env plan` and
-  the plan approval do **not** list a kit's credentials. The prompt comes
-  after the plan is approved and the kit is built:
+  the plan approval do **not** list a blueprint's credentials. The prompt comes
+  after the plan is approved and the blueprint is built:
   *"This kit wants to use these credentials: kmtest: API key sent to
   httpbin.org (not set)"*, with the options **Approve all / Review each /
   No, start without them**. No is the default. "Review each" offers
@@ -124,11 +125,11 @@ reading the echoed request headers. Background docs:
   Inside the sandbox, `KMTEST_TOKEN=proxy-managed` and the proxy adds the
   real header. "Approve all" with no stored secret does **not** ask for
   the value. It creates the sandbox without one and only warns.
-- **Widening re-prompts, but only interactively.** When a new kit rev adds
+- **Widening re-prompts, but only interactively.** When a new blueprint version adds
   an inject domain that the binding lacks, an interactive run prompts again.
   The prompt lists all of the domains, not just the new one. Approve all
   adds the new domain to `credentials.yaml`. When the binding already covers
-  every domain, there is no prompt. So a cloud kit that adds Packagist
+  every domain, there is no prompt. So a blueprint that adds Packagist
   prompts each developer once on their next create, with **no repo
   change**.
 - **The user-level file works.** A `bindings:` block in `~/.sbxenv.yaml` is
@@ -152,16 +153,16 @@ The gaps:
    | present | none | created, not sent. *"WARN: no credential resolved for required service; sandbox will start without it"* |
    | present | stored | created, header sent, no warnings. **This is the CI recipe.** |
 
-   The env var shows the sentinel `proxy-managed` in **every** case, so Kit
+   The env var shows the sentinel `proxy-managed` in **every** case, so kit
    content can't tell whether the credential is wired. A setup hook that
    needs it fails later, in an unclear way. The CI workaround is confirmed:
    pre-write the binding (in `credentials.yaml`, or in a runner-level
    `~/.sbxenv.yaml` with `sbx env run` and no PATH), and store the secret
    with `sbx secret set <service>` from stdin. Kit Maker generates both
-   snippets per kit and per CI provider.
+   snippets per blueprint and per CI provider.
 2. **Local sbx doesn't enforce the binding's domains.** This is new, and
    it's the serious one. A binding gates the *service*, not *where it is
-   sent*. The binding listed only `httpbin.org`, and the kit's
+   sent*. The binding listed only `httpbin.org`, and the blueprint's
    `inject` list added `postman-echo.com` and `httpbingo.org`. The secret
    reached **all three** hosts in two cases:
    - a non-interactive create, with **no warning at all**, and with a host
@@ -170,14 +171,14 @@ The gaps:
      them"**. `credentials.yaml` stayed as it was, and the secret was
      still sent to all three.
 
-   So a new kit rev can widen where a developer's secret goes, and the sbx
+   So a new blueprint version can widen where a developer's secret goes, and the sbx
    prompt doesn't protect them in CI or when they decline. Kit Maker's own
    gate has to treat **a new inject domain on an existing credential** as a
    credential change. The rev review shows it, and the AI reviewer
    escalates it (§14). Report it upstream as a bug, next to the ask in gap
    3.
 3. **No org-level approval.** Nothing in the CLI offers a central or
-   policy-level binding. There is no way to say "kits from
+   policy-level binding. There is no way to say "blueprints from
    `docker.io/acme/*` may use `github` and `packagist` on these domains"
    once for the whole org. `~/.sbxenv.yaml` gets as far as per-person and
    all-repos, but only for no-PATH `sbx env` runs. The ask for the sbx
@@ -218,8 +219,8 @@ admin settings), behind drivers:
 
 | Setting | Drivers | Notes |
 |---|---|---|
-| **Registry** | Docker Hub org, GHCR, ECR, GAR, Harbor, any OCI distribution registry | Push credentials stored encrypted. Repository naming template, e.g. `{org}/sbx-kit-{slug}`. **sbx only pulls remote kits from sources in `kit.allowedSources`. Docker Hub is allowed by default**, so any other registry has to be added on developer machines or by org policy. The admin page shows the exact setting to roll out. |
-| **Build runner** (kits with Dockerfile content) | `none` (content-free kits only), Docker Build Cloud, GitHub Actions (workflow in a repo the deployment controls), self-hosted BuildKit endpoint | The in-app assembler always handles content-free kits. Builds run on a queue, report status back by webhook, and record the digest. |
+| **Registry** | Docker Hub org, GHCR, ECR, GAR, Harbor, any OCI distribution registry | Push credentials stored encrypted. Repository naming template, e.g. `{org}/sbx-kit-{slug}`. **sbx only pulls remote blueprints from sources in `kit.allowedSources`. Docker Hub is allowed by default**, so any other registry has to be added on developer machines or by org policy. The admin page shows the exact setting to roll out. |
+| **Build runner** (blueprints with Dockerfile content) | `none` (content-free kits only), Docker Build Cloud, GitHub Actions (workflow in a repo the deployment controls), self-hosted BuildKit endpoint | The in-app assembler always handles content-free kits. Builds run on a queue, report status back by webhook, and record the digest. |
 | **Git host** | GitHub App (scan references, open PRs), GitLab later | Needed for reference tracking and "Open PR". |
 | **AI** | Anthropic API, Amazon Bedrock, Google Vertex AI, or `fake` (recorded fixtures, for tests). Claude on Microsoft Foundry comes once the Go SDK supports it; until then Azure deployments use the Anthropic API | Model is `claude-opus-5-5`, with effort per route. Budgets are set per deployment. The cloud drivers keep AI traffic inside the customer's tenancy. |
 | **Identity** | Any mix of username/password, Microsoft Entra ID, Okta, Google, and generic OIDC, chosen per deployment | See §12. Team membership sources are in §13 and RBAC in §14. |
@@ -235,17 +236,39 @@ build"). Packaging and per-cloud mapping are in §11.
 ## 2. Core concepts
 
 ```
-Goal ──< Check
-  │
-  ▼
-Kit ──< Slot ──> Block ──< BlockVersion
-  │      (blank / suggested / filled)
-  ▼
-Blueprint (immutable generation, bp_…) ──< Sandbox (sbx_…)
+Team ──< Project ──> Blueprint ──< Slot ──> Block ──< BlockVersion
+            │            │  ╰─ Goal ──< Check     (blank / suggested / filled)
+            │            │ publish
+            │            ▼
+            │       BlueprintVersion (vN, digest; packed as an OCI image)
+            │            │ download · sbx create
+            └────────< Sandbox (sbx_…) ──< Activity (network hosts, counts)
 ```
 
-- **Goal**: the kit's purpose in plain language, plus optional sources (a
-  GitHub repo, an existing kit, a Dockerfile, an sbx-scan report).
+**Words** (decision `kit-maker-hcw`). The app builds **blueprints**. A blueprint
+is the design for a Docker Sandboxes kit: "kit" is the spec's name for the
+published image, and the app says so once (docs, onboarding, the empty state).
+Everywhere else (nav, titles, buttons, logs) it says only "Blueprint":
+"Blueprint v3", "Download blueprint", "Sandboxes from this blueprint". "Kit"
+appears only inside the YAML and commands we generate for sbx (`kits:` in
+`sbxenv.yaml`, `sbx kit`). The workload is a **Project**, not a "workload",
+because the spec already has `kind: workload`.
+
+- **Team**: owns projects, blueprints and blocks (§13).
+- **Project**: the workload: what a team is doing, its repos (a repo's
+  `sbxenv.yaml` is the project's pointer, §1) and the **one** blueprint it
+  runs, on a channel or pinned to a version. One blueprint per project (it
+  may include others, §2.5) keeps attribution and right-sizing to one target.
+  Sandboxes register against the project, which is what answers "what work
+  was this for" (§5.1).
+- **Blueprint**: what people edit: a goal, slots filled by blocks, and full
+  history (§2.5a). Stable ID `bp_<ULID>`.
+- **Blueprint version**: one publish, immutable, numbered `vN`, with a digest,
+  permission surface and **who authored each part** (human, or AI accepted
+  by a named human). Downloaded either as a reference for a repo or as a file
+  (§1); both are logged.
+- **Goal**: the blueprint's purpose in plain language, plus optional sources (a
+  GitHub repo, an existing blueprint, a Dockerfile, an sbx-scan report).
 - **Check**: one testable expectation derived from the goal. Check types:
   - `network`: a URL plus expectation (pass or blocked), evaluated against the
     merged policy, as in sbx-scan's table.
@@ -257,17 +280,17 @@ Blueprint (immutable generation, bp_…) ──< Sandbox (sbx_…)
 
   Each check has a status (passing, failing, or unknown) and links to the
   slots that satisfy it.
-- **Slot**: a place in the kit outline: "Agent", "Base image", "Network:
+- **Slot**: a place in the blueprint outline: "Agent", "Base image", "Network:
   internal services", "GitHub credential", "Setup: install deps", and so on.
   A slot is **blank** (required, empty), **suggested** (an AI proposal waiting
   for review), **filled** (bound to a block version), or **optional**. Slots
-  come from the kit kind's template plus whatever the goal implies.
-- **Block / BlockVersion**: reusable, immutable-versioned kit fields, as in
-  v1: *"Internal network policy"*, *"GitHub API credential"*.
-- **Blueprint**: one per generation, immutable, with a digest and permission
-  surface. It also records **who authored each part** (human, or AI accepted
-  by a named human).
-- **Sandbox**: a running instance registered on create.
+  come from the template for the blueprint's kind plus whatever the goal implies.
+- **Block / BlockVersion**: reusable, immutable-versioned pieces of a
+  blueprint: *"Internal network policy"*, *"GitHub API credential"*.
+- **Sandbox**: a running instance created from a blueprint version, registered
+  on create with its project, person and host (§5).
+- **Activity**: what a sandbox did, starting with the network hosts it reached
+  or was refused (§5.1).
 
 ### 2.1 Block types → spec fields
 
@@ -291,19 +314,19 @@ covers everything else, and every block has a YAML view.
 
 ### 2.2 Block inheritance: link, edit locally, fork
 
-A block placed in a kit is a **link**, not a copy:
-`{block, track: latest | pinned vN, overrides}`. The kit uses
+A block placed in a blueprint is a **link**, not a copy:
+`{block, track: latest | pinned vN, overrides}`. The blueprint uses
 **base ⊕ overrides**.
 
-- **Edit in the kit, keep the link.** Editing a linked block records the
+- **Edit in the blueprint, keep the link.** Editing a linked block records the
   change as an override on the link. The library block is untouched, and the
-  kit still knows where the block came from. In the UI every row or field
+  blueprint still knows where the block came from. In the UI every row or field
   shows where it comes from: *inherited*, *changed here*, *added here* or
   *removed here*.
 - **Upstream changes keep flowing in.** When the library block publishes v4,
-  each linked kit **rebases** its overrides onto v4 (a 3-way merge of old
+  each linked blueprint **rebases** its overrides onto v4 (a 3-way merge of old
   base, new base and overrides). It applies automatically when the merge is
-  clean, the kit follows latest, and the surface doesn't widen. Otherwise it
+  clean, the blueprint follows latest, and the surface doesn't widen. Otherwise it
   waits as "v4 available" with a preview. A **conflict** (an override touches
   something v4 also changed or removed) gets an AI-proposed resolution that
   you accept or edit.
@@ -311,8 +334,8 @@ A block placed in a kit is a **link**, not a copy:
 - **Fork** promotes base + overrides into a *new library block* that remembers
   its parent. A fork is itself a link to the parent plus a patch, so it keeps
   inheriting the parent's updates. Chains are capped at depth 3.
-- **Propose upstream** turns this kit's overrides into a draft vN+1 of the
-  original. It goes through the where-used review: AI checks every kit that
+- **Propose upstream** turns this blueprint's overrides into a draft vN+1 of the
+  original. It goes through the where-used review: AI checks every blueprint that
   follows the block.
 - **Patch format.** List items in a payload (network rules, hooks, files,
   inject entries) carry stable item keys (`_k`, stripped at compile). Override
@@ -342,74 +365,74 @@ A block placed in a kit is a **link**, not a copy:
 `network-policy@2`, `lifecycle@1` and `resources@1` may appear only once per
 descriptor. Separate `network-rules` blocks are merged (allow and deny lists
 unioned per phase, each rule commented with its source block). Lifecycle
-hooks are concatenated in kit order. Instance-shaped types emit one entry per
+hooks are concatenated in blueprint order. Instance-shaped types emit one entry per
 block, and the spec's dedup keys are checked at compile time.
 
-### 2.5 Sub-kits
+### 2.5 Included blueprints
 
-A kit can **include other kits**. For example, `acme-base` holds the team's
+A blueprint can **include other blueprints**. For example, `acme-base` holds the team's
 deny rules, GitHub access and AGENTS.md, and `acme-shop` and `acme-admin`
-both include it. An include is `{child kit, track: stable | latest | pinned
+both include it. An include is `{child blueprint, track: stable | latest | pinned
 rev}`, just like a block link one level up.
 
-- The sub-kit's slots appear in the parent's outline as **From acme-base**.
+- The included blueprint's slots appear in the parent's outline as **From acme-base**.
 - The parent can **override** any of them. It can bind a different block
-  (replace) or keep edits on top of the sub-kit's value (patch). Either way
+  (replace) or keep edits on top of the included blueprint's value (patch). Either way
   the item shows **Overrides acme-base**, and the original stays visible for
   comparison.
-- **Precedence:** the kit's own slots win over sub-kit slots. When two
-  sub-kits both provide something that can only exist once (the same
+- **Precedence:** the blueprint's own slots win over included blueprint slots. When two
+  included blueprints both provide something that can only exist once (the same
   credential service+phase, a singleton like `resources@1`), the parent has
   to resolve it, and AI proposes how.
-- **Updates:** when `acme-base` publishes a new rev, every parent tracking it
+- **Updates:** when `acme-base` publishes a new version, every parent tracking it
   shows "update available", rebases its overrides, and re-runs its checks,
   the same as for blocks.
 - **Compile = flatten.** The spec's `kind: set` composition unions
   declarations and treats duplicate owners as conflicts. It has **no
-  override**, so Kit Maker resolves sub-kits and overrides before publishing
-  and emits one ordinary kit. The blueprint records which sub-kit rev each
-  slot came from. (A sub-kit with no overrides could instead be referenced
+  override**, so Kit Maker resolves included blueprints and overrides before publishing
+  and emits one ordinary kit. The blueprint records which included blueprint version each
+  slot came from. (An included blueprint with no overrides could instead be referenced
   by image in a set. That's an optimisation for later.)
 
 ### 2.5a History: undo everything
 
-Every change to a kit is recorded as a revision: who, when, a one-line
+Every change to a blueprint is recorded as a revision: who, when, a one-line
 summary, and a full snapshot (goal, slots, the block versions they link and
-the kit's edits) plus the YAML it compiled to. Any revision can be previewed
-(its YAML against now) and restored, for the whole kit or one slot; a
+the blueprint's edits) plus the YAML it compiled to. Any revision can be previewed
+(its YAML against now) and restored, for the whole blueprint or one slot; a
 restore is itself a revision, so it can be undone. Library blocks already
 keep immutable versions; restoring an old one publishes it as the newest, so
-kits take it like any update. Two words stay distinct in the UI: **Revert
-changes** throws away unsaved edits; **Resync to block** drops the kit's
+blueprints take it like any update. Two words stay distinct in the UI: **Revert
+changes** throws away unsaved edits; **Resync to block** drops the blueprint's
 saved edits and takes the block's latest version. In the outline a pencil
 means unsaved edits only; a link with an amber dot means linked with saved
 edits.
 
-### 2.6 The outline is the kit's navigation
+### 2.6 The outline is the blueprint's navigation
 
 Builder layout: outline on the left, the selected slot's editor in the
-middle, and the kit's YAML on the **right**, always visible, with the lines
+middle, and the blueprint's YAML on the **right**, always visible, with the lines
 the selected slot produced highlighted. The YAML stays on the right so the
 selection bridge runs straight from the outline into the editor. Either
 sidebar can be hidden; a hidden outline opens as a hover flyout.
 
-The outline from the builder is the **persistent left rail on every kit
+The outline from the builder is the **persistent left rail on every blueprint
 screen**: builder, block editor, inheritance view, checks, generate, in code.
 It does two jobs:
 
 1. **Navigation.** Sections (Agent & base, Network, Credentials, Setup,
-   Agent, Runtime, Sub-kits) and their slots are links. The selected slot
-   opens in the main pane, and URLs are stable (`/kits/{kit}/{section}/{slot}`).
-   Filters: *All · Needs you · Changed here · From sub-kits*.
+   Agent, Runtime, Included blueprints) and their slots are links. The selected slot
+   opens in the main pane, and URLs are stable (`/blueprints/{blueprint}/slots/{slot}`).
+   Filters: *All · Needs you · Changed here · From included blueprints*.
 2. **State at a glance.** Each item shows its type colour, its name, and two
    markers:
    - **Origin** (where the value comes from):
      - *Inherited*: linked library block, no edits (chain)
      - *Modified*: linked block plus edits here (pencil + count)
-     - *Custom*: exists only in this kit (filled dot)
-     - *From sub-kit*: provided by an included kit, untouched (layers +
-       sub-kit name)
-     - *Overrides sub-kit*: this kit replaces or edits what the sub-kit
+     - *Custom*: exists only in this blueprint (filled dot)
+     - *From included blueprint*: provided by an included blueprint, untouched (layers +
+       included blueprint name)
+     - *Overrides included blueprint*: this blueprint replaces or edits what the included blueprint
        provides (layers + pencil)
    - **Status** (what needs attention): blank, AI suggestion to review,
      update available, conflict, failing check.
@@ -434,7 +457,7 @@ Principles:
    and a short "why". Accepting it creates the block version or binds the
    slot. Rejecting it is recorded, so the next suggestion learns from it.
 2. **Reuse before create.** When filling a slot, the AI searches the team's
-   block library first: "Use *GitHub egress v3* (used by 18 kits)". It only
+   block library first: "Use *GitHub egress v3* (used by 18 blueprints)". It only
    drafts a new block when nothing fits.
 3. **Schema-valid by construction.** Generation uses structured outputs, with
    the block type's JSON Schema (from the vendored spec schema) as the output
@@ -453,9 +476,9 @@ Where AI shows up:
 
 | Moment | What the AI does |
 |---|---|
-| **Start a kit** | Turns the goal and sources into kind, agent, outline, slots and checks. It reads the repo (languages, package managers, start commands, CI, like sbx-scan) and shows its evidence. |
+| **Start a blueprint** | Turns the goal and sources into kind, agent, outline, slots and checks. It reads the repo (languages, package managers, start commands, CI, like sbx-scan) and shows its evidence. |
 | **Fill a blank** | Offers 1–3 options for the slot (library blocks first, or a new draft), each with what it does to the checks. |
-| **Ask about a block** | An "Ask AI" bar on every slot and block, e.g. "also allow read-only GitLab". The AI returns a diff. If the block is shared it asks: fork for this kit, or publish a new version for everyone (with the widening count)? |
+| **Ask about a block** | An "Ask AI" bar on every slot and block, e.g. "also allow read-only GitLab". The AI returns a diff. If the block is shared it asks: fork for this blueprint, or publish a new version for everyone (with the widening count)? |
 | **Field help** | Explains a field in context ("what does `proxyManaged` do here?") and autocompletes hosts, paths and env names. |
 | **Network** | Turns intent into rules ("agent can read our Jira, can't post to Slack") and writes policy tests for them. Explains why a URL is allowed or blocked. |
 | **Agent context** | Drafts AGENTS.md / CLAUDE.md from the repo and goal, and suggests skills. |
@@ -487,7 +510,7 @@ Implementation:
 - **Streaming:** SDK stream → `http.Flusher` SSE handler → Vue, so drafts
   appear as they're written.
 - **Background:** library hygiene, bulk "regenerate after a shared block
-  changed" and sub-kit rebases run as River jobs. Message Batches can be used
+  changed" and included blueprint rebases run as River jobs. Message Batches can be used
   for big bulk runs.
 - **Cost guard:** per-team monthly AI budget, usage logged per call
   (`ai_calls`). Budgets count billable tokens (input + cache writes + output,
@@ -498,13 +521,13 @@ Implementation:
 
 ## 4. Compiler
 
-`internal/kits/compiler` is a pure function from (kit, resolved links,
-sub-kits, overrides) to output. It builds on the spec's own Go module
+`internal/blueprints/compiler` is a pure function from (blueprint, resolved links,
+included blueprints, overrides) to output. It builds on the spec's own Go module
 (`github.com/docker/sandbox-kit-spec/v3`). The sbx runtime imports that same
 `spec` package, so Kit Maker and sbx can't disagree about what a kit means.
 
-1. Resolve sub-kits (§2.5) and block links (pinned or latest), and apply
-   overrides (`internal/kits/patch`).
+1. Resolve included blueprints (§2.5) and block links (pinned or latest), and apply
+   overrides (`internal/blueprints/patch`).
 2. Render fragments for each block type into the spec module's kit types,
    then run the singleton mergers and dedup-key checks.
 3. Inject provenance (§5).
@@ -523,8 +546,8 @@ sub-kits, overrides) to output. It builds on the spec's own Go module
    `assemble` packages for content-free kits, or a build runner (§1.2).
 
 The live preview and check results come from the same compiler
-(`POST /kits/{kit}/preview`, debounced). CI also runs the spec repo's
-`kit-tck` conformance suite against published kits.
+(`POST /blueprints/{blueprint}/preview`, debounced). CI also runs the spec repo's
+`kit-tck` conformance suite against published blueprints.
 
 ---
 
@@ -534,49 +557,88 @@ The kit's top level is `additionalProperties: false`, so `blueprintId:` can't
 be added as a key. The blueprint ID is carried in three ways:
 
 - a **YAML header comment**, for humans;
-- **`args.kitmakerBlueprint`** with `default: bp_…` and
+- **`args.kitmakerBlueprint`** with `default: bp_…@vN` and
   `env: KITMAKER_BLUEPRINT_ID`. This is the primary machine-readable carrier.
   It doesn't widen the surface, so it never triggers an update prompt;
 - a **`lifecycle@1` file** at `/etc/kitmaker/blueprint.json`, holding the
-  blueprint ID, kit ID, revision, digest, and AI-authorship summary.
+  blueprint ID, version, digest, and AI-authorship summary.
 
 Later, when we publish OCI images, a Dockerfile `LABEL io.kitmaker.blueprint-id`
 and signed attestations get added. A custom capability was rejected as a
-carrier: every regeneration would change its config, and the update gate would
+carrier: every publish would change its config, and the update gate would
 then demand approval each time.
 
-IDs: `kit_<ULID>`, `bp_<ULID>` (one per generation, and an identical digest
-reuses the existing blueprint), `sbx_<ULID>`.
+IDs: `bp_<ULID>` (one per blueprint, stable across versions; a version is
+`bp_…@vN`, and publishing an identical digest reuses the existing version),
+`prj_<ULID>` for projects, `sbx_<ULID>` for sandboxes. The project isn't in the
+image, because one blueprint version serves many projects; it comes from the
+repo's `sbxenv.yaml` at registration.
 
 **Sandbox registration:** an opt-in host-side `lifecycle.postCreate` hook in
-`sbxenv.yaml` POSTs `{blueprint, $SBX_SANDBOX_NAME}` with a scoped enrollment
-token (read from the `sbx secret` store). It then uses `sbx exec` to write
-`/etc/kitmaker/sandbox.json`, and never blocks create. Kits run without an
-environment file can use an optional in-sandbox startup check-in instead,
-which needs a bounded network rule. Provenance is for traceability, not trust.
+`sbxenv.yaml` POSTs `{blueprint@version, digest, project, $SBX_SANDBOX_NAME}`
+with an enrollment token (read from the `sbx secret` store). Tokens are issued
+**per person per project** when someone downloads a blueprint in the app, so
+registration says who created the sandbox; that, not the registry pull, is the
+"downloaded" event (pulls are logged too, but only name the pull credential).
+The hook then uses `sbx exec` to write `/etc/kitmaker/sandbox.json`, and never
+blocks create. Blueprints run without an environment file can use an optional
+in-sandbox startup check-in instead, which needs a bounded network rule.
+Provenance is for traceability, not trust.
+
+### 5.1 Activity and right-sizing
+
+The logs Kit Maker keeps answer, for any sandbox: which blueprint version and
+blocks it ran, who made that version (blueprint history plus the publisher),
+who created the sandbox and for which project, and what network access it used
+and didn't use.
+
+- **Source.** sbx already records network decisions: `sbx policy log --json`
+  (checked on sbx 0.48.0) gives, per sandbox name and host, allowed or blocked,
+  a request count and first/last seen. Blocked entries name the rule and
+  reason; allowed entries don't, so Kit Maker matches each allowed host to the
+  blueprint's rules itself with the same evaluator the network checks use.
+  Filesystem logs are listed by sbx but not supported yet.
+- **Collection is the open problem.** The log keys sandboxes by sbx name, so
+  registration maps that name to `sbx_…`. `postCreate` runs once, so something
+  on the host must also upload on stop or on a schedule (a small `kitmaker`
+  reporter, or an sbx hook if one appears). Needs an experiment before we
+  build on it, like the credential-binding one (§1.1).
+- **Right-sizing.** Per project, over a window (say 30 days of sandboxes): a
+  rule no traffic matched is a candidate to cut; a blocked host that keeps
+  appearing is a candidate to add or to confirm as denied. Kit Maker offers a
+  trimmed block (or a project-only edit) shown with the usual red "removed"
+  diff, and never applies it on its own. Usage is per project because one
+  blueprint can serve projects with different needs.
 
 ---
 
 ## 6. Data model (Postgres)
 
 The full schema, with a Mermaid ER diagram, is in
-[docs/database.md](docs/database.md). Summary:
+[docs/database.md](docs/database.md). Summary (`blueprints`,
+`blueprint_includes` and `blueprint_revisions` exist today; the rest is planned):
 
 ```
-kit_includes(id, kit_id, child_kit_id, track[stable|latest|pinned], pinned_blueprint_id, position)  -- sub-kits
-slots.origin_kit_id NULL      -- set when the slot comes from a sub-kit
-slots.overrides_slot_id NULL  -- set when this kit's slot overrides a sub-kit slot
+blueprint_includes(id, blueprint_id, child_blueprint_id, track[stable|latest|pinned], pinned_version_id, position)  -- sub-blueprints
+slots.origin_blueprint_id NULL  -- set when the slot comes from an included blueprint
+slots.overrides_slot_id NULL    -- set when this blueprint's slot overrides an included one
 integrations(id, kind, driver, config_encrypted, is_default, verified_at)          -- per-deployment drivers
 teams, users, team_user(role)
 
-goals(id, kit_id, statement text, sources jsonb, created_by)
-checks(id, kit_id, type, spec jsonb, expectation, status, last_evaluated_at,
+projects(id prj_ulid, team_id, name, description, blueprint_id,
+       track[stable|latest|pinned], pinned_version_id NULL)
+project_repos(project_id, repo, path)                    -- where its sbxenv.yaml lives
+
+goals(id, blueprint_id, statement text, sources jsonb, created_by)
+checks(id, blueprint_id, type, spec jsonb, expectation, status, last_evaluated_at,
        authored_by[user|ai], suggestion_id)
 check_slot(check_id, slot_id)
 
-kits(id kit_ulid, team_id, slug, display_name,
+blueprints(id bp_ulid, team_id, slug, display_name,
      kind[workload|mixin|set|environment], registration_enabled, network_preset)
-slots(id, kit_id, key, label, section, required bool, position,
+blueprint_revisions(blueprint_id, seq, actor, action, slot_key, summary,
+       snapshot jsonb, yaml)                              -- edit history (§2.5a), today kit_revisions
+slots(id, blueprint_id, key, label, section, required bool, position,
       state[blank|suggested|filled|optional], optional_capability bool, group_name NULL)
 block_links(id, slot_id, block_id, track[latest|pinned], pinned_version_id NULL,
       base_version_id,                                   -- version the overrides were last rebased on
@@ -589,25 +651,29 @@ blocks(id, team_id, type, slug, name, description, tags, visibility,
 block_versions(id, block_id, version, payload jsonb, payload_hash, changelog,
        authored_by[user|ai], accepted_by, suggestion_id, created_at)   -- immutable
 
-ai_suggestions(id, team_id, kit_id NULL, slot_id NULL, block_id NULL,
+ai_suggestions(id, team_id, blueprint_id NULL, slot_id NULL, block_id NULL,
        kind[outline|fill|edit|checks|review|explain|import|dedupe],
        prompt text, proposal jsonb, diff jsonb, rationale, evidence jsonb,
        widens bool, status[proposed|accepted|rejected|superseded],
        model, input_tokens, output_tokens, cached_tokens, created_by, decided_by)
 
-blueprints(id bp_ulid, kit_id, revision, digest, descriptor_yaml, files jsonb,
+blueprint_versions(id, blueprint_id, version, digest, descriptor_yaml, files jsonb,
        permission_surface jsonb, surface_diff jsonb, widened bool,
-       checks_snapshot jsonb, ai_review jsonb, release_notes, generated_by)
-blueprint_block_versions(blueprint_id, block_version_id, overrides_hash, position)
+       checks_snapshot jsonb, ai_review jsonb, release_notes, published_by)
+blueprint_version_blocks(blueprint_version_id, block_version_id, overrides_hash, position)
 
-published_images(blueprint_id, repository, digest, pushed_at)       -- docker.io/acme/sbx-kit-acme-shop@sha256:…
-channels(kit_id, name[latest|stable|…], blueprint_id, promoted_by, promoted_at)
-kit_references(id, kit_id, repo, path, ref_kind[channel|rev|digest], ref_value,
-       resolved_blueprint_id, bindings_ok bool, last_seen_at, source[github_scan|registration])
+published_images(blueprint_version_id, repository, digest, pushed_at)  -- docker.io/acme/sbx-kit-acme-shop@sha256:…
+channels(blueprint_id, name[latest|stable|…], blueprint_version_id, promoted_by, promoted_at)
+repo_references(id, project_id NULL, blueprint_id, repo, path, ref_kind[channel|version|digest], ref_value,
+       resolved_version_id, bindings_ok bool, last_seen_at, source[github_scan|registration])
+downloads(id, blueprint_version_id, project_id NULL, user_id, kind[repo_reference|file|pull],
+       created_at)                                       -- §5: who downloaded what
 
-sandboxes(id sbx_ulid, blueprint_id, sandbox_name, host_fingerprint_hash,
-       sbx_version, registered_at, last_seen_at, status)
-enrollment_tokens(id, blueprint_id|kit_id, token_hash, revoked_at)
+sandboxes(id sbx_ulid, blueprint_version_id, project_id NULL, user_id NULL, sandbox_name,
+       host_fingerprint_hash, sbx_version, registered_at, last_seen_at, status)
+sandbox_network_activity(sandbox_id, host, decision[allowed|blocked], matched_rule NULL,
+       reason NULL, count, first_seen, last_seen)        -- §5.1, from sbx policy log
+enrollment_tokens(id, project_id, user_id, token_hash, revoked_at)   -- per person per project
 ```
 
 ---
@@ -621,9 +687,9 @@ internal/
   http/                    # chi router, gonertia (Inertia) pages, SSE, JSON API for sbx registration
   auth/                    # local accounts + OIDC (go-oidc), sessions (scs + pgx store), CSRF
   ent/schema/              # Ent schemas → generated models, edges, hooks, privacy rules
-  kits/
+  blueprints/
     blocktypes/            # per type: JSON Schema, renderer, defaults, dedup key, slot templates
-    compiler/              # sub-kits + links + overrides → spec kit → YAML, surface, digest
+    compiler/              # included blueprints + links + overrides → spec kit → YAML, surface, digest
     patch/                 # override ops keyed by _k, 3-way rebase
     checks/                # evaluators (network uses merged policy + preset)
     provenance/            # IDs, provenance injection, registration
@@ -638,7 +704,7 @@ internal/
     ai/                    # anthropic, bedrock, vertex, fake
 migrations/                # Atlas versioned SQL + atlas.sum, embedded in the binary
 web/                       # Vue 3 + TS + Vite + shadcn-vue, Inertia pages, built assets embedded via embed.FS
-  pages/                   # Kits/New, Kits/Build, Blocks/*, Blueprints/*, Repos/*
+  pages/                   # Blueprints/{Index,New,Show}, Blocks/*, Projects/*, Sandboxes/*
   components/              # Outline (persistent nav), Slot, ChecksPanel, YamlPanel, SurfaceDiff, ai/*
 deploy/
   compose/                 # single-computer stack
@@ -650,29 +716,29 @@ spec/                      # vendored JSON Schemas + network presets, pinned com
 
 ## 8. Key flows
 
-1. **Start from a goal.** Type the goal, attach a repo or kit → the AI streams
+1. **Start from a goal.** Type the goal, attach a repo or blueprint → the AI streams
    kind, agent, outline and checks → land in the builder with 4–6 blanks left.
 2. **Fill the blanks.** The outline shows progress ("3 blanks · 2 failing
    checks"). Open a blank, pick an AI option or a library block, or write your
    own. Checks update live.
 3. **Modify with AI.** On any filled slot, type into Ask AI → see the diff →
-   choose *this kit only* (fork) or *new shared version* (shows how many kits
+   choose *this blueprint only* (fork) or *new shared version* (shows how many blueprints
    are affected and how many widen).
 4. **Generate a revision.** The AI review flags widenings with risk notes, the
    checks snapshot must be green (or explicitly waived), release notes are
-   drafted → `bp_…` minted → image pushed as `rev-N` and `latest` → optionally
+   drafted → version `vN` of `bp_…` minted → image pushed as `vN` and `latest` → optionally
    promote to `stable`. Repos following that channel pick it up on their next
    sandbox create.
 5. **Install into a repo (once).** "Use in a repo" → choose follow
    (`stable`/`latest`) or pin → the app opens a PR adding the `sbxenv.yaml`
-   reference (plus SANDBOX.md) → from then on the kit is edited in the cloud,
+   reference (plus SANDBOX.md) → from then on the blueprint is edited in the cloud,
    not in the repo.
-6. **Edit an inherited block.** Edit a linked block inside a kit → the changes
+6. **Edit an inherited block.** Edit a linked block inside a blueprint → the changes
    are kept as overrides and the link stays → when the library publishes v4,
-   the kit rebases (automatically if clean, AI-assisted if it conflicts) →
+   the blueprint rebases (automatically if clean, AI-assisted if it conflicts) →
    optionally fork into a new library block, or propose the edits upstream.
 7. **Shared block update.** Publish v5 → the where-used list shows affected
-   kits, with AI pre-reviewing each one (including rebasing their overrides)
+   blueprints, with AI pre-reviewing each one (including rebasing their overrides)
    → bulk regenerate the safe ones, queue the widening ones for review.
 8. **Trace.** Paste a `bp_…`/`sbx_…` ID (or `$KITMAKER_BLUEPRINT_ID`) to see
    its lineage: block versions, who or what authored them, blueprint, and
@@ -781,11 +847,11 @@ the same throwaway registry the kit spec's examples assume.
 
 - **`deploy/compose` runs the whole product:** kitmaker (serve + worker),
   Postgres+pgvector, MinIO, zot, buildkitd and Mailpit, plus a seed job (spec
-  examples as a starter library, one demo kit). `make up` →
+  examples as a starter library, one demo blueprint). `make up` →
   http://localhost:8080. For fast iteration, `make dev` runs
   `kitmaker dev` natively, with Vite hot reload and air for Go, against the
   same containers.
-- **A real end-to-end test on a laptop.** Generate a kit, publish it to zot
+- **A real end-to-end test on a laptop.** Generate a blueprint, publish it to zot
   (built by local BuildKit if it has a Dockerfile), then run `sbx env run`
   on the same machine with `localhost:5000` in `kit.allowedSources`. The
   postCreate hook registers the sandbox back to `localhost:8080`, so the full
@@ -794,7 +860,7 @@ the same throwaway registry the kit spec's examples assume.
   start Postgres, MinIO, zot and buildkitd per package, with no SQLite
   divergence on jsonb or pgvector. The AI `fake` driver replays fixtures.
   Each driver has a contract suite run against its local implementation.
-  Published kits go through the spec's `kit-tck`. Playwright covers the main
+  Published blueprints go through the spec's `kit-tck`. Playwright covers the main
   flows.
 - **The chart is tested locally too.** CI installs the Helm chart on kind
   (and k3d), and a nightly job runs it on OpenShift Local (CRC) to catch
@@ -919,7 +985,7 @@ Common behaviour:
 
 ## 13. Teams & where membership comes from
 
-Teams are the unit of ownership and access. Every kit, block, blueprint,
+Teams are the unit of ownership and access. Every blueprint, block, project,
 integration and AI budget belongs to a team. A team's members can come from
 several **sources at once**, and every membership row records its source,
 so the UI can say *"Sam is a Maintainer via Entra group Platform-Eng"*.
@@ -997,8 +1063,8 @@ are read-only presets that can be cloned as a starting point.
 | Deployment | **Admin** | Identity, integrations, teams (**only admins create teams**), roles, policies, guardrails, settings. |
 | Deployment | **Auditor** | Read everything, plus audit view and export. No writes. |
 | Deployment | **Member** | Sign in, manage own tokens. Sees only what teams grant. |
-| Team | **Viewer** | View kits, blocks, blueprints, references, sandboxes. |
-| Team | **Contributor** | Viewer + create and edit kits and blocks, use AI, request reviews. |
+| Team | **Viewer** | View blueprints, blocks, versions, references, sandboxes. |
+| Team | **Contributor** | Viewer + create and edit blueprints and blocks, use AI, request reviews. |
 | Team | **Maintainer** | Contributor + generate, publish, promote, approve, publish shared block versions, open reference PRs. |
 | Team | **Team admin** | Maintainer + membership, membership sources, sharing, team-level policies. |
 
@@ -1006,10 +1072,10 @@ are read-only presets that can be cloned as a starting point.
 
 | Area | Permissions |
 |---|---|
-| Kits | `kit.view` `kit.create` `kit.edit` `kit.archive` `kit.transfer` `kit.share` `kit.checks.edit` `kit.subkit.include` `kit.history.view` `kit.bundle.download` |
-| Revisions & channels | `kit.generate` `kit.publish` `kit.promote` `kit.channel.manage` `blueprint.view` `blueprint.download` |
-| Approvals | `approval.request` `approval.decide.widening` `approval.decide.promote` `approval.decide.shared_block` `approval.self_justify` `kit.policy.manage` |
-| Collections | `collection.view` `collection.create` `collection.edit` `collection.kits.manage` `collection.policy.manage` `collection.share` `collection.archive` |
+| Blueprints | `blueprint.view` `blueprint.create` `blueprint.edit` `blueprint.archive` `blueprint.transfer` `blueprint.share` `blueprint.checks.edit` `blueprint.include` `blueprint.history.view` `blueprint.download` |
+| Versions & channels | `blueprint.publish` `blueprint.promote` `blueprint.channel.manage` `blueprint.version.view` |
+| Approvals | `approval.request` `approval.decide.widening` `approval.decide.promote` `approval.decide.shared_block` `approval.self_justify` `blueprint.policy.manage` |
+| Collections | `collection.view` `collection.create` `collection.edit` `collection.blueprints.manage` `collection.policy.manage` `collection.share` `collection.archive` |
 | Blocks | `block.view` `block.use` `block.create` `block.edit` `block.publish_version` `block.fork` `block.share` `block.archive` `block.import` `library.hygiene.apply` |
 | Inheritance | `link.rebase.apply` `link.conflict.resolve` `link.revert` `block.propose_upstream` |
 | Guardrails | `guardrail.view` `guardrail.manage` `guardrail.exception.request` `guardrail.exception.approve` |
@@ -1029,7 +1095,7 @@ are read-only presets that can be cloned as a starting point.
   `auth.providers.manage`, `settings.manage`, …) can only go in deployment
   roles. Team roles can't carry them.
 - **Dangerous combinations are flagged** in the editor, e.g. a role with
-  both `kit.publish` and `approval.self_justify`, or `guardrail.manage` on a
+  both `blueprint.publish` and `approval.self_justify`, or `guardrail.manage` on a
   team role.
 - **Roles are referenced by key** everywhere: claim rules, SCIM group
   mappings, callout responses (`{"team": "platform", "role":
@@ -1053,14 +1119,14 @@ feature can't ship without being assignable to a role.
   with everyone at `use`).
 - Library visibility: *team only* (default), *shared with chosen teams*,
   or *everyone in the deployment* (view + use; edits stay with the owner).
-- **Cross-team impact:** publishing a new version of a block or sub-kit
-  that other teams' kits follow notifies those owners. If it **widens**
-  their permission surface, their kits wait for *their* Maintainer's
+- **Cross-team impact:** publishing a new version of a block or included blueprint
+  that other teams' blueprints follow notifies those owners. If it **widens**
+  their permission surface, their blueprints wait for *their* Maintainer's
   approval, not the publisher's.
 
-**Collections.** Kits can be grouped into **collections**, e.g. *Payments
-kits* or *Customer-facing agents*. A collection is owned by a team, can be
-shared like any object, and is where policy for a group of kits lives.
+**Collections.** Blueprints can be grouped into **collections**, e.g. *Payments
+blueprints* or *Customer-facing agents*. A collection is owned by a team, can be
+shared like any object, and is where policy for a group of blueprints lives.
 
 **Approvals and separation of duties: one setting at three levels.**
 
@@ -1068,13 +1134,13 @@ shared like any object, and is where policy for a group of kits lives.
 |---|---|---|
 | **Global** (deployment) | Admin | "Widening needs 1 approval; the author can't approve. Promoting to `stable` needs 1 approval." |
 | **Collection** | Collection owner's Team admin | "Payments kits: promoting to `stable` needs 2 approvals, one from Security." |
-| **Kit** | Kit owner's Team admin | "acme-shop: widening needs no approval while it's in draft." |
+| **Blueprint** | Blueprint owner's Team admin | "acme-shop: widening needs no approval while it's in draft." |
 
 - **The most specific level wins**, for each action separately: widening,
   promote to `stable`, publish shared block version, guardrail exception.
 - **Locks:** a higher level can **lock** a setting so lower levels can only
   make it stricter, never looser. (e.g. Global locks "author can't approve
-  widenings", so no collection or kit can turn it off.)
+  widenings", so no collection or blueprint can turn it off.)
 - **Settings per action:**
   - *Who can approve*: **AI reviewer**, **another person** (role, and
     optionally a required team such as *Security*), or both.
@@ -1092,8 +1158,8 @@ first-class approver.
 - **It's independent of the author.** It runs as a separate call with its
   own prompt, and sees none of the authoring conversation or earlier AI
   suggestions. Its input is the change itself: the permission-surface diff,
-  the compiled kit, the goal and its checks, the guardrails that apply, and
-  the kit's history.
+  the compiled blueprint, the goal and its checks, the guardrails that apply, and
+  the blueprint's history.
 - **Deterministic gates run first.** Failing checks or a guardrail
   violation block the change before the AI is even asked, so the AI can't
   approve its way past them.
@@ -1123,19 +1189,19 @@ level above locks them):
 |---|---|
 | Widening | 1 approval from **the AI reviewer or another Maintainer**. The author may self-approve with a justification only when the AI escalates and no one else is eligible. The AI may approve **low** risk on its own. |
 | Promote to `stable` | Same as widening, and all checks must pass. |
-| Publish a shared block version | AI reviewer runs the where-used check (§2.2). Each affected kit's own policy then applies to that kit. |
+| Publish a shared block version | AI reviewer runs the where-used check (§2.2). Each affected blueprint's own policy then applies to that blueprint. |
 | Guardrail exception | 1 approval from an **Admin**. The AI may review but can't approve. |
 
 When a policy can't be met (e.g. "2 human approvals" on a team with one
 Maintainer), the policy editor warns as it's saved, not at the moment
 someone tries to publish.
-- The kit's **Review & generate** screen shows the **effective policy and
+- The blueprint's **Review & generate** screen shows the **effective policy and
   where each part comes from** ("2 approvals, from collection *Payments
-  kits*; author can't approve, locked globally"), using the same origin
+  blueprints*; author can't approve, locked globally"), using the same origin
   markers as the outline.
 - **Mandatory guardrails** use the same cascade. A global or collection
-  rule like "every kit must include *Deny cloud metadata*" makes the
-  compiler refuse kits without it, unless an approved guardrail exception
+  rule like "every blueprint must include *Deny cloud metadata*" makes the
+  compiler refuse blueprints without it, unless an approved guardrail exception
   exists.
 
 **AI respects RBAC.** AI calls run as the requesting user. Library search

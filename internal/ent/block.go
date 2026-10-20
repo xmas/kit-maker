@@ -10,10 +10,10 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/docker/kit-maker/internal/blueprints/patch"
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
 	"github.com/docker/kit-maker/internal/ent/team"
-	"github.com/docker/kit-maker/internal/kits/patch"
 	pgvector "github.com/pgvector/pgvector-go"
 )
 

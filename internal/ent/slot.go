@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
-	"github.com/docker/kit-maker/internal/ent/kit"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
 	"github.com/docker/kit-maker/internal/ent/slot"
 )
 
@@ -23,10 +23,10 @@ type Slot struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// KitID holds the value of the "kit_id" field.
-	KitID string `json:"kit_id,omitempty"`
-	// OriginKitID holds the value of the "origin_kit_id" field.
-	OriginKitID *string `json:"origin_kit_id,omitempty"`
+	// BlueprintID holds the value of the "blueprint_id" field.
+	BlueprintID string `json:"blueprint_id,omitempty"`
+	// OriginBlueprintID holds the value of the "origin_blueprint_id" field.
+	OriginBlueprintID *string `json:"origin_blueprint_id,omitempty"`
 	// OverridesSlotID holds the value of the "overrides_slot_id" field.
 	OverridesSlotID *string `json:"overrides_slot_id,omitempty"`
 	// Key holds the value of the "key" field.
@@ -35,6 +35,8 @@ type Slot struct {
 	Label string `json:"label,omitempty"`
 	// Section holds the value of the "section" field.
 	Section string `json:"section,omitempty"`
+	// the block type that fills it (blocktypes key); blank slots show and start this type
+	BlockType string `json:"block_type,omitempty"`
 	// State holds the value of the "state" field.
 	State slot.State `json:"state,omitempty"`
 	// Required holds the value of the "required" field.
@@ -53,10 +55,10 @@ type Slot struct {
 
 // SlotEdges holds the relations/edges for other nodes in the graph.
 type SlotEdges struct {
-	// Kit holds the value of the kit edge.
-	Kit *Kit `json:"kit,omitempty"`
-	// OriginKit holds the value of the origin_kit edge.
-	OriginKit *Kit `json:"origin_kit,omitempty"`
+	// Blueprint holds the value of the blueprint edge.
+	Blueprint *Blueprint `json:"blueprint,omitempty"`
+	// OriginBlueprint holds the value of the origin_blueprint edge.
+	OriginBlueprint *Blueprint `json:"origin_blueprint,omitempty"`
 	// Overrides holds the value of the overrides edge.
 	Overrides *Slot `json:"overrides,omitempty"`
 	// OverriddenBy holds the value of the overridden_by edge.
@@ -68,26 +70,26 @@ type SlotEdges struct {
 	loadedTypes [5]bool
 }
 
-// KitOrErr returns the Kit value or an error if the edge
+// BlueprintOrErr returns the Blueprint value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e SlotEdges) KitOrErr() (*Kit, error) {
-	if e.Kit != nil {
-		return e.Kit, nil
+func (e SlotEdges) BlueprintOrErr() (*Blueprint, error) {
+	if e.Blueprint != nil {
+		return e.Blueprint, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: kit.Label}
+		return nil, &NotFoundError{label: blueprint.Label}
 	}
-	return nil, &NotLoadedError{edge: "kit"}
+	return nil, &NotLoadedError{edge: "blueprint"}
 }
 
-// OriginKitOrErr returns the OriginKit value or an error if the edge
+// OriginBlueprintOrErr returns the OriginBlueprint value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e SlotEdges) OriginKitOrErr() (*Kit, error) {
-	if e.OriginKit != nil {
-		return e.OriginKit, nil
+func (e SlotEdges) OriginBlueprintOrErr() (*Blueprint, error) {
+	if e.OriginBlueprint != nil {
+		return e.OriginBlueprint, nil
 	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: kit.Label}
+		return nil, &NotFoundError{label: blueprint.Label}
 	}
-	return nil, &NotLoadedError{edge: "origin_kit"}
+	return nil, &NotLoadedError{edge: "origin_blueprint"}
 }
 
 // OverridesOrErr returns the Overrides value or an error if the edge
@@ -132,7 +134,7 @@ func (*Slot) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case slot.FieldPosition:
 			values[i] = new(sql.NullInt64)
-		case slot.FieldID, slot.FieldKitID, slot.FieldOriginKitID, slot.FieldOverridesSlotID, slot.FieldKey, slot.FieldLabel, slot.FieldSection, slot.FieldState, slot.FieldGroupName:
+		case slot.FieldID, slot.FieldBlueprintID, slot.FieldOriginBlueprintID, slot.FieldOverridesSlotID, slot.FieldKey, slot.FieldLabel, slot.FieldSection, slot.FieldBlockType, slot.FieldState, slot.FieldGroupName:
 			values[i] = new(sql.NullString)
 		case slot.FieldCreatedAt, slot.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -169,18 +171,18 @@ func (_m *Slot) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case slot.FieldKitID:
+		case slot.FieldBlueprintID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field kit_id", values[i])
+				return fmt.Errorf("unexpected type %T for field blueprint_id", values[i])
 			} else if value.Valid {
-				_m.KitID = value.String
+				_m.BlueprintID = value.String
 			}
-		case slot.FieldOriginKitID:
+		case slot.FieldOriginBlueprintID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field origin_kit_id", values[i])
+				return fmt.Errorf("unexpected type %T for field origin_blueprint_id", values[i])
 			} else if value.Valid {
-				_m.OriginKitID = new(string)
-				*_m.OriginKitID = value.String
+				_m.OriginBlueprintID = new(string)
+				*_m.OriginBlueprintID = value.String
 			}
 		case slot.FieldOverridesSlotID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -206,6 +208,12 @@ func (_m *Slot) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field section", values[i])
 			} else if value.Valid {
 				_m.Section = value.String
+			}
+		case slot.FieldBlockType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field block_type", values[i])
+			} else if value.Valid {
+				_m.BlockType = value.String
 			}
 		case slot.FieldState:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -251,14 +259,14 @@ func (_m *Slot) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryKit queries the "kit" edge of the Slot entity.
-func (_m *Slot) QueryKit() *KitQuery {
-	return NewSlotClient(_m.config).QueryKit(_m)
+// QueryBlueprint queries the "blueprint" edge of the Slot entity.
+func (_m *Slot) QueryBlueprint() *BlueprintQuery {
+	return NewSlotClient(_m.config).QueryBlueprint(_m)
 }
 
-// QueryOriginKit queries the "origin_kit" edge of the Slot entity.
-func (_m *Slot) QueryOriginKit() *KitQuery {
-	return NewSlotClient(_m.config).QueryOriginKit(_m)
+// QueryOriginBlueprint queries the "origin_blueprint" edge of the Slot entity.
+func (_m *Slot) QueryOriginBlueprint() *BlueprintQuery {
+	return NewSlotClient(_m.config).QueryOriginBlueprint(_m)
 }
 
 // QueryOverrides queries the "overrides" edge of the Slot entity.
@@ -305,11 +313,11 @@ func (_m *Slot) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("kit_id=")
-	builder.WriteString(_m.KitID)
+	builder.WriteString("blueprint_id=")
+	builder.WriteString(_m.BlueprintID)
 	builder.WriteString(", ")
-	if v := _m.OriginKitID; v != nil {
-		builder.WriteString("origin_kit_id=")
+	if v := _m.OriginBlueprintID; v != nil {
+		builder.WriteString("origin_blueprint_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
@@ -326,6 +334,9 @@ func (_m *Slot) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("section=")
 	builder.WriteString(_m.Section)
+	builder.WriteString(", ")
+	builder.WriteString("block_type=")
+	builder.WriteString(_m.BlockType)
 	builder.WriteString(", ")
 	builder.WriteString("state=")
 	builder.WriteString(fmt.Sprintf("%v", _m.State))

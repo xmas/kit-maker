@@ -23,6 +23,7 @@ import (
 	"github.com/docker/kit-maker/internal/auth"
 	"github.com/docker/kit-maker/internal/authz"
 	"github.com/docker/kit-maker/internal/ent"
+	"github.com/docker/kit-maker/internal/settings"
 )
 
 // Deps are what the HTTP layer needs. Assets is the built frontend (web.Dist()
@@ -39,6 +40,11 @@ type Deps struct {
 	Auth        *auth.Service
 	Authz       *authz.Authorizer
 	AI          *ai.Provider
+	// Settings resolves the default registry and build runner for publishing.
+	Settings *settings.Service
+	// DevUser, when set, signs in every request without a session as this
+	// email (kitmaker dev only, never serve).
+	DevUser string
 }
 
 // NewHandler builds the router.
@@ -70,6 +76,9 @@ func NewHandler(d Deps) (nethttp.Handler, error) {
 		r.Use(securityHeaders(d.ViteHotFile))
 		r.Use(d.Sessions.LoadAndSave)
 		r.Use(auth.LoadUser(d.Sessions, d.Ent))
+		if d.DevUser != "" {
+			r.Use(auth.AutoSignIn(d.Ent, d.DevUser))
+		}
 		r.Use(i.Middleware)
 		r.Use(shareAuth)
 
@@ -78,41 +87,50 @@ func NewHandler(d Deps) (nethttp.Handler, error) {
 		s.handle(r, "GET", "/login", authz.Public, s.loginPage)
 		s.handle(r, "POST", "/login", authz.Public, s.login)
 		s.handle(r, "GET", "/", authz.SignedIn, func(w nethttp.ResponseWriter, r *nethttp.Request) {
-			nethttp.Redirect(w, r, "/kits", nethttp.StatusFound)
+			nethttp.Redirect(w, r, "/blueprints", nethttp.StatusFound)
 		})
 		s.handle(r, "POST", "/logout", authz.SignedIn, s.logout)
 		s.handle(r, "POST", "/account/sign-out-everywhere", authz.SignedIn, s.signOutEverywhere)
-		s.handle(r, "GET", "/kits", authz.KitView, s.kitsIndex)
-		s.handle(r, "GET", "/kits/new", authz.KitCreate, s.kitNew)
-		s.handle(r, "POST", "/kits", authz.KitCreate, s.kitCreate)
-		s.handle(r, "GET", "/kits/{kitID}", authz.KitView, s.kitShow)
-		s.handle(r, "PUT", "/kits/{kitID}/goal", authz.KitEdit, s.kitGoal)
-		s.handle(r, "POST", "/kits/{kitID}/slots", authz.KitEdit, s.slotAdd)
-		s.handle(r, "DELETE", "/kits/{kitID}/slots/{slotKey}", authz.KitEdit, s.slotRemove)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/custom", authz.BlockCreate, s.slotCustom)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/update", authz.LinkRebaseApply, s.slotUpdate)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/relink", authz.BlockUse, s.slotRelink)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/save-as-block", authz.BlockCreate, s.slotSaveAsBlock)
-		s.handle(r, "POST", "/kits/{kitID}/checks", authz.KitChecksEdit, s.checkAdd)
-		s.handle(r, "DELETE", "/kits/{kitID}/checks/{checkID}", authz.KitChecksEdit, s.checkRemove)
+		s.handle(r, "GET", "/kits", authz.SignedIn, s.kitsRedirect)
+		s.handle(r, "GET", "/kits/*", authz.SignedIn, s.kitsRedirect)
+		s.handle(r, "GET", "/blueprints", authz.BlueprintView, s.blueprintsIndex)
+		s.handle(r, "GET", "/blueprints/new", authz.BlueprintCreate, s.blueprintNew)
+		s.handle(r, "POST", "/blueprints", authz.BlueprintCreate, s.blueprintCreate)
+		s.handle(r, "GET", "/blueprints/{blueprintID}", authz.BlueprintView, s.blueprintShow)
+		s.handle(r, "PUT", "/blueprints/{blueprintID}/goal", authz.BlueprintEdit, s.blueprintGoal)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots", authz.BlueprintEdit, s.slotAdd)
+		s.handle(r, "DELETE", "/blueprints/{blueprintID}/slots/{slotKey}", authz.BlueprintEdit, s.slotRemove)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/custom", authz.BlockCreate, s.slotCustom)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/update", authz.LinkRebaseApply, s.slotUpdate)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/relink", authz.BlockUse, s.slotRelink)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/save-as-block", authz.BlockCreate, s.slotSaveAsBlock)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/checks", authz.BlueprintChecksEdit, s.checkAdd)
+		s.handle(r, "DELETE", "/blueprints/{blueprintID}/checks/{checkID}", authz.BlueprintChecksEdit, s.checkRemove)
 		s.handle(r, "GET", "/blocks", authz.BlockView, s.blocksIndex)
+		s.handle(r, "POST", "/blocks/search", authz.BlockView, s.blockSearch)
 		s.handle(r, "POST", "/blocks", authz.BlockCreate, s.blockCreate)
 		s.handle(r, "GET", "/blocks/{blockID}", authz.BlockView, s.blockShow)
 		s.handle(r, "PUT", "/blocks/{blockID}", authz.BlockEdit, s.blockUpdate)
 		s.handle(r, "POST", "/blocks/{blockID}/versions", authz.BlockPublishVersion, s.blockPublish)
 		s.handle(r, "POST", "/blocks/{blockID}/versions/{version}/restore", authz.BlockPublishVersion, s.blockRestoreVersion)
-		s.handle(r, "GET", "/kits/{kitID}/slots/{slotKey}", authz.KitView, s.kitShow)
-		s.handle(r, "PUT", "/kits/{kitID}/slots/{slotKey}", authz.KitEdit, s.slotSave)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/preview", authz.KitEdit, s.slotPreview)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/revert", "link.revert", s.slotRevert)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/resync", "link.revert", s.slotResync)
-		s.handle(r, "GET", "/kits/{kitID}/history", authz.KitHistoryView, s.kitShow)
-		s.handle(r, "GET", "/kits/{kitID}/history.json", authz.KitHistoryView, s.kitHistoryJSON)
-		s.handle(r, "GET", "/kits/{kitID}/revisions/{revID}/yaml", authz.KitHistoryView, s.revisionYAML)
-		s.handle(r, "POST", "/kits/{kitID}/revisions/{revID}/restore", authz.KitEdit, s.revisionRestore)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/link", authz.BlockUse, s.slotLink)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/unlink", authz.KitEdit, s.slotUnlink)
-		s.handle(r, "POST", "/kits/{kitID}/slots/{slotKey}/explain", authz.AIUse, s.slotExplain)
+		s.handle(r, "GET", "/blueprints/{blueprintID}/slots/{slotKey}", authz.BlueprintView, s.blueprintShow)
+		s.handle(r, "PUT", "/blueprints/{blueprintID}/slots/{slotKey}", authz.BlueprintEdit, s.slotSave)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/preview", authz.BlueprintEdit, s.slotPreview)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/revert", "link.revert", s.slotRevert)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/hide", authz.BlueprintEdit, s.slotHide)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/resync", "link.revert", s.slotResync)
+		s.handle(r, "GET", "/blueprints/{blueprintID}/history", authz.BlueprintHistoryView, s.blueprintShow)
+		s.handle(r, "GET", "/blueprints/{blueprintID}/run", authz.BlueprintDownload, s.blueprintRunInfo)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/publish", authz.BlueprintPublish, s.blueprintPublish)
+		s.handle(r, "GET", "/blueprints/{blueprintID}/download", authz.BlueprintDownload, s.blueprintDownload)
+		s.handle(r, "GET", "/blueprints/{blueprintID}/sbxenv.yaml", authz.BlueprintDownload, s.blueprintSbxenv)
+		s.handle(r, "GET", "/blueprints/{blueprintID}/history.json", authz.BlueprintHistoryView, s.blueprintHistoryJSON)
+		s.handle(r, "GET", "/blueprints/{blueprintID}/revisions/{revID}/yaml", authz.BlueprintHistoryView, s.revisionYAML)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/revisions/{revID}/restore", authz.BlueprintEdit, s.revisionRestore)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/link", authz.BlockUse, s.slotLink)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/unlink", authz.BlueprintEdit, s.slotUnlink)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/explain", authz.AIUse, s.slotExplain)
+		s.handle(r, "POST", "/blueprints/{blueprintID}/slots/{slotKey}/draft", authz.AIUse, s.slotDraft)
 	})
 	return r, nil
 }

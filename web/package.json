@@ -14,7 +14,8 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
     "reka-ui": "^2.11.0",
-    "vue": "^3.5.44"
+    "vue": "^3.5.44",
+    "yaml": "2.8.4"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

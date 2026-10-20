@@ -18,6 +18,18 @@ type BlockLink func(*sql.Selector)
 // BlockVersion is the predicate function for blockversion builders.
 type BlockVersion func(*sql.Selector)
 
+// Blueprint is the predicate function for blueprint builders.
+type Blueprint func(*sql.Selector)
+
+// BlueprintInclude is the predicate function for blueprintinclude builders.
+type BlueprintInclude func(*sql.Selector)
+
+// BlueprintRevision is the predicate function for blueprintrevision builders.
+type BlueprintRevision func(*sql.Selector)
+
+// BlueprintVersion is the predicate function for blueprintversion builders.
+type BlueprintVersion func(*sql.Selector)
+
 // Check is the predicate function for check builders.
 type Check func(*sql.Selector)
 
@@ -29,15 +41,6 @@ type Goal func(*sql.Selector)
 
 // Integration is the predicate function for integration builders.
 type Integration func(*sql.Selector)
-
-// Kit is the predicate function for kit builders.
-type Kit func(*sql.Selector)
-
-// KitInclude is the predicate function for kitinclude builders.
-type KitInclude func(*sql.Selector)
-
-// KitRevision is the predicate function for kitrevision builders.
-type KitRevision func(*sql.Selector)
 
 // RoleAssignment is the predicate function for roleassignment builders.
 type RoleAssignment func(*sql.Selector)

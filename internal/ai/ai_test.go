@@ -49,7 +49,7 @@ func TestFake(t *testing.T) {
 	})
 
 	t.Run("route answers match the prompt", func(t *testing.T) {
-		req := ai.ExplainRequest(ai.ExplainInput{Kit: "k", BlockType: "credential", Payload: map[string]any{}})
+		req := ai.ExplainRequest(ai.ExplainInput{Blueprint: "k", BlockType: "credential", Payload: map[string]any{}})
 		var streamed strings.Builder
 		res, err := f.Stream(ctx, req, func(d string) error { streamed.WriteString(d); return nil })
 		if err != nil {
@@ -157,7 +157,7 @@ func TestAnthropicRequest(t *testing.T) {
 		t.Fatalf("fallback not requested: fallbacks=%v beta=%q", got["fallbacks"], beta)
 	}
 
-	req := ai.ExplainRequest(ai.ExplainInput{Kit: "acme", BlockType: "network-rules", Payload: map[string]any{"runtime": map[string]any{}}})
+	req := ai.ExplainRequest(ai.ExplainInput{Blueprint: "acme", BlockType: "network-rules", Payload: map[string]any{"runtime": map[string]any{}}})
 	req.Context = []string{"team library summary"}
 	var deltas []string
 	res, err = c.Stream(ctx, req, func(d string) error { deltas = append(deltas, d); return nil })
@@ -197,7 +197,7 @@ func TestMeteredBudget(t *testing.T) {
 	client.AICall.Create().SetTeamID("t1").SetRoute("fill").SetProvider("stub").SetStatus(aicall.StatusOk).
 		SetInputTokens(10_000).SetCreatedAt(now.AddDate(0, -1, 0)).ExecX(ctx)
 
-	req := ai.Request{Route: ai.RouteFill, Prompt: "x", TeamID: "t1", UserID: "u1", KitID: "k1"}
+	req := ai.Request{Route: ai.RouteFill, Prompt: "x", TeamID: "t1", UserID: "u1", BlueprintID: "k1"}
 	if _, err := m.Generate(ctx, req); err != nil { // 150 used
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestMeteredBudget(t *testing.T) {
 	if err != nil || used != 300 {
 		t.Fatalf("used = %d, %v", used, err)
 	}
-	if n := client.AICall.Query().Where(aicall.StatusEQ(aicall.StatusOverBudget), aicall.KitID("k1")).CountX(ctx); n != 1 {
+	if n := client.AICall.Query().Where(aicall.StatusEQ(aicall.StatusOverBudget), aicall.BlueprintID("k1")).CountX(ctx); n != 1 {
 		t.Fatalf("over_budget rows = %d", n)
 	}
 	// A team override of 0 means unlimited; calls without a team aren't limited.

@@ -16,13 +16,14 @@ import (
 	"github.com/docker/kit-maker/internal/ent/block"
 	"github.com/docker/kit-maker/internal/ent/blocklink"
 	"github.com/docker/kit-maker/internal/ent/blockversion"
+	"github.com/docker/kit-maker/internal/ent/blueprint"
+	"github.com/docker/kit-maker/internal/ent/blueprintinclude"
+	"github.com/docker/kit-maker/internal/ent/blueprintrevision"
+	"github.com/docker/kit-maker/internal/ent/blueprintversion"
 	"github.com/docker/kit-maker/internal/ent/check"
 	"github.com/docker/kit-maker/internal/ent/deploymentsetting"
 	"github.com/docker/kit-maker/internal/ent/goal"
 	"github.com/docker/kit-maker/internal/ent/integration"
-	"github.com/docker/kit-maker/internal/ent/kit"
-	"github.com/docker/kit-maker/internal/ent/kitinclude"
-	"github.com/docker/kit-maker/internal/ent/kitrevision"
 	"github.com/docker/kit-maker/internal/ent/roleassignment"
 	"github.com/docker/kit-maker/internal/ent/session"
 	"github.com/docker/kit-maker/internal/ent/slot"
@@ -93,13 +94,14 @@ func checkColumn(t, c string) error {
 			block.Table:             block.ValidColumn,
 			blocklink.Table:         blocklink.ValidColumn,
 			blockversion.Table:      blockversion.ValidColumn,
+			blueprint.Table:         blueprint.ValidColumn,
+			blueprintinclude.Table:  blueprintinclude.ValidColumn,
+			blueprintrevision.Table: blueprintrevision.ValidColumn,
+			blueprintversion.Table:  blueprintversion.ValidColumn,
 			check.Table:             check.ValidColumn,
 			deploymentsetting.Table: deploymentsetting.ValidColumn,
 			goal.Table:              goal.ValidColumn,
 			integration.Table:       integration.ValidColumn,
-			kit.Table:               kit.ValidColumn,
-			kitinclude.Table:        kitinclude.ValidColumn,
-			kitrevision.Table:       kitrevision.ValidColumn,
 			roleassignment.Table:    roleassignment.ValidColumn,
 			session.Table:           session.ValidColumn,
 			slot.Table:              slot.ValidColumn,

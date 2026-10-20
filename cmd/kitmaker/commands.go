@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -27,7 +29,7 @@ func serveCmd() *cobra.Command {
 				return err
 			}
 			defer a.Close()
-			return serve(cmd.Context(), a)
+			return serve(cmd.Context(), a, "")
 		},
 	}
 }
@@ -71,7 +73,7 @@ func seedCmd() *cobra.Command {
 	var admin string
 	c := &cobra.Command{
 		Use:   "seed",
-		Short: "Load a demo team, starter block and demo kit",
+		Short: "Load a demo team, starter block and demo blueprint",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			a, err := open(cmd.Context())
 			if err != nil {
@@ -87,6 +89,7 @@ func seedCmd() *cobra.Command {
 
 func devCmd() *cobra.Command {
 	var noMigrate, noSeed bool
+	var devUser string
 	c := &cobra.Command{
 		Use:   "dev",
 		Short: "Migrate, seed, then serve and work in one process (for a laptop)",
@@ -107,18 +110,41 @@ func devCmd() *cobra.Command {
 					return err
 				}
 			}
+			if devUser != "" {
+				if err := localOnly(a.Config.BaseURL); err != nil {
+					return fmt.Errorf("--dev-user: %w", err)
+				}
+				a.Log.Warn("signing in every request as the dev user; no password needed", "user", devUser)
+			}
 			g, ctx := errgroup.WithContext(ctx)
-			g.Go(func() error { return serve(ctx, a) })
+			g.Go(func() error { return serve(ctx, a, devUser) })
 			g.Go(func() error { return work(ctx, a) })
 			return g.Wait()
 		},
 	}
 	c.Flags().BoolVar(&noMigrate, "no-migrate", false, "skip migrations")
 	c.Flags().BoolVar(&noSeed, "no-seed", false, "skip seeding")
+	c.Flags().StringVar(&devUser, "dev-user", os.Getenv("KITMAKER_DEV_USER"),
+		"sign in every request as this account, no password (local URLs only; env KITMAKER_DEV_USER)")
 	return c
 }
 
-func serve(ctx context.Context, a *app.App) error {
+// localOnly refuses a base URL that isn't this machine, so the dev user can
+// never sign people in on a deployment someone else can reach.
+func localOnly(baseURL string) error {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return err
+	}
+	switch h := u.Hostname(); {
+	case h == "localhost", h == "127.0.0.1", h == "::1", strings.HasSuffix(h, ".localhost"):
+		return nil
+	default:
+		return fmt.Errorf("only for a local base URL, not %q", baseURL)
+	}
+}
+
+func serve(ctx context.Context, a *app.App, devUser string) error {
 	client, err := jobs.NewClient(a.Pool, a.Log, false)
 	if err != nil {
 		return err
@@ -134,6 +160,8 @@ func serve(ctx context.Context, a *app.App) error {
 		Sessions:    auth.NewSessions(a.Pool, a.Config.BaseURL),
 		Auth:        &auth.Service{Ent: a.Ent},
 		AI:          a.AI,
+		Settings:    a.Settings,
+		DevUser:     devUser,
 	})
 	if err != nil {
 		return err
@@ -168,8 +196,10 @@ func runSeed(ctx context.Context, a *app.App, admin string) error {
 		}
 	}
 	if err := seed.Integrations(ctx, a.Settings, seed.LocalStack{
-		RegistryHost: os.Getenv("KITMAKER_REGISTRY_URL"),
-		BuildKitAddr: os.Getenv("KITMAKER_BUILDKIT_ADDR"),
+		RegistryHost:     os.Getenv("KITMAKER_REGISTRY_URL"),
+		RegistryPullHost: os.Getenv("KITMAKER_REGISTRY_PULL_HOST"),
+		RegistryInsecure: os.Getenv("KITMAKER_REGISTRY_INSECURE") != "false",
+		BuildKitAddr:     os.Getenv("KITMAKER_BUILDKIT_ADDR"),
 	}); err != nil {
 		return err
 	}

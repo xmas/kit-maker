@@ -1,6 +1,6 @@
 # Kit Maker
 
-Build Docker Sandboxes kits from reusable blocks.
+Build blueprints for Docker Sandboxes kits from reusable blocks.
 
 ## Run it
 
@@ -20,7 +20,19 @@ which `make up` creates on first run.
 make dev
 ```
 
-Same address and the same data, but Go rebuilds on save and the UI hot-reloads.
+Same address and the same data, but Go rebuilds on save, the UI hot-reloads, and
+you're signed in as the bootstrap admin without a password. Set `KITMAKER_DEV_USER=`
+(empty) in `kitmaker.env` to sign in normally.
+
+To run published blueprints with sbx locally, serve the local registry over HTTPS (sbx only
+pulls over HTTPS) and allow it as a kit source:
+
+```bash
+make certs
+```
+
+Then trust the CA once (`mkcert -install`), restart with `make dev`, and add
+`localhost:<ZOT_PORT>/blueprints/` to `sbx settings get kit.allowedSources`.
 
 ```bash
 make test
