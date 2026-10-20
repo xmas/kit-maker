@@ -227,6 +227,13 @@ func Compile(in Input) Output {
 		out.Error = err.Error()
 		return out
 	}
+	// The spec only enforces this when a kit is built (§3.5): a workload's
+	// layers are its root filesystem, so it needs content. Catch it here so
+	// the blueprint doesn't look runnable until publishing fails.
+	if kind == "workload" && len(tops["build"]) == 0 && len(tops["kits"]) == 0 {
+		out.Error = "A workload needs content, its root filesystem: add a Dockerfile or Included kits block under Agent & base."
+		return out
+	}
 	out.Valid = true
 	surface := spec.SurfaceOf(d)
 	out.Surface = &surface

@@ -82,3 +82,20 @@ func TestCompileOneOwnerConflicts(t *testing.T) {
 		}
 	}
 }
+
+// A workload needs content (spec §3.5): without a Dockerfile or included
+// kits it isn't runnable, so it isn't valid; a mixin may be content-free.
+func TestWorkloadNeedsContent(t *testing.T) {
+	net := Slot{Key: "net", Block: blk("network-rules", map[string]any{"runtime": map[string]any{"allow": []any{map[string]any{"hosts": []any{"a.example"}}}}})}
+	out := Compile(Input{Blueprint: Blueprint{Slug: "w", Kind: "workload"}, Slots: []Slot{net}})
+	if out.Valid || !strings.Contains(out.Error, "workload needs content") {
+		t.Fatalf("content-less workload: valid=%v %q", out.Valid, out.Error)
+	}
+	if out := Compile(Input{Blueprint: Blueprint{Slug: "m", Kind: "mixin"}, Slots: []Slot{net}}); !out.Valid {
+		t.Fatalf("content-free mixin should be valid: %s", out.Error)
+	}
+	img := Slot{Key: "img", Block: blk("dockerfile", map[string]any{"build": "FROM scratch\n"})}
+	if out := Compile(Input{Blueprint: Blueprint{Slug: "w", Kind: "workload"}, Slots: []Slot{net, img}}); !out.Valid {
+		t.Fatalf("workload with a Dockerfile should be valid: %s", out.Error)
+	}
+}

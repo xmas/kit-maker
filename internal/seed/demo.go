@@ -268,12 +268,26 @@ var polyglotSlots = []demoSlot{
 
 // polyglot seeds the "Polyglot CI" blueprint once; after that it is the user's.
 func polyglot(ctx context.Context, c *ent.Client, t *ent.Team, blocks map[string]*ent.Block, versions map[string]*ent.BlockVersion) error {
-	exists, err := c.Blueprint.Query().Where(blueprint.TeamID(t.ID), blueprint.Slug("polyglot-ci")).Exist(ctx)
-	if err != nil || exists {
+	existing, err := c.Blueprint.Query().Where(blueprint.TeamID(t.ID), blueprint.Slug("polyglot-ci")).Only(ctx)
+	if err == nil {
+		// Seeds before 2026-10-20 made it a workload, which needs content
+		// (a Dockerfile) it never had; as a network demo it's a mixin.
+		if existing.Kind == blueprint.KindWorkload {
+			hasImage, err := c.Slot.Query().Where(slot.BlueprintID(existing.ID), slot.BlockTypeIn("dockerfile", "kits")).Exist(ctx)
+			if err != nil {
+				return err
+			}
+			if !hasImage {
+				return existing.Update().SetKind(blueprint.KindMixin).Exec(ctx)
+			}
+		}
+		return nil
+	}
+	if !ent.IsNotFound(err) {
 		return err
 	}
 	// The seed already runs in a transaction (seed.Run).
-	k, err := c.Blueprint.Create().SetTeam(t).SetSlug("polyglot-ci").SetDisplayName("Polyglot CI").SetKind(blueprint.KindWorkload).
+	k, err := c.Blueprint.Create().SetTeam(t).SetSlug("polyglot-ci").SetDisplayName("Polyglot CI").SetKind(blueprint.KindMixin).
 		SetDescription("Demo: blocks with install and runtime, allow and deny rules, merged into one policy.").Save(ctx)
 	if err != nil {
 		return err

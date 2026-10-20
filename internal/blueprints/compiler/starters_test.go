@@ -16,8 +16,10 @@ func TestEveryStarterCompiles(t *testing.T) {
 				Name: bt.Label, Slug: "example", Type: bt.Key, Version: 1, Payload: blocktypes.Starter(bt.Key, "example"),
 			}}}
 			kind := "mixin"
-			if bt.Key == "agent-launch" { // sbx@1 is workload-only
+			if bt.Key == "agent-launch" { // sbx@1 is workload-only, and a workload needs content
 				kind = "workload"
+				slots = append(slots, Slot{Key: "image", Block: &Block{Name: "Dockerfile", Slug: "image", Type: "dockerfile", Version: 1,
+					Payload: blocktypes.Starter("dockerfile", "image")}})
 			}
 			out := Compile(Input{Blueprint: Blueprint{Slug: "t", Kind: kind}, Slots: slots})
 			if !out.Valid {
