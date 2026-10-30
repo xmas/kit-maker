@@ -1,9 +1,11 @@
 # Publish a blueprint version for the Cloudflare edition (cloudflare/).
 # The Pages Function /api/publish starts this with one input: the request
-# (gzip + base64 JSON: id, slug, version, yaml, repository, callback, token).
+# (gzip + base64 JSON: id, slug, version, yaml, files, repository, callback,
+# token). files are the Dockerfile's build files, written beside the YAML.
 # It builds the descriptor with the kit spec's BuildKit frontend (its first
-# line, "# syntax=docker/sandbox-kit:3"), pushes <repository>:vN and :latest
-# to GHCR, and reports the digest back to the callback.
+# line, "# syntax=docker/sandbox-kit:3") for linux/amd64 and linux/arm64
+# (sbx on an Apple silicon Mac needs arm64), pushes <repository>:vN and
+# :latest to GHCR, and reports the digest back to the callback.
 #
 # GitHub only runs workflow_dispatch workflows that are on the default
 # branch, so this file has to be on main too.
@@ -27,7 +29,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45 # arm64 builds under emulation
     env:
       REQUEST: ${{ inputs.request }}
       OWNER: ${{ github.repository_owner }}
@@ -53,6 +55,16 @@ jobs:
           mkdir -p "$RUNNER_TEMP/kit"
           jq -r .yaml "$RUNNER_TEMP/req.json" > "$RUNNER_TEMP/kit/$slug.yaml"
           head -1 "$RUNNER_TEMP/kit/$slug.yaml" | grep -qx '# syntax=docker/sandbox-kit:3' || { echo "not a Kit v3 descriptor"; exit 1; }
+          # The Dockerfile's build files: relative paths inside the folder only.
+          jq -r '.files // {} | keys[]' "$RUNNER_TEMP/req.json" | while IFS= read -r name; do
+            case "$name" in /*|*..*|"$slug.yaml") echo "bad build file path: $name"; exit 1;; esac
+            mkdir -p "$RUNNER_TEMP/kit/$(dirname "$name")"
+            jq -j --arg n "$name" '.files[$n]' "$RUNNER_TEMP/req.json" > "$RUNNER_TEMP/kit/$name"
+            if [ "$(head -c 2 "$RUNNER_TEMP/kit/$name")" = '#!' ]; then chmod 755 "$RUNNER_TEMP/kit/$name"; fi
+          done
+          find "$RUNNER_TEMP/kit" -type f | sed "s|$RUNNER_TEMP/kit/||"
+
+      - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
 
@@ -70,6 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           docker buildx build \
+            --platform linux/amd64,linux/arm64 \
             --file "$RUNNER_TEMP/kit/$KIT_SLUG.yaml" \
             --tag "$KIT_REPOSITORY:v$KIT_VERSION" --tag "$KIT_REPOSITORY:latest" \
             --push --metadata-file "$RUNNER_TEMP/meta.json" \
