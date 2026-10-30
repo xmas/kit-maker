@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	nethttp "net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -207,8 +208,8 @@ func (s *server) blueprintPublish(w nethttp.ResponseWriter, r *nethttp.Request) 
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Minute)
 	defer cancel()
-	v, err := s.blueprints().Publish(ctx, l.Blueprint.ID, userID(r), func(ctx context.Context, slug string, version int, yaml string) (string, string, error) {
-		res, err := publish.Publish(ctx, addr, reg, publish.Input{Slug: slug, Version: version, YAML: yaml})
+	v, err := s.blueprints().Publish(ctx, l.Blueprint.ID, userID(r), func(ctx context.Context, slug string, version int, yaml string, files map[string]string) (string, string, error) {
+		res, err := publish.Publish(ctx, addr, reg, publish.Input{Slug: slug, Version: version, YAML: yaml, Files: files})
 		return res.Repository, res.Digest, err
 	})
 	switch {
@@ -224,8 +225,8 @@ func (s *server) blueprintPublish(w nethttp.ResponseWriter, r *nethttp.Request) 
 	writeJSON(w, nethttp.StatusOK, s.runInfo(r, l))
 }
 
-// blueprintDownload sends <slug>.tar.gz holding just <slug>/<slug>.yaml,
-// the compiled kit. The folder is the kit's build context, so nothing else
+// blueprintDownload sends <slug>.tar.gz holding <slug>/<slug>.yaml, the
+// compiled kit, and the Dockerfile's build files beside it. The folder is the kit's build context, so nothing else
 // goes in it; the sbxenv.yaml is its own download, kept beside the folder
 // (never inside the archive, where extracting could overwrite a project's).
 func (s *server) blueprintDownload(w nethttp.ResponseWriter, r *nethttp.Request) {
@@ -251,6 +252,21 @@ func (s *server) blueprintDownload(w nethttp.ResponseWriter, r *nethttp.Request)
 		return
 	}
 	_, _ = tw.Write([]byte(body))
+	names := make([]string, 0, len(l.Compiled.Files))
+	for name := range l.Compiled.Files {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		content, mode := l.Compiled.Files[name], int64(0o644)
+		if strings.HasPrefix(content, "#!") {
+			mode = 0o755
+		}
+		if err := tw.WriteHeader(&tar.Header{Name: slug + "/" + name, Mode: mode, Size: int64(len(content)), ModTime: now}); err != nil {
+			return
+		}
+		_, _ = tw.Write([]byte(content))
+	}
 	_ = tw.Close()
 	_ = gz.Close()
 	s.Log.InfoContext(r.Context(), "blueprint download", "blueprint", l.Blueprint.ID, "user", userID(r), "kind", "folder")

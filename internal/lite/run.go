@@ -54,6 +54,8 @@ type PublishRequest struct {
 	Name        string `json:"name"`
 	Version     int    `json:"version"`
 	YAML        string `json:"yaml"`
+	// Files are the Dockerfile's build files, written beside the YAML.
+	Files map[string]string `json:"files,omitempty"`
 }
 
 func (st *PublishState) latest(status string) *Version {
@@ -202,7 +204,7 @@ func (e *Engine) Publish(id string) (RunInfo, error) {
 		return RunInfo{}, errPublish{http.StatusConflict, "This blueprint isn't a valid kit yet: " + nl.Compiled.Error}
 	}
 	st, err = e.Host.Publish(PublishRequest{BlueprintID: id, Slug: nl.Blueprint.Slug, Kind: nl.Blueprint.Kind,
-		Name: nl.Blueprint.DisplayName, Version: next, YAML: nl.Compiled.YAML})
+		Name: nl.Blueprint.DisplayName, Version: next, YAML: nl.Compiled.YAML, Files: nl.Compiled.Files})
 	if err != nil {
 		return RunInfo{}, errPublish{http.StatusBadGateway, err.Error()}
 	}
@@ -224,7 +226,8 @@ func (e *Engine) publish(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// download sends <slug>.tar.gz holding just <slug>/<slug>.yaml.
+// download sends <slug>.tar.gz: <slug>/<slug>.yaml and the Dockerfile's
+// build files beside it (the folder sbx builds).
 func (e *Engine) download(w http.ResponseWriter, r *http.Request) {
 	l, err := e.Store.Load(chi.URLParam(r, "id"))
 	if err != nil {
@@ -245,8 +248,26 @@ func (e *Engine) download(w http.ResponseWriter, r *http.Request) {
 	body := l.Compiled.YAML
 	_ = tw.WriteHeader(&tar.Header{Name: slug + "/" + slug + ".yaml", Mode: 0o644, Size: int64(len(body)), ModTime: t})
 	_, _ = tw.Write([]byte(body))
+	writeBuildFiles(tw, slug, l.Compiled.Files, t)
 	_ = tw.Close()
 	_ = gz.Close()
+}
+
+// writeBuildFiles adds build files under dir/, scripts (#!) executable.
+func writeBuildFiles(tw *tar.Writer, dir string, files map[string]string, t time.Time) {
+	names := make([]string, 0, len(files))
+	for name := range files {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		mode := int64(0o644)
+		if strings.HasPrefix(files[name], "#!") {
+			mode = 0o755
+		}
+		_ = tw.WriteHeader(&tar.Header{Name: dir + "/" + name, Mode: mode, Size: int64(len(files[name])), ModTime: t})
+		_, _ = tw.Write([]byte(files[name]))
+	}
 }
 
 // sbxenvYAML is an environment file for a project: it follows the

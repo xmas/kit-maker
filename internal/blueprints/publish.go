@@ -12,7 +12,8 @@ import (
 
 // Pusher builds and pushes a blueprint version's kit image and returns the
 // repository (as people pull it) and the manifest digest (internal/publish).
-type Pusher func(ctx context.Context, slug string, version int, yaml string) (repository, digest string, err error)
+// files are the Dockerfile's build files, to write beside the descriptor.
+type Pusher func(ctx context.Context, slug string, version int, yaml string, files map[string]string) (repository, digest string, err error)
 
 // Version is one published version.
 type Version struct {
@@ -81,7 +82,7 @@ func (s *Service) Publish(ctx context.Context, blueprintID, userID string, push 
 	if !l.Compiled.Valid {
 		return nil, fmt.Errorf("%w: %s", ErrNotValid, l.Compiled.Error)
 	}
-	repo, digest, err := push(ctx, l.Blueprint.Slug, next, l.Compiled.YAML)
+	repo, digest, err := push(ctx, l.Blueprint.Slug, next, l.Compiled.YAML, l.Compiled.Files)
 	if err != nil {
 		return nil, err
 	}

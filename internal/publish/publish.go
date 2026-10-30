@@ -19,6 +19,8 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/tonistiigi/fsutil"
+
+	"github.com/docker/kit-maker/internal/blueprints/compiler"
 )
 
 // Registry is where kit images go.
@@ -51,6 +53,9 @@ type Input struct {
 	Slug    string
 	Version int
 	YAML    string // the compiled descriptor, starting with "# syntax=docker/sandbox-kit:3"
+	// Files are the Dockerfile's build files (compiler.Output.Files),
+	// written beside the descriptor: the build context its COPY lines read.
+	Files map[string]string
 }
 
 // Result is what was pushed.
@@ -77,6 +82,22 @@ func Publish(ctx context.Context, addr string, reg Registry, in Input) (Result, 
 	file := in.Slug + ".yaml"
 	if err := os.WriteFile(filepath.Join(dir, file), []byte(in.YAML), 0o644); err != nil {
 		return Result{}, err
+	}
+	for name, content := range in.Files {
+		if !compiler.BuildFilePath(name) || name == file {
+			return Result{}, fmt.Errorf("build file %q must be a relative path inside the build folder", name)
+		}
+		p := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			return Result{}, err
+		}
+		mode := os.FileMode(0o644)
+		if strings.HasPrefix(content, "#!") {
+			mode = 0o755
+		}
+		if err := os.WriteFile(p, []byte(content), mode); err != nil {
+			return Result{}, err
+		}
 	}
 	fs, err := fsutil.NewFS(dir)
 	if err != nil {

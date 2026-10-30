@@ -298,7 +298,7 @@ func TestServer(t *testing.T) {
 		bp := client.Blueprint.Query().Where(blueprint.Slug("hello")).OnlyX(ctx)
 		svc := &blueprints.Service{Ent: client}
 		pushes := 0
-		push := func(_ context.Context, slug string, version int, yaml string) (string, string, error) {
+		push := func(_ context.Context, slug string, version int, yaml string, _ map[string]string) (string, string, error) {
 			pushes++
 			if !strings.Contains(yaml, fmt.Sprintf("version: \"%d\"", version)) {
 				t.Errorf("published YAML lacks version %d", version)

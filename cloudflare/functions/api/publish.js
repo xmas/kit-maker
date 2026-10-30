@@ -1,4 +1,4 @@
-// POST /api/publish {blueprintId, slug, kind, name, version, yaml}: starts
+// POST /api/publish {blueprintId, slug, kind, name, version, yaml, files}: starts
 // publishing one blueprint version. The engine compiled the descriptor and
 // picked the number; this records it as pending and starts the publish-kit
 // workflow on GitHub, which builds it with the kit spec's BuildKit frontend,
@@ -32,6 +32,14 @@ export async function onRequestPost({ request, env }) {
     return error('a publish request is malformed', 400)
   }
   if (!yaml.startsWith('# syntax=docker/sandbox-kit:3')) return error('the descriptor must start with # syntax=docker/sandbox-kit:3', 400)
+  // The Dockerfile's build files, written beside the descriptor by the workflow.
+  const files = b.files && typeof b.files === 'object' ? b.files : {}
+  for (const [name, content] of Object.entries(files)) {
+    const parts = name.split('/')
+    if (typeof content !== 'string' || !name || name.startsWith('/') || name.includes('\\') || parts.some((p) => p === '' || p === '.' || p === '..') || name === `${slug}.yaml`) {
+      return error(`build file ${JSON.stringify(name)} must be a relative path inside the build folder`, 400)
+    }
+  }
 
   // One publish at a time per blueprint, and the number must be the next one.
   const { results } = await env.DB.prepare('SELECT version, status, created_at FROM blueprint_versions WHERE blueprint_id = ? ORDER BY version DESC').bind(id).all()
@@ -51,11 +59,11 @@ export async function onRequestPost({ request, env }) {
   ])
 
   const payload = await gzipBase64(
-    JSON.stringify({ id: `${id}:${version}`, slug, version, yaml, repository, callback: `${new URL(request.url).origin}/api/publish/callback`, token }),
+    JSON.stringify({ id: `${id}:${version}`, slug, version, yaml, files, repository, callback: `${new URL(request.url).origin}/api/publish/callback`, token }),
   )
   if (payload.length > 60_000) {
-    await env.DB.prepare("UPDATE blueprint_versions SET status = 'failed', error = ? WHERE blueprint_id = ? AND version = ?").bind('The descriptor is too large to send to GitHub Actions.', id, version).run()
-    return error('The descriptor is too large to send to GitHub Actions (60 KB compressed at most).', 413)
+    await env.DB.prepare("UPDATE blueprint_versions SET status = 'failed', error = ? WHERE blueprint_id = ? AND version = ?").bind('The descriptor and its build files are too large to send to GitHub Actions.', id, version).run()
+    return error('The descriptor and its build files are too large to send to GitHub Actions (60 KB compressed at most).', 413)
   }
   const res = await fetch(`https://api.github.com/repos/${cfg.repo}/actions/workflows/publish-kit.yml/dispatches`, {
     method: 'POST',

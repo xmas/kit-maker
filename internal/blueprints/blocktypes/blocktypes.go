@@ -86,7 +86,7 @@ var types = []Type{
 			return map[string]any{"author": "", "sourceUrl": "", "iconUrl": "", "licenses": []any{}}
 		}},
 	{Key: "dockerfile", Label: "Dockerfile", Section: "agent-base", Emit: "top", Fields: []string{"build"},
-		Description: "The content recipe: Dockerfile text built into the kit's layers (a workload needs one).",
+		Description: "The content recipe: Dockerfile text built into the kit's layers (a workload needs one), plus any build files its COPY lines read (files: path → content, put beside the kit when it's published or downloaded).",
 		starter: func(string) map[string]any {
 			return map[string]any{"build": "# syntax=docker/dockerfile:1\nFROM docker/sandbox-templates:shell\n"}
 		}},

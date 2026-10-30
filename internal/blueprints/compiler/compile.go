@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -100,7 +101,11 @@ type Output struct {
 	Marks map[int]string `json:"marks,omitempty"`
 	// Conflicts are blocks working against each other (see conflicts.go).
 	Conflicts []Conflict `json:"conflicts,omitempty"`
-	Policy    Policy     `json:"-"`
+	// Files are the Dockerfile block's build files (path → content): what its
+	// COPY lines read. They aren't in the YAML; publishing and the download
+	// put them beside it, in the build folder.
+	Files  map[string]string `json:"files,omitempty"`
+	Policy Policy            `json:"-"`
 }
 
 // Problem is a block-level validation failure, shown on its slot.
@@ -166,6 +171,26 @@ func Compile(in Input) Output {
 			for _, f := range t.Fields {
 				if v, ok := p[f]; ok && !empty(v) {
 					tops[f] = append(tops[f], contrib{slot: s.Key, source: source, v: v})
+				}
+			}
+			if files, _ := p["files"].(map[string]any); t.Key == "dockerfile" && len(files) > 0 {
+				names := make([]string, 0, len(files))
+				for name, v := range files {
+					content, ok := v.(string)
+					if !BuildFilePath(name) || !ok {
+						out.Problems = append(out.Problems, Problem{s.Key, fmt.Sprintf("build file %q needs a relative path inside the build folder and text content", name)})
+						continue
+					}
+					if out.Files == nil {
+						out.Files = map[string]string{}
+					}
+					out.Files[name] = content
+					names = append(names, name)
+				}
+				sort.Strings(names)
+				if n := len(tops["build"]); n > 0 && len(names) > 0 {
+					c := &tops["build"][n-1]
+					c.source += "\nBuild files beside this file: " + strings.Join(names, ", ")
 				}
 			}
 		}
@@ -772,6 +797,15 @@ func addTops(doc *yaml.Node, tops map[string][]contrib) []Problem {
 		}
 	}
 	return problems
+}
+
+// BuildFilePath reports whether name can be a build file: a relative path
+// that stays inside the build folder and isn't the descriptor's own place.
+func BuildFilePath(name string) bool {
+	if name == "" || strings.HasPrefix(name, "/") || strings.Contains(name, "\\") || path.Clean(name) != name {
+		return false
+	}
+	return name != "." && !strings.HasPrefix(name, "../") && name != ".."
 }
 
 func addKeyed(m *yaml.Node, k string, v *yaml.Node, comment string) {
