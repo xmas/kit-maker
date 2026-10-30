@@ -17,6 +17,11 @@ site with no server to run:
   key button in the header adds a passkey (Touch ID, Windows Hello, a phone
   or security key) for next time. `ALLOWED_EMAILS` can narrow who may sign
   in; without it, any verified email can.
+- **Guests, optionally.** With `GUEST_PASSPHRASE` set, the sign-in page also
+  offers "Sign in as a guest": the passphrase signs in as one shared Guest
+  (shown as Guest in history, no passkeys, 10 tries per IP per 15 minutes).
+  Guests can edit like anyone signed in. Remove the secret to sign every
+  guest out.
 - **The starter content is static.** `public/starter.json` is the release's
   block library and sample blueprints (`make cf-starter`). A document saved
   in D1 replaces the starter document with the same id.
@@ -78,8 +83,15 @@ Then, in `cloudflare/`:
    npx wrangler pages secret put RESEND_API_KEY --project-name=kitmaker     # the Resend API key
    npx wrangler pages secret put MAIL_FROM --project-name=kitmaker          # Kit Maker <login@ezdata.xyz>
    npx wrangler pages secret put ALLOWED_EMAILS --project-name=kitmaker     # optional: @ezdata.xyz,friend@example.com
+   npx wrangler pages secret put GUEST_PASSPHRASE --project-name=kitmaker   # optional: guest sign-in
    npx wrangler pages secret put ANTHROPIC_API_KEY --project-name=kitmaker  # optional: AI features
    ```
+
+   Run these in a terminal, not through a tool that can't answer the prompt:
+   a prompt that gets no input saves an empty secret (the sign-in page then
+   names it). Piping works too: `printf '%s' 'value' | npx wrangler pages
+   secret put NAME --project-name=kitmaker`. Deploy again after changing
+   secrets; a deployment only sees the secrets it started with.
 
    `ALLOWED_EMAILS` takes addresses and `@domain` entries; leave it unset to
    let any verified email in. Remove a secret with

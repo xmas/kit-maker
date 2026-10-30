@@ -42,3 +42,14 @@ export async function emailCode(email: string, next: string) {
 export async function signInWithCode(email: string, code: string): Promise<string> {
   return (await post<{ next: string }>('/api/auth/code', { email, code })).next
 }
+
+/** guestAvailable reports whether this deployment has a guest passphrase. */
+export async function guestAvailable(): Promise<boolean> {
+  const res = await fetch('/api/session', { headers: { Accept: 'application/json' } })
+  return res.ok && ((await res.json()) as { guest?: boolean }).guest === true
+}
+
+/** signInAsGuest signs in with the guest passphrase and returns where to go next. */
+export async function signInAsGuest(passphrase: string, next: string): Promise<string> {
+  return (await post<{ next: string }>('/api/auth/guest', { passphrase, next })).next
+}

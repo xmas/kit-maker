@@ -19,7 +19,7 @@ const user = computed(() => page.props.auth?.user)
 const local = computed(() => page.props.auth?.mode === 'local')
 // shared: the Cloudflare edition with its backend, where people sign in
 // with an emailed code or a passkey and can add passkeys here.
-const canAddPasskey = computed(() => page.props.auth?.mode === 'shared' && passkeysSupported())
+const canAddPasskey = computed(() => page.props.auth?.mode === 'shared' && user.value?.id !== 'guest' && passkeysSupported())
 const passkeyNote = ref('')
 
 async function newPasskey() {

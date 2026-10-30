@@ -114,6 +114,32 @@ export function userFor(email) {
 }
 
 /**
+ * The guest: whoever knows GUEST_PASSPHRASE. One shared identity, shown as
+ * "Guest" in history; it can't add passkeys, and removing the secret signs
+ * every guest out.
+ */
+export const GUEST = { id: 'guest', email: 'guest', displayName: 'Guest' }
+
+export function guestEnabled(env) {
+  return Boolean(String(env.GUEST_PASSPHRASE || '').trim())
+}
+
+/** guestSession returns the Set-Cookie header for a guest session. */
+export async function guestSession(env) {
+  return setCookie(COOKIE, await sign({ guest: true }, env.JWT_SECRET, MAX_AGE), MAX_AGE)
+}
+
+/** sameSecret compares two strings in constant time. */
+export async function sameSecret(a, b) {
+  const [x, y] = await Promise.all([crypto.subtle.digest('SHA-256', enc.encode(a)), crypto.subtle.digest('SHA-256', enc.encode(b))])
+  const p = new Uint8Array(x)
+  const q = new Uint8Array(y)
+  let diff = 0
+  for (let i = 0; i < p.length; i++) diff |= p[i] ^ q[i]
+  return diff === 0
+}
+
+/**
  * signIn records the user and returns the Set-Cookie header for a new
  * session.
  */
@@ -129,6 +155,7 @@ export async function signIn(env, email) {
 export async function currentUser(request, env) {
   if (!env.JWT_SECRET) return null
   const data = await verify(cookie(request, COOKIE), env.JWT_SECRET).catch(() => null)
+  if (data?.guest) return guestEnabled(env) ? GUEST : null
   if (!data || !allowed(data.email, env)) return null
   return userFor(data.email)
 }

@@ -2,11 +2,12 @@
 // signed-in person.
 import { generateRegistrationOptions } from '@simplewebauthn/server'
 import { challengeCookie, relyingParty } from '../../../_lib/auth.js'
-import { guard, json } from '../../../_lib/http.js'
+import { error, guard, json } from '../../../_lib/http.js'
 
 export async function onRequestPost({ request, env }) {
   const [user, refused] = await guard(request, env)
   if (refused) return refused
+  if (user.id === 'guest') return error('Guests can’t add passkeys. Sign in with your email first.', 403)
   const { results } = await env.DB.prepare('SELECT id, transports FROM passkeys WHERE email = ?').bind(user.email).all()
   // The WebAuthn user handle: stable per email, and not the email itself.
   const userID = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kitmaker:' + user.email)))

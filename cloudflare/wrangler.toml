@@ -10,6 +10,7 @@ pages_build_output_dir = "dist"
 #   MAIL_FROM          their sender, e.g. Kit Maker <login@ezdata.xyz>
 #   ALLOWED_EMAILS     optional: addresses and @domains that may sign in
 #                      (unset: any verified email)
+#   GUEST_PASSPHRASE   optional: a shared passphrase that signs in as Guest
 #   ANTHROPIC_API_KEY  optional: turns on AI search, Explain and drafts
 # Locally they come from .dev.vars (git-ignored).
 

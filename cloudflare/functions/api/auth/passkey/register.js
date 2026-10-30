@@ -6,6 +6,7 @@ import { error, guard, json, readJSON } from '../../../_lib/http.js'
 export async function onRequestPost({ request, env }) {
   const [user, refused] = await guard(request, env)
   if (refused) return refused
+  if (user.id === 'guest') return error('Guests can’t add passkeys. Sign in with your email first.', 403)
   const body = (await readJSON(request)) || {}
   const ch = await readChallenge(request, env)
   if (!ch || ch.kind !== 'register' || ch.email !== user.email) return error('The passkey request expired. Try again.', 400)
