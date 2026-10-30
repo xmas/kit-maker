@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
-import { ArrowUp, BookPlus, FileCode, History, LayoutDashboard, ListTree, Pencil, Play, RefreshCw, Save, Trash2, Undo2, Unlink } from '@lucide/vue'
+import { ArrowUp, BookPlus, FileCode, History, LayoutDashboard, Pencil, Play, RefreshCw, Save, Trash2, Undo2, Unlink } from '@lucide/vue'
 import ActionMenu, { type MenuItem } from '@/components/ActionMenu.vue'
 import AppShell from '@/components/AppShell.vue'
 import BlankSlot from '@/components/blueprint/BlankSlot.vue'
@@ -33,8 +33,9 @@ const props = defineProps<{
 const page = usePage()
 const errors = computed(() => (page.props.errors as Record<string, string> | undefined) ?? {})
 
-// --- Sidebars: the outline (left) and the YAML (right) can each be hidden.
-// A hidden outline leaves a rail that opens it as a flyout on hover.
+// --- Sidebars: the outline (left) is always open on wide screens; the YAML
+// (right) can be hidden, and folds to its rail on its own when the window is
+// too narrow for it beside the outline and the editor.
 function stored(key: string, fallback: boolean): boolean {
   try {
     const v = localStorage.getItem(key)
@@ -50,12 +51,8 @@ function store(key: string, v: boolean) {
     /* storage may be unavailable */
   }
 }
-// outlineHidden / yamlHidden are the person's choice (remembered). On a
-// narrow window the page also hides them on its own so the editor keeps room
-// for its header: the outline first (it still opens on hover), then the YAML.
-const outlineHidden = ref(stored('kitmaker.builder.outlineHidden', false))
+// yamlHidden is the person's choice (remembered).
 const yamlHidden = ref(stored('kitmaker.builder.yamlHidden', false))
-watch(outlineHidden, (v) => store('kitmaker.builder.outlineHidden', v))
 watch(yamlHidden, (v) => store('kitmaker.builder.yamlHidden', v))
 
 const EDITOR_MIN = 720 // the slot header (tile, section, title, status, actions) fits on one line
@@ -68,49 +65,30 @@ const wide = computed(() => winW.value >= 768)
 // YAML width: about 40% of the window by default, kept narrow enough that
 // the editor has EDITOR_MIN beside the outline. Dragging its left edge (or
 // the arrow keys) can make it wider than that, down to EDITOR_DRAG_MIN of
-// editor; the outline then folds to its rail. A dragged width is remembered.
+// editor. A dragged width is remembered.
 function defaultYamlWidth() {
   return typeof window === 'undefined' ? 560 : Math.round(Math.min(900, Math.max(440, window.innerWidth * 0.4)))
 }
-// Widths beside the editor: page padding 32, outline 272 + gap 31 (or the
-// 36px rail + 16), the YAML + gap 31 (or its 36px rail + 31).
+// Widths beside the editor: page padding 32, outline 272 + gap 31, the YAML
+// + gap 31 (or its 36px rail + 31).
 const comfortable = (w: number) => Math.round(Math.max(YAML_MIN, Math.min(w, winW.value - 32 - 303 - 31 - EDITOR_MIN)))
-const draggable = (w: number) => {
-  const outline = forceOutline.value ? 303 : 52
-  return Math.round(Math.max(YAML_MIN, Math.min(w, winW.value - 32 - outline - 31 - EDITOR_DRAG_MIN)))
-}
+const draggable = (w: number) => Math.round(Math.max(YAML_MIN, Math.min(w, winW.value - 32 - 303 - 31 - EDITOR_DRAG_MIN)))
 let chosenWidth = 0 // a width the person dragged to, or 0 for the default
 try {
   chosenWidth = Number(localStorage.getItem('kitmaker.builder.yamlWidth')) || 0
 } catch {
   /* storage may be unavailable */
 }
-// Opening a sidebar the page hid keeps it open until the window widens.
-const forceOutline = ref(false)
+// Opening the YAML after the page folded it keeps it open until the window widens.
 const forceYaml = ref(false)
 const yamlWidth = ref(chosenWidth ? draggable(chosenWidth) : comfortable(defaultYamlWidth()))
 const reclamp = () => (yamlWidth.value = chosenWidth ? draggable(chosenWidth) : comfortable(defaultYamlWidth()))
 
-// The outline folds first: when the YAML (at its width, or its rail when
-// hidden) leaves the editor less than EDITOR_MIN beside it. Then the YAML,
-// when even its minimum doesn't fit beside the outline's rail.
-const autoOutline = computed(() => wide.value && winW.value - 32 - 303 - (yamlHidden.value ? 67 : yamlWidth.value + 31) < EDITOR_MIN)
-const autoYaml = computed(() => wide.value && winW.value - 32 - 52 - (YAML_MIN + 31) < EDITOR_MIN)
-watch(autoOutline, (v) => !v && (forceOutline.value = false))
+// The YAML folds when even its minimum doesn't fit beside the outline and
+// the editor.
+const autoYaml = computed(() => wide.value && winW.value - 32 - 303 - (YAML_MIN + 31) < EDITOR_MIN)
 watch(autoYaml, (v) => !v && (forceYaml.value = false))
-const outlineOff = computed(() => outlineHidden.value || (autoOutline.value && !forceOutline.value))
 const yamlOff = computed(() => yamlHidden.value || (autoYaml.value && !forceYaml.value))
-function showOutline() {
-  outlineHidden.value = false
-  if (autoOutline.value) {
-    forceOutline.value = true
-    reclamp() // make room for it
-  }
-}
-function hideOutline() {
-  outlineHidden.value = true
-  forceOutline.value = false
-}
 function showYaml() {
   yamlHidden.value = false
   if (autoYaml.value) forceYaml.value = true
@@ -134,7 +112,6 @@ function startResize(e: PointerEvent) {
   if (!aside) return
   const right = aside.getBoundingClientRect().right
   resizing.value = true
-  forceOutline.value = false // dragging wider may fold the outline again
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   const move = (ev: PointerEvent) => (yamlWidth.value = draggable(right - ev.clientX))
   const up = () => {
@@ -147,7 +124,6 @@ function startResize(e: PointerEvent) {
   window.addEventListener('pointerup', up)
 }
 function resizeBy(dx: number) {
-  forceOutline.value = false
   yamlWidth.value = draggable(yamlWidth.value + dx)
   saveYamlWidth()
 }
@@ -170,36 +146,13 @@ function resetYamlWidth() {
   } catch {
     /* storage may be unavailable */
   }
-  forceOutline.value = false
   reclamp()
 }
-const peek = ref(false)
 const runOpen = ref(false)
-// Clicking a YAML line opens its slot; a folded outline flies out briefly to
-// show where that is.
+// Clicking a YAML line opens its slot.
 function openFromYaml(key: string) {
   router.visit(slotHref(props.blueprint.id, key), { preserveScroll: true, preserveState: true })
-  if (outlineOff.value) {
-    openPeek()
-    setTimeout(closePeekSoon, 1200)
-  }
 }
-// The flyout stays open briefly after the pointer leaves, so a slip past
-// its edge doesn't close it.
-let peekTimer: ReturnType<typeof setTimeout> | undefined
-function openPeek() {
-  clearTimeout(peekTimer)
-  peek.value = true
-}
-function closePeekSoon() {
-  clearTimeout(peekTimer)
-  peekTimer = setTimeout(() => (peek.value = false), 400)
-}
-watch(
-  () => props.selected?.key,
-  () => (peek.value = false),
-)
-
 // --- The selected slot. The editors work on a copy of the effective payload;
 // saving sends it whole and the server stores the difference as overrides.
 const sel = computed(() => props.selected)
@@ -439,37 +392,8 @@ const rail =
 <template>
   <Head :title="sel ? `${title} · ${blueprint.slug}` : blueprint.slug" />
   <AppShell>
-    <main class="flex w-full flex-col gap-6 px-4 py-6 md:flex-row md:items-start" :class="outlineOff ? 'md:gap-4' : 'md:gap-[31px]'">
-      <!-- Left: the outline, or a rail that opens it on hover -->
-      <!-- z-40: a sticky element is its own stacking context, so the flyout's
-           layer has to be set here or the editor frame paints over it. -->
-      <div
-        v-if="outlineOff"
-        class="relative hidden shrink-0 self-start md:sticky md:top-[4.5rem] md:z-40 md:block"
-        @mouseenter="openPeek"
-        @mouseleave="closePeekSoon"
-      >
-        <button type="button" :class="rail" aria-label="Show outline" title="Click to keep the outline open" @click="showOutline">
-          <ListTree class="size-4" />
-          <span class="text-[11px] font-medium [writing-mode:vertical-rl]">Outline</span>
-        </button>
-        <!-- The flyout opens beside the rail (its padding bridges the gap, so
-             the pointer can cross without closing it) and keeps the rail clickable. -->
-        <div v-if="peek" class="absolute top-0 left-full max-h-[calc(100vh-6rem)] overflow-y-auto pr-3 pb-3 pl-2">
-          <Outline
-            :blueprint="blueprint"
-            :sections="sections"
-            :selected="sel?.key ?? null"
-            :can-edit="can.edit"
-            :dirty-key="dirty ? sel?.key : null"
-            :show-history="can.history"
-            :view="view"
-            floating
-            class="shadow-[0_12px_40px_rgba(15,23,42,0.18)]"
-            @pin="showOutline"
-          />
-        </div>
-      </div>
+    <main class="flex w-full flex-col gap-6 px-4 py-6 md:flex-row md:items-start md:gap-[31px]">
+      <!-- Left: the outline, always open (it stacks above on phones) -->
       <Outline
         :blueprint="blueprint"
         :sections="sections"
@@ -479,8 +403,6 @@ const rail =
         :show-history="can.history"
         :view="view"
         class="shrink-0 md:sticky md:top-[4.5rem]"
-        :class="outlineOff ? 'md:hidden' : ''"
-        @hide="hideOutline"
       />
 
       <!-- Middle: the overview or the selected slot. It reaches the bottom of
@@ -611,8 +533,16 @@ const rail =
             <button v-if="can.update && sel.latest && sel.version && sel.latest > sel.version" type="button" :class="btn + ' h-8 py-0 bg-white text-primary hover:bg-white/90'" @click="update">
               <ArrowUp class="size-3.5" /> Update to v{{ sel.latest }}
             </button>
-            <button v-if="can.history" type="button" :class="onBlue + (showSlotHistory ? ' bg-white/30' : '')" :aria-pressed="showSlotHistory" @click="toggleSlotHistory">
-              <History class="size-3.5" /> History
+            <button
+              v-if="can.history"
+              type="button"
+              :class="onBlue + (showSlotHistory ? ' bg-white/30' : '')"
+              :aria-pressed="showSlotHistory"
+              aria-label="History"
+              title="History"
+              @click="toggleSlotHistory"
+            >
+              <History class="size-3.5" /><span class="hidden @[620px]/head:inline">History</span>
             </button>
             <button v-if="can.edit" type="button" :class="onBlue" :aria-label="`Remove ${title} from this blueprint`" title="Remove from blueprint" @click="removeSlot">
               <Trash2 class="size-3.5" />

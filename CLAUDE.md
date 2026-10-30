@@ -155,11 +155,12 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   changed amber, removed marked) or Changes (−/+). Saved blueprint edits show as coloured
   gutter bars from `compiled.marks`. The network editor marks edited rows (green added, amber
   changed, red removed) and lists every edit in a callout with a per-edit Undo. The YAML sidebar is resizable (drag its left edge, arrow keys,
-  double-click resets; about 40% wide by default, and dragging can widen it past that, folding the
-  outline), wraps long lines (toggle), and clicking a line opens the slot that produced it. Either sidebar can be hidden (a hidden outline opens as a
-  hover flyout; state in localStorage). On a narrow window the page hides them itself so the
-  editor keeps 720px for its header: the outline first, then the YAML (columns stack only below
-  768px). The outline scrolls on its own below its
+  double-click resets; about 40% wide by default, and dragging can widen it past that), wraps
+  long lines (toggle), and clicking a line opens the slot that produced it. The outline is
+  always open (never hidden, at any width); the YAML can be hidden (state in localStorage) and
+  folds to its rail on its own when it doesn't fit beside the outline and the editor (columns
+  stack only below 768px). On a narrow frame the slot header drops its section label, the
+  status chip's details and button labels (container queries). The outline scrolls on its own below its
   header (screen height) and keeps the selected row in view. Built from
   `components/blueprint/` (Outline: a tree of every section with each slot shown by its block's name, an add row per
   block type and remove on hover, plus the selection bridge; SlotFrame, NetworkRulesEditor,

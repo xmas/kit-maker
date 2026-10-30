@@ -413,8 +413,9 @@ edits.
 Builder layout: outline on the left, the selected slot's editor in the
 middle, and the blueprint's YAML on the **right**, always visible, with the lines
 the selected slot produced highlighted. The YAML stays on the right so the
-selection bridge runs straight from the outline into the editor. Either
-sidebar can be hidden; a hidden outline opens as a hover flyout.
+selection bridge runs straight from the outline into the editor. The outline
+is always open; only the YAML can be hidden, and it folds first when space
+runs out.
 
 The outline from the builder is the **persistent left rail on every blueprint
 screen**: builder, block editor, inheritance view, checks, generate, in code.

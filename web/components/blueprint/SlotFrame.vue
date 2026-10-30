@@ -27,8 +27,10 @@ defineProps<{
 
 <template>
   <section class="flex min-w-0 flex-1 flex-col rounded-[14px] border-2 border-primary bg-[#FAFBFF] shadow-[0_8px_24px_rgba(29,99,237,0.08)]">
-    <!-- One line, everything centred on it: tile · SECTION / Title · status · actions. -->
-    <header class="flex min-h-14 items-center gap-3 rounded-t-[11px] bg-primary px-4 py-2.5 text-primary-foreground">
+    <!-- One line, everything centred on it: tile · SECTION / Title · status · actions.
+         A narrow frame (the outline always stays open) drops the section
+         label and the chip's details first; the title truncates. -->
+    <header class="@container/head flex min-h-14 items-center gap-3 rounded-t-[11px] bg-primary px-4 py-2.5 text-primary-foreground">
       <span
         class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white text-sm font-bold"
         :style="{ color: sectionStyle[section]?.fg ?? '#4338CA' }"
@@ -36,8 +38,8 @@ defineProps<{
         <slot name="icon">{{ (sectionStyle[section]?.label ?? eyebrow).slice(0, 1) }}</slot>
       </span>
       <div class="flex min-w-0 flex-1 items-center gap-2.5">
-        <span class="hidden shrink-0 text-[11px] font-semibold tracking-wider uppercase opacity-80 sm:inline">{{ eyebrow }}</span>
-        <span class="hidden shrink-0 opacity-50 sm:inline" aria-hidden="true">/</span>
+        <span class="hidden shrink-0 text-[11px] font-semibold tracking-wider uppercase opacity-80 @[680px]/head:inline">{{ eyebrow }}</span>
+        <span class="hidden shrink-0 opacity-50 @[680px]/head:inline" aria-hidden="true">/</span>
         <h1 class="min-w-0 truncate text-lg leading-tight font-semibold" :title="title">{{ title }}</h1>
         <!-- One status chip. When the page passes a "status" slot, the chip
              opens it as a popover (details and actions about the link). -->
@@ -53,8 +55,11 @@ defineProps<{
             @click="$slots.status && (statusOpen = !statusOpen)"
           >
             <OriginIcon :origin="origin" class="size-3" />
-            {{ originStyle[origin].label }}<template v-if="version"> · v{{ version }}</template
-            ><template v-if="origin === 'modified' && edits"> · {{ edits }} {{ edits === 1 ? 'edit' : 'edits' }}</template>
+            {{ originStyle[origin].label
+            }}<span class="hidden @[560px]/head:inline"
+              ><template v-if="version"> · v{{ version }}</template
+              ><template v-if="origin === 'modified' && edits"> · {{ edits }} {{ edits === 1 ? 'edit' : 'edits' }}</template></span
+            >
             <ChevronDown v-if="$slots.status" class="-mr-0.5 size-3 opacity-60" aria-hidden="true" />
           </component>
           <div

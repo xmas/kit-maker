@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
-import { ChevronRight, History, LayoutDashboard, PanelLeftClose, PanelLeftOpen, Plus } from '@lucide/vue'
+import { ChevronRight, History, LayoutDashboard, Plus } from '@lucide/vue'
 import OriginIcon from './OriginIcon.vue'
 import { originStyle, sectionStyle, slotHref, type Item, type BlueprintInfo, type Section } from '@/lib/blueprint'
 
@@ -14,11 +14,7 @@ const props = defineProps<{
   dirtyKey?: string | null
   showHistory?: boolean
   view?: string
-  // floating: shown as a hover flyout while the sidebar is hidden, so the
-  // selection bridge (which joins the docked outline to the frame) is off.
-  floating?: boolean
 }>()
-const emit = defineEmits<{ hide: []; pin: [] }>()
 
 // The outline scrolls by itself; keep the selected row in view (without
 // scrolling the page, which scrollIntoView would also do).
@@ -99,19 +95,6 @@ const filters = computed(() => [
       <div class="flex items-center justify-between gap-2">
         <Link :href="slotHref(blueprint.id)" class="truncate text-[15px] font-semibold">{{ blueprint.slug }}</Link>
         <span class="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">draft</span>
-        <button v-if="!floating" type="button" aria-label="Hide outline" title="Hide outline" class="rounded p-1 text-slate-400 hover:bg-muted hover:text-slate-700" @click="emit('hide')">
-          <PanelLeftClose class="size-4" />
-        </button>
-        <button
-          v-else
-          type="button"
-          aria-label="Keep the outline open"
-          title="Keep open"
-          class="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[11.5px] font-medium text-primary hover:bg-primary/5"
-          @click="emit('pin')"
-        >
-          <PanelLeftOpen class="size-4" /> Keep open
-        </button>
       </div>
       <span class="text-xs text-muted-foreground">{{ blueprint.kind }} · {{ blueprint.team }}</span>
     </div>
@@ -149,7 +132,7 @@ const filters = computed(() => [
         >
           <component :is="it.icon" class="size-3.5" :class="it.on ? '' : 'text-primary'" aria-hidden="true" />
           <span class="flex-1">{{ it.label }}</span>
-          <span v-if="it.on && !floating" aria-hidden="true" class="absolute inset-y-0 -right-[44px] z-10 hidden w-[44px] bg-primary md:block" />
+          <span v-if="it.on" aria-hidden="true" class="absolute inset-y-0 -right-[44px] z-10 hidden w-[44px] bg-primary md:block" />
         </Link>
       </div>
 
@@ -223,7 +206,7 @@ const filters = computed(() => [
                   >v{{ item.latest }}</span
                 >
               </span>
-              <span v-if="selected === item.key && !floating" aria-hidden="true" class="absolute inset-y-0 -right-[44px] z-10 hidden w-[44px] bg-primary md:block" />
+              <span v-if="selected === item.key" aria-hidden="true" class="absolute inset-y-0 -right-[44px] z-10 hidden w-[44px] bg-primary md:block" />
             </Link>
           </div>
 
