@@ -1,10 +1,19 @@
 import { currentUser } from './auth.js'
 
+/** json answers with body; headers is an object or a list of [name, value] (for several Set-Cookie). */
 export function json(body, status = 200, headers = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...headers },
-  })
+  const h = new Headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
+  for (const [k, v] of Array.isArray(headers) ? headers : Object.entries(headers)) h.append(k, v)
+  return new Response(JSON.stringify(body), { status, headers: h })
+}
+
+/** readJSON parses a JSON body, or returns null. */
+export async function readJSON(request) {
+  try {
+    return await request.json()
+  } catch {
+    return null
+  }
 }
 
 export function error(message, status) {

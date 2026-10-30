@@ -217,9 +217,11 @@ func (e *Engine) loginPage(w http.ResponseWriter, r *http.Request) {
 		e.redirect(w, r, "/blueprints")
 		return
 	}
+	// The Cloudflare backend signs in without passwords: an emailed code
+	// or link, or a passkey (cloudflare/functions/api/auth).
 	e.render(w, r, "Auth/Login", props{
 		"next":      safeNext(r.URL.Query().Get("next")),
-		"providers": []map[string]string{{"key": "local", "label": "Email and password"}},
+		"providers": []map[string]string{{"key": "email", "label": "Email me a sign-in code"}, {"key": "passkey", "label": "Passkey"}},
 	})
 }
 

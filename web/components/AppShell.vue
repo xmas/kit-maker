@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
-import { Boxes, LogOut } from '@lucide/vue'
+import { Boxes, KeyRound, LogOut } from '@lucide/vue'
+import { addPasskey, cancelled, passkeysSupported } from '@/lib/passkey'
 import { Button } from '@/components/ui/button'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
@@ -16,6 +17,21 @@ interface AuthUser {
 const page = usePage<{ auth: { user: AuthUser | null; mode?: 'shared' | 'local' } }>()
 const user = computed(() => page.props.auth?.user)
 const local = computed(() => page.props.auth?.mode === 'local')
+// shared: the Cloudflare edition with its backend, where people sign in
+// with an emailed code or a passkey and can add passkeys here.
+const canAddPasskey = computed(() => page.props.auth?.mode === 'shared' && passkeysSupported())
+const passkeyNote = ref('')
+
+async function newPasskey() {
+  passkeyNote.value = ''
+  try {
+    const n = await addPasskey()
+    passkeyNote.value = n === 1 ? 'Passkey added' : `Passkey added (${n} in all)`
+  } catch (e) {
+    if (!cancelled(e)) passkeyNote.value = (e as Error).message
+  }
+  setTimeout(() => (passkeyNote.value = ''), 6000)
+}
 const initials = computed(() => {
   const name = user.value?.displayName || user.value?.email || '?'
   return name
@@ -79,6 +95,10 @@ function signOut() {
           >
             {{ initials }}
           </span>
+          <span v-if="passkeyNote" role="status" class="text-xs text-muted-foreground">{{ passkeyNote }}</span>
+          <Button v-if="canAddPasskey" variant="ghost" size="icon-sm" aria-label="Add a passkey" title="Add a passkey for signing in" @click="newPasskey">
+            <KeyRound />
+          </Button>
           <Button variant="ghost" size="icon-sm" aria-label="Sign out" title="Sign out" @click="signOut">
             <LogOut />
           </Button>

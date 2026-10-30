@@ -5,15 +5,17 @@ compatibility_date = "2026-10-01"
 pages_build_output_dir = "dist"
 
 # Settings are Pages secrets (wrangler pages secret put NAME), not vars:
-#   ALLOWED_EMAILS     who may sign in, comma-separated
-#   ADMIN_PASSWORD     the password they share
 #   JWT_SECRET         signs the session cookie (any long random string)
+#   RESEND_API_KEY     sends sign-in codes and links (resend.com)
+#   MAIL_FROM          their sender, e.g. Kit Maker <login@ezdata.xyz>
+#   ALLOWED_EMAILS     optional: addresses and @domains that may sign in
+#                      (unset: any verified email)
 #   ANTHROPIC_API_KEY  optional: turns on AI search, Explain and drafts
 # Locally they come from .dev.vars (git-ignored).
 
 [[d1_databases]]
 binding = "DB"
 database_name = "kitmaker"
-# npx wrangler d1 create kitmaker, then paste its id here.
-database_id = "00000000-0000-0000-0000-000000000000"
+# From npx wrangler d1 create kitmaker (an id, not a secret).
+database_id = "e13fe60e-a91c-407e-b49c-cb710bf04967"
 migrations_dir = "migrations"

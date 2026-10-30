@@ -249,9 +249,11 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   `public/starter.json` (the seed exported by `internal/tools/starterexport`, IDs from slugs),
   routes Inertia's axios requests, `fetch()` calls and download links to it, and stores the
   documents each request changed. `web/lite/backend.ts` stores them in D1 through
-  `cloudflare/functions/api` (session, login/logout with `ALLOWED_EMAILS` + `ADMIN_PASSWORD` +
-  a `JWT_SECRET`-signed cookie, docs with optimistic revs, revisions, an AI proxy using
-  `ANTHROPIC_API_KEY`) or, when no Functions answer, in IndexedDB ("Saved in this browser").
+  `cloudflare/functions/api` (session; sign-in without passwords in `api/auth`: an emailed
+  6-digit code or one-use link sent through Resend (`RESEND_API_KEY`, `MAIL_FROM`; printed to
+  the console on localhost), then optional passkeys (@simplewebauthn/server; the header's key
+  button), any verified email unless `ALLOWED_EMAILS` narrows it, a `JWT_SECRET`-signed
+  cookie; docs with optimistic revs, revisions, an AI proxy using `ANTHROPIC_API_KEY`) or, when no Functions answer, in IndexedDB ("Saved in this browser").
   No publishing (no BuildKit), no teams or roles. `.github/workflows/cloudflare.yml` deploys
   on push to `cloudflare`. Tests: `internal/lite/lite_test.go`.
 - Not yet: custom roles, AI suggestions (threads, accept/reject), 3-way rebase with conflict

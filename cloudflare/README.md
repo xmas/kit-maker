@@ -10,8 +10,13 @@ site with no server to run:
   the app's requests to it instead of a server.
 - **Pages Functions + D1 store the data.** `functions/api/*` keep blocks,
   blueprints and history as JSON documents in one D1 database, with
-  optimistic locking (`migrations/`). Sign-in is a shared password for a list
-  of emails, kept in a signed cookie.
+  optimistic locking (`migrations/`).
+- **No passwords.** Anyone signs in by proving they own an email address:
+  they get a 6-digit code and a sign-in link (either works once, for 15
+  minutes), sent through [Resend](https://resend.com). Once signed in, the
+  key button in the header adds a passkey (Touch ID, Windows Hello, a phone
+  or security key) for next time. `ALLOWED_EMAILS` can narrow who may sign
+  in; without it, any verified email can.
 - **The starter content is static.** `public/starter.json` is the release's
   block library and sample blueprints (`make cf-starter`). A document saved
   in D1 replaces the starter document with the same id.
@@ -21,7 +26,9 @@ site with no server to run:
 
 What it doesn't do: publish to a registry (no BuildKit here; the Run dialog
 offers the local copy and its `sbxenv.yaml`), teams and roles (everyone
-signed in can edit), or the admin CLI.
+signed in can edit, so with sign-up open to any email, anyone who signs in
+can change the shared blueprints: set `ALLOWED_EMAILS` to keep it to your
+people), or the admin CLI.
 
 Free-tier fit: Pages (unlimited static requests, 100k Function requests a
 day), D1 (5 GB, 5M rows read and 100k written a day). The engine is about
@@ -58,16 +65,27 @@ Then, in `cloudflare/`:
    npx wrangler pages project create kitmaker --production-branch=main
    ```
 
-4. **Set who can sign in.** Each command prompts for the value:
+4. **Set up sign-in email.** Create a free [Resend](https://resend.com)
+   account, add the domain `ezdata.xyz` under Domains, and add the DNS records
+   it shows to the ezdata.xyz zone in Cloudflare (with the zone on
+   Cloudflare, Resend can add them for you). Then create an API key with
+   sending access.
+
+5. **Set the secrets.** Each command prompts for the value:
 
    ```bash
-   npx wrangler pages secret put ALLOWED_EMAILS --project-name=kitmaker     # a@ezdata.xyz,b@ezdata.xyz
-   npx wrangler pages secret put ADMIN_PASSWORD --project-name=kitmaker     # the shared password
    npx wrangler pages secret put JWT_SECRET --project-name=kitmaker         # openssl rand -base64 48
+   npx wrangler pages secret put RESEND_API_KEY --project-name=kitmaker     # the Resend API key
+   npx wrangler pages secret put MAIL_FROM --project-name=kitmaker          # Kit Maker <login@ezdata.xyz>
+   npx wrangler pages secret put ALLOWED_EMAILS --project-name=kitmaker     # optional: @ezdata.xyz,friend@example.com
    npx wrangler pages secret put ANTHROPIC_API_KEY --project-name=kitmaker  # optional: AI features
    ```
 
-5. **Deploy.**
+   `ALLOWED_EMAILS` takes addresses and `@domain` entries; leave it unset to
+   let any verified email in. Remove a secret with
+   `npx wrangler pages secret delete NAME --project-name=kitmaker`.
+
+6. **Deploy.**
 
    ```bash
    npx wrangler pages deploy dist --project-name=kitmaker --branch=main
@@ -75,12 +93,13 @@ Then, in `cloudflare/`:
 
    It prints a `https://kitmaker.pages.dev` address.
 
-6. **Put it on ezdata.xyz.** In the Cloudflare dashboard, open Workers &
+7. **Put it on ezdata.xyz.** In the Cloudflare dashboard, open Workers &
    Pages → kitmaker → Custom domains → Set up a domain, and enter the host
    (for example `kitmaker.ezdata.xyz`, or `ezdata.xyz` itself). If the
    ezdata.xyz zone is on the same Cloudflare account, the DNS record and
    certificate are created for you. Nothing in the app names the host, so no
-   rebuild is needed.
+   rebuild is needed. Passkeys belong to the host they were made on, so pick
+   the final host before people add them.
 
 ## Automatic deployments
 
@@ -108,14 +127,10 @@ make cf-dev      # build, then the site + Functions + a local D1 on http://local
 make cf-starter  # regenerate public/starter.json after changing internal/seed (needs Docker)
 ```
 
-`make cf-dev` reads settings from `cloudflare/.dev.vars` (git-ignored), for
-example:
-
-```
-ALLOWED_EMAILS=dev@example.com
-ADMIN_PASSWORD=a-local-password
-JWT_SECRET=a-local-signing-key
-```
+`make cf-dev` reads settings from `cloudflare/.dev.vars` (git-ignored). It
+needs only `JWT_SECRET=<any local string>`: without `RESEND_API_KEY`, sign-in
+emails on localhost are printed in the wrangler output instead of sent.
+Passkeys work on `localhost` in Chrome and Safari.
 
 ## Notes
 

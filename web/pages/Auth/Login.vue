@@ -2,11 +2,15 @@
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { Boxes, LogIn } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
+import PasswordlessSignIn from '@/components/auth/PasswordlessSignIn.vue'
 
 const props = defineProps<{ next: string; providers: { key: string; label: string }[] }>()
 
-// The Cloudflare edition (auth.mode set) has no admin CLI.
+// The Cloudflare edition signs in with an emailed code or a passkey (no
+// passwords); the server edition with email and password.
 const cloudflare = !!usePage<{ auth?: { mode?: string } }>().props.auth?.mode
+const passwordless = props.providers.some((p) => p.key === 'email')
+const passkey = props.providers.some((p) => p.key === 'passkey')
 
 const form = useForm({ email: '', password: '', next: props.next })
 
@@ -29,7 +33,8 @@ function submit() {
         </div>
       </div>
 
-      <form class="space-y-4 rounded-xl border bg-background p-6 shadow-xs" @submit.prevent="submit">
+      <PasswordlessSignIn v-if="passwordless" :next="next" :passkey="passkey" />
+      <form v-else class="space-y-4 rounded-xl border bg-background p-6 shadow-xs" @submit.prevent="submit">
         <div class="space-y-1.5">
           <label for="email" class="text-sm font-medium">Email</label>
           <input
@@ -64,7 +69,7 @@ function submit() {
       </form>
 
       <p class="text-center text-xs text-muted-foreground">
-        <template v-if="cloudflare">Ask whoever runs this deployment to add your email to <code class="rounded bg-muted px-1">ALLOWED_EMAILS</code>.</template>
+        <template v-if="cloudflare">No password needed. After you sign in, add a passkey from the key button at the top for next time.</template>
         <template v-else>Locked out? An admin can run <code class="rounded bg-muted px-1">kitmaker user set-password</code>.</template>
       </p>
     </div>

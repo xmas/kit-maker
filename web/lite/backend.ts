@@ -73,13 +73,10 @@ class Shared implements Backend {
     }
     return (await json<{ revs: Record<string, number> }>(res)).revs
   }
-  async login(email: string, password: string) {
-    const res = await netFetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
-    const out = await json<{ user: User; ai: boolean }>(res)
-    this.user = out.user
-    this.ai = out.ai
-    this.since = '' // everything again, now that we can read it
-    return out.user
+  // Sign-in happens on the login page (an emailed code or a passkey, see
+  // components/auth/PasswordlessSignIn.vue), which reloads the app.
+  async login(): Promise<User> {
+    throw new Error('Sign in with an emailed code or a passkey.')
   }
   async logout() {
     await netFetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })

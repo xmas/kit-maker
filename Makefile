@@ -136,3 +136,7 @@ cf-build: web/node_modules ## Build the Cloudflare edition (engine as WebAssembl
 .PHONY: cf-dev
 cf-dev: cf-build ## Run the Cloudflare edition locally: Pages Functions and a local D1 on :8788
 	cd cloudflare && npm install --no-audit --no-fund && npx wrangler d1 migrations apply kitmaker --local && npx wrangler pages dev
+
+.PHONY: cf-deploy
+cf-deploy: cf-build ## Deploy the Cloudflare edition by hand: D1 migrations, then the site (CI does this on push)
+	cd cloudflare && npm install --no-audit --no-fund && npx wrangler d1 migrations apply kitmaker --remote && npx wrangler pages deploy dist --project-name=kitmaker --branch=main --commit-dirty=true
