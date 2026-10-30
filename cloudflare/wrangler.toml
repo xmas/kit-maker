@@ -1,0 +1,19 @@
+# Kit Maker, Cloudflare edition: a Pages project (static site + Functions)
+# with one D1 database. See README.md in this folder.
+name = "kitmaker"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "dist"
+
+# Settings are Pages secrets (wrangler pages secret put NAME), not vars:
+#   ALLOWED_EMAILS     who may sign in, comma-separated
+#   ADMIN_PASSWORD     the password they share
+#   JWT_SECRET         signs the session cookie (any long random string)
+#   ANTHROPIC_API_KEY  optional: turns on AI search, Explain and drafts
+# Locally they come from .dev.vars (git-ignored).
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kitmaker"
+# npx wrangler d1 create kitmaker, then paste its id here.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"

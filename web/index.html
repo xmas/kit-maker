@@ -1,0 +1,17 @@
+<!doctype html>
+<!-- The Cloudflare edition's page (vite.cloudflare.config.ts). The server
+     edition renders its own shell from app.html. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Kit Maker</title>
+    <script src="/wasm_exec.js"></script>
+    <script type="module" src="/lite/boot.ts"></script>
+  </head>
+  <body class="bg-background text-foreground antialiased">
+    <div id="boot" class="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading Kit Maker…</div>
+    <div id="app"></div>
+  </body>
+</html>

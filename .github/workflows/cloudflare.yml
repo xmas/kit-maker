@@ -1,0 +1,67 @@
+# Deploy the Cloudflare edition (cloudflare/) to Cloudflare Pages.
+# Push to the cloudflare branch → build the engine (WebAssembly) and the
+# static site → apply D1 migrations → deploy to production.
+#
+# Repository secrets: CLOUDFLARE_API_TOKEN (Pages: Edit, D1: Edit),
+# CLOUDFLARE_ACCOUNT_ID. The D1 database id goes in cloudflare/wrangler.toml.
+# See cloudflare/README.md.
+
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [cloudflare]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            cloudflare/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix web
+          npm ci --prefix cloudflare
+
+      - name: Test the engine
+        run: go test ./internal/lite/ ./internal/blueprints/compiler/ ./internal/blueprints/patch/ ./internal/blueprints/checks/
+
+      - name: Build
+        run: make cf-build
+
+      - name: Check the D1 database id is set
+        run: |
+          if grep -q '00000000-0000-0000-0000-000000000000' cloudflare/wrangler.toml; then
+            echo "::error::Put your D1 database id in cloudflare/wrangler.toml (npx wrangler d1 create kitmaker)"; exit 1
+          fi
+
+      - name: Apply D1 migrations
+        working-directory: cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 migrations apply kitmaker --remote
+
+      - name: Deploy
+        working-directory: cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler pages deploy dist --project-name=kitmaker --branch=main --commit-dirty=true

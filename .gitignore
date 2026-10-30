@@ -10,6 +10,14 @@ web/dist/*
 !web/dist/.keep
 web/hot
 
+# Cloudflare edition (built by make cf-build; starter.json is committed)
+cloudflare/dist/
+cloudflare/public/kitmaker.wasm
+cloudflare/public/wasm_exec.js
+cloudflare/.wrangler/
+cloudflare/node_modules/
+cloudflare/.dev.vars
+
 # Local
 deploy/compose/.env
 deploy/compose/kitmaker.env

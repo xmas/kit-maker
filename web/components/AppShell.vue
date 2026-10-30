@@ -11,8 +11,11 @@ interface AuthUser {
   displayName: string
 }
 
-const page = usePage<{ auth: { user: AuthUser | null } }>()
+// mode is set by the Cloudflare edition: "local" keeps everything in this
+// browser, so there's nobody to sign out.
+const page = usePage<{ auth: { user: AuthUser | null; mode?: 'shared' | 'local' } }>()
 const user = computed(() => page.props.auth?.user)
+const local = computed(() => page.props.auth?.mode === 'local')
 const initials = computed(() => {
   const name = user.value?.displayName || user.value?.email || '?'
   return name
@@ -61,7 +64,14 @@ function signOut() {
           </template>
         </nav>
         <div class="flex-1" />
-        <div v-if="user" class="flex items-center gap-3">
+        <span
+          v-if="local"
+          class="hidden rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground md:inline"
+          title="This copy of Kit Maker has no backend: your blueprints and blocks are saved in this browser only."
+        >
+          Saved in this browser
+        </span>
+        <div v-else-if="user" class="flex items-center gap-3">
           <span class="hidden text-sm text-muted-foreground sm:inline">{{ user.email }}</span>
           <span
             class="flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"

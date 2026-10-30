@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { Boxes, LogIn } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 
 const props = defineProps<{ next: string; providers: { key: string; label: string }[] }>()
+
+// The Cloudflare edition (auth.mode set) has no admin CLI.
+const cloudflare = !!usePage<{ auth?: { mode?: string } }>().props.auth?.mode
 
 const form = useForm({ email: '', password: '', next: props.next })
 
@@ -61,7 +64,8 @@ function submit() {
       </form>
 
       <p class="text-center text-xs text-muted-foreground">
-        Locked out? An admin can run <code class="rounded bg-muted px-1">kitmaker user set-password</code>.
+        <template v-if="cloudflare">Ask whoever runs this deployment to add your email to <code class="rounded bg-muted px-1">ALLOWED_EMAILS</code>.</template>
+        <template v-else>Locked out? An admin can run <code class="rounded bg-muted px-1">kitmaker user set-password</code>.</template>
       </p>
     </div>
   </div>

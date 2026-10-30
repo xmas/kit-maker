@@ -120,3 +120,19 @@ helm-lint: ## Lint and render the Helm chart
 	helm lint $(CHART) --set database.url=postgres://x --set storage.url=s3://x --set secrets.url=base64key://x
 	helm template kitmaker $(CHART) --set database.url=postgres://x --set storage.url=s3://x --set secrets.url=base64key://x \
 		--set route.enabled=true --set ingress.enabled=true >/dev/null
+
+## --- Cloudflare edition (cloudflare/) ----------------------------------------
+
+.PHONY: cf-starter
+cf-starter: ## Regenerate cloudflare/public/starter.json from the seed (needs Docker)
+	go run ./internal/tools/starterexport cloudflare/public/starter.json
+
+.PHONY: cf-build
+cf-build: web/node_modules ## Build the Cloudflare edition (engine as WebAssembly + static site) into cloudflare/dist
+	GOOS=js GOARCH=wasm go build -ldflags="-s -w" -trimpath -o cloudflare/public/kitmaker.wasm ./cmd/kitwasm
+	cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" cloudflare/public/wasm_exec.js
+	cd web && VITE_BUILD=$$(git rev-parse --short HEAD) npx vue-tsc --noEmit && VITE_BUILD=$$(git rev-parse --short HEAD) npx vite build --config vite.cloudflare.config.ts
+
+.PHONY: cf-dev
+cf-dev: cf-build ## Run the Cloudflare edition locally: Pages Functions and a local D1 on :8788
+	cd cloudflare && npm install --no-audit --no-fund && npx wrangler d1 migrations apply kitmaker --local && npx wrangler pages dev

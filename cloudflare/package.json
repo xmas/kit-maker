@@ -1,0 +1,13 @@
+{
+  "name": "kitmaker-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "deploy": "wrangler pages deploy dist --project-name=kitmaker",
+    "migrate": "wrangler d1 migrations apply kitmaker --remote"
+  },
+  "devDependencies": {
+    "wrangler": "4.150.0"
+  }
+}

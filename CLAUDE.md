@@ -80,6 +80,9 @@ make migrate-diff name=<name>   # new Atlas migration from the Ent schema
 make certs      # serve the local zot over HTTPS (mkcert) so sbx can run published blueprints
 make helm-lint  # lint + render the chart
 make down       # stop (keeps volumes)
+make cf-build   # the Cloudflare edition: engine → kitmaker.wasm + static site in cloudflare/dist
+make cf-dev     # …served with its Pages Functions and a local D1 on :8788
+make cf-starter # regenerate cloudflare/public/starter.json from the seed (needs Docker)
 ```
 
 `make dev` and `make up` both serve http://localhost:8080 and share the same database, so
@@ -236,6 +239,21 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   `deploy/compose` (Postgres+pgvector, MinIO, zot, BuildKit, Mailpit; host ports picked by
   `ports.sh`), starter Helm chart `deploy/helm/kitmaker` (serve + worker, migrate pre-upgrade job, seed
   post-install/post-upgrade job, optional Route).
+- **Cloudflare edition** (`cloudflare/`, branch `cloudflare`, guide in `cloudflare/README.md`):
+  the same UI on Cloudflare Pages' free tier. `internal/lite` is the engine over plain documents
+  (a blueprint is one document shaped like a history snapshot; blocks hold all their versions;
+  revisions are separate): the same routes, props and history as `internal/http` +
+  `internal/blueprints`, reusing compiler/patch/checks/blocktypes and `internal/ai`'s prompts
+  (its server-only files are `//go:build !js`). `cmd/kitwasm` compiles it to WebAssembly;
+  `web/lite/boot.ts` (entry `web/index.html`, `web/vite.cloudflare.config.ts`) loads it with
+  `public/starter.json` (the seed exported by `internal/tools/starterexport`, IDs from slugs),
+  routes Inertia's axios requests, `fetch()` calls and download links to it, and stores the
+  documents each request changed. `web/lite/backend.ts` stores them in D1 through
+  `cloudflare/functions/api` (session, login/logout with `ALLOWED_EMAILS` + `ADMIN_PASSWORD` +
+  a `JWT_SECRET`-signed cookie, docs with optimistic revs, revisions, an AI proxy using
+  `ANTHROPIC_API_KEY`) or, when no Functions answer, in IndexedDB ("Saved in this browser").
+  No publishing (no BuildKit), no teams or roles. `.github/workflows/cloudflare.yml` deploys
+  on push to `cloudflare`. Tests: `internal/lite/lite_test.go`.
 - Not yet: custom roles, AI suggestions (threads, accept/reject), 3-way rebase with conflict
   resolution, included blueprints, forks, sharing a blueprint's private block to the library, typed forms beyond
   network and credential. Admin screens are CLI-only.

@@ -4,8 +4,35 @@
     {
       "name": "kit-maker dev",
       "runtimeExecutable": "make",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 8080
+    },
+    {
+      "name": "cloudflare preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "vite",
+        "preview",
+        "--config",
+        "web/vite.cloudflare.config.ts",
+        "--port",
+        "4173",
+        "--strictPort"
+      ],
+      "port": 4173
+    },
+    {
+      "name": "cloudflare pages dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd cloudflare && npx wrangler pages dev --port 8788 --ip 127.0.0.1"
+      ],
+      "port": 8788
     }
   ]
 }

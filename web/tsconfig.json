@@ -14,8 +14,11 @@
   },
   "include": [
     "app.ts",
+    "inertia.ts",
+    "lite/**/*",
     "env.d.ts",
     "vite.config.ts",
+    "vite.cloudflare.config.ts",
     "pages/**/*",
     "components/**/*"
   ]
