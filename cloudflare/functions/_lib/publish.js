@@ -2,8 +2,8 @@
 // workflow in PUBLISH_GITHUB_REPO with a fine-grained PUBLISH_GITHUB_TOKEN
 // (Actions: read and write on that repo), and the workflow pushes to GHCR.
 
-/** A pending publish older than this is shown as failed (the workflow never reported). */
-export const STALE_MS = 30 * 60 * 1000
+/** A pending publish older than this is shown as failed (the workflow never reported; it times out at 45 minutes). */
+export const STALE_MS = 50 * 60 * 1000
 
 export function publishConfig(env) {
   const repo = String(env.PUBLISH_GITHUB_REPO || '').trim()

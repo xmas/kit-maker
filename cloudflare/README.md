@@ -148,7 +148,7 @@ Then, in `cloudflare/`:
 Blueprints built on `dhi.io` images need a Docker Hub login during the
 build: add repository secrets `DHI_USERNAME` and `DHI_TOKEN` and the
 workflow uses them. Versions live in D1 (`blueprint_versions`); a version
-whose workflow never reports back shows as failed after 30 minutes.
+whose workflow never reports back shows as failed after 50 minutes.
 
 ## Automatic deployments
 

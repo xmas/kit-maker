@@ -246,16 +246,18 @@ const cell =
       <div class="flex items-center gap-2 px-3 py-2.5">
         <button
           type="button"
-          class="flex min-w-0 flex-1 items-center gap-2 text-left"
+          class="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left"
           :aria-expanded="openPhases[p]"
           :aria-controls="`phase-${slot.key}-${p}`"
           @click="openPhases[p] = !openPhases[p]"
         >
-          <ChevronRight class="size-4 shrink-0 transition-transform" :class="[phaseColor[p]?.text, openPhases[p] ? 'rotate-90' : '']" aria-hidden="true" />
-          <span class="text-sm font-semibold" :class="phaseColor[p]?.text">{{ phaseLabel[p] }}</span>
-          <span class="shrink-0 rounded-full px-2 py-px text-[11.5px] font-medium" :class="phaseColor[p]?.chip">{{ counts[p] }} {{ counts[p] === 1 ? 'rule' : 'rules' }}</span>
-          <span v-if="editCounts[p]" class="size-1.5 shrink-0 rounded-full bg-amber-500" :title="`${editCounts[p]} edits here`" />
-          <span class="min-w-0 truncate text-xs text-muted-foreground" :title="phaseHelp[p]">{{ phaseHelp[p] }}</span>
+          <span class="flex items-center gap-2">
+            <ChevronRight class="size-4 shrink-0 transition-transform" :class="[phaseColor[p]?.text, openPhases[p] ? 'rotate-90' : '']" aria-hidden="true" />
+            <span class="text-sm font-semibold" :class="phaseColor[p]?.text">{{ phaseLabel[p] }}</span>
+            <span class="shrink-0 rounded-full px-2 py-px text-[11.5px] font-medium" :class="phaseColor[p]?.chip">{{ counts[p] }} {{ counts[p] === 1 ? 'rule' : 'rules' }}</span>
+            <span v-if="editCounts[p]" class="size-1.5 shrink-0 rounded-full bg-amber-500" :title="`${editCounts[p]} edits here`" />
+          </span>
+          <span class="pl-6 text-xs leading-snug text-muted-foreground">{{ phaseHelp[p] }}</span>
         </button>
         <button
           v-if="canEdit && !openPhases[p]"
