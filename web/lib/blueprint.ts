@@ -73,7 +73,7 @@ export interface Compiled {
 // allow cancelling another's limits, a duplicate, or a credential whose
 // host no block allows. Fixes hide one entry of one block, here only.
 export interface Clash {
-  kind: 'blocked' | 'widened' | 'duplicate' | 'gap'
+  kind: 'blocked' | 'widened' | 'duplicate' | 'gap' | 'missing'
   message: string
   slots: string[]
   fixes?: { slot: string; path: string; key: string; label: string }[]

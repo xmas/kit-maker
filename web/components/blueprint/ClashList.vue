@@ -7,7 +7,7 @@ import { slotHref, type Clash } from '@/lib/blueprint'
 // brings it back), or opening the blocks involved.
 const props = defineProps<{ clashes: Clash[]; blueprintId: string; labels: Record<string, string>; canEdit: boolean; here?: string | null }>()
 
-const kindLabel: Record<Clash['kind'], string> = { blocked: 'Blocked', widened: 'Widened', duplicate: 'Duplicate', gap: 'Missing access' }
+const kindLabel: Record<Clash['kind'], string> = { blocked: 'Blocked', widened: 'Widened', duplicate: 'Duplicate', gap: 'Missing access', missing: 'Missing value' }
 
 function fix(f: NonNullable<Clash['fixes']>[number]) {
   router.post(`${slotHref(props.blueprintId, f.slot)}/hide`, { path: f.path, key: f.key, back: window.location.pathname }, { preserveScroll: true })

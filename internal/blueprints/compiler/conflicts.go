@@ -19,6 +19,7 @@ import (
 //	widened    one block allows a host outright, so another's limits on it are moot
 //	duplicate  two blocks declare the same thing (same credential, path, port…)
 //	gap        a credential injects into a host no network block allows
+//	missing    the Dockerfile uses a build arg nothing gives a value
 type Conflict struct {
 	Kind    string   `json:"kind"`
 	Message string   `json:"message"`
@@ -132,6 +133,74 @@ func findConflicts(slots []Slot, pol Policy, claims []claim) []Conflict {
 				}
 			}
 		}
+	}
+	return append(out, missingBuildArgs(slots, label)...)
+}
+
+// BuildKit fills these itself.
+var automaticArgs = map[string]bool{
+	"TARGETPLATFORM": true, "TARGETOS": true, "TARGETARCH": true, "TARGETVARIANT": true,
+	"BUILDPLATFORM": true, "BUILDOS": true, "BUILDARCH": true, "BUILDVARIANT": true,
+	"HTTP_PROXY": true, "HTTPS_PROXY": true, "FTP_PROXY": true, "NO_PROXY": true, "ALL_PROXY": true,
+	"http_proxy": true, "https_proxy": true, "ftp_proxy": true, "no_proxy": true, "all_proxy": true,
+}
+
+// missingBuildArgs finds ARGs in a Dockerfile block with no default that no
+// argument (an Arguments block's buildArg) supplies: the build runs with
+// them empty, which usually breaks it (a download URL without its version).
+func missingBuildArgs(slots []Slot, label map[string]string) []Conflict {
+	supplied := map[string]bool{}
+	for _, s := range slots {
+		if s.Block == nil || s.Block.Type != "args" {
+			continue
+		}
+		args, _ := s.Block.Payload["args"].(map[string]any)
+		for _, a := range args {
+			if m, ok := a.(map[string]any); ok {
+				if b, _ := m["buildArg"].(string); b != "" {
+					supplied[b] = true
+				}
+			}
+		}
+	}
+	var out []Conflict
+	for _, s := range slots {
+		if s.Block == nil || s.Block.Type != "dockerfile" {
+			continue
+		}
+		build, _ := s.Block.Payload["build"].(string)
+		defaulted, declared := map[string]bool{}, []string{}
+		for _, line := range strings.Split(build, "\n") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 || !strings.EqualFold(fields[0], "ARG") {
+				continue
+			}
+			for _, f := range fields[1:] {
+				name, _, hasDefault := strings.Cut(f, "=")
+				if hasDefault {
+					defaulted[name] = true
+				}
+				if !slices.Contains(declared, name) {
+					declared = append(declared, name)
+				}
+			}
+		}
+		var missing []string
+		for _, name := range declared {
+			if !defaulted[name] && !supplied[name] && !automaticArgs[name] {
+				missing = append(missing, name)
+			}
+		}
+		if len(missing) == 0 {
+			continue
+		}
+		what := "build argument " + missing[0]
+		if len(missing) > 1 {
+			what = "build arguments " + strings.Join(missing, ", ")
+		}
+		out = append(out, Conflict{Kind: "missing", Slots: []string{s.Key},
+			Message: fmt.Sprintf("%s uses %s, but nothing gives %s a value, so the build gets it empty. Add an Arguments block whose argument has buildArg: %s and a default, or give the ARG a default.",
+				label[s.Key], what, map[bool]string{true: "them", false: "it"}[len(missing) > 1], missing[0])})
 	}
 	return out
 }

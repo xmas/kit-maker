@@ -199,7 +199,8 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   (`Output.Spans` gives each slot's line ranges). With `Block.Base` set it also annotates the
   blueprint's edits (`# + added in this blueprint`, `# ~ changed in this blueprint`, `# - removed in this blueprint: …`;
   `Output.Marks` gives the marked lines). `conflicts.go` finds blocks working against each
-  other (`Output.Conflicts`: blocked, widened, duplicate, gap), each with fixes that hide one entry
+  other (`Output.Conflicts`: blocked, widened, duplicate, gap, and missing: a Dockerfile ARG with no
+  default that no Arguments block's buildArg supplies), each with fixes that hide one entry
   of one block in this blueprint (`HideEntry`, `POST …/slots/{key}/hide`). It validates with
   `github.com/docker/sandbox-kit-spec/v3/spec` (the package sbx uses). `checks/` evaluates network
   checks against the merged policy (deny wins, then allow, else blocked). `edit.go`: `Create` (goal

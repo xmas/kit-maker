@@ -1,6 +1,9 @@
 package compiler
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func netBlock(name string, p map[string]any) *Block {
 	b := blk("network-rules", p)
@@ -48,5 +51,21 @@ func TestConflicts(t *testing.T) {
 	}
 	if len(out.Conflicts) != 4 {
 		t.Errorf("want 4 conflicts, got %+v", out.Conflicts)
+	}
+}
+
+// A Dockerfile ARG with no default that no Arguments block supplies is
+// flagged; one with a default, a supplied one, or BuildKit's own isn't.
+func TestMissingBuildArgs(t *testing.T) {
+	docker := Slot{Key: "dockerfile", Label: "Dockerfile", Section: "agent-base", Block: &Block{Name: "Claude", Slug: "claude", Type: "dockerfile", Version: 1,
+		Payload: map[string]any{"build": "FROM x AS build\nARG CLAUDE_VERSION\nARG TARGETARCH\nARG MODE=fast\nRUN curl https://example.com/${CLAUDE_VERSION}\n"}}}
+	got := findConflicts([]Slot{docker}, Policy{}, nil)
+	if len(got) != 1 || got[0].Kind != "missing" || !strings.Contains(got[0].Message, "CLAUDE_VERSION") || strings.Contains(got[0].Message, "TARGETARCH") || strings.Contains(got[0].Message, "MODE") {
+		t.Fatalf("without arguments: %+v", got)
+	}
+	args := Slot{Key: "arguments", Label: "Arguments", Section: "agent-base", Block: &Block{Name: "Args", Slug: "args", Type: "args", Version: 1,
+		Payload: map[string]any{"args": map[string]any{"version": map[string]any{"default": "2.1.296", "buildArg": "CLAUDE_VERSION"}}}}}
+	if got := findConflicts([]Slot{docker, args}, Policy{}, nil); len(got) != 0 {
+		t.Fatalf("with arguments: %+v", got)
 	}
 }

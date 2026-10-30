@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ChevronDown, Plus, RotateCcw, Trash2, Undo2 } from '@lucide/vue'
+import { ChevronDown, ChevronRight, Plus, RotateCcw, Trash2, Undo2 } from '@lucide/vue'
 import { useDismiss } from '@/lib/useDismiss'
+import MethodSelect from './MethodSelect.vue'
 import type { SlotDetail } from '@/lib/blueprint'
 
 interface Entry {
@@ -18,7 +19,8 @@ type Kind = 'inherited' | 'changed' | 'added'
 const props = defineProps<{ slot: SlotDetail; canEdit: boolean }>()
 const model = defineModel<Record<string, any>>({ required: true })
 
-const phase = ref<Phase>('runtime')
+// Each phase is a section that opens and closes (chevron).
+const openPhases = ref<Record<Phase, boolean>>({ runtime: true, install: false })
 const phases = ['runtime', 'install'] as const
 
 // Reads never create keys, so opening a phase doesn't make the draft dirty.
@@ -117,6 +119,27 @@ function setCsv(e: Entry, field: 'hosts' | 'methods' | 'paths', value: string) {
   else if (field === 'hosts') e.hosts = []
   else delete e[field]
 }
+// An empty method list is "any method".
+function setMethods(e: Entry, methods: string[]) {
+  if (methods.length) e.methods = methods
+  else delete e.methods
+}
+// The two phases of network-policy@2, said plainly.
+const phaseHelp: Record<string, string> = {
+  runtime: 'What the agent can reach while it works in the sandbox.',
+  install: 'What install steps can reach while the sandbox is created. Separate from Runtime: no rules here means no network for them.',
+}
+const phaseLabel: Record<string, string> = { runtime: 'Runtime', install: 'Install' }
+// Each phase has its colour (Docker blue, teal): violet means AI, and green,
+// amber and red already mean added, changed and removed.
+const phaseColor: Record<string, { edge: string; text: string; chip: string }> = {
+  runtime: { edge: 'border-l-primary', text: 'text-primary', chip: 'bg-primary/10 text-primary' },
+  install: { edge: 'border-l-teal-600', text: 'text-teal-700', chip: 'bg-teal-50 text-teal-700' },
+}
+function addInClosed(p: Phase) {
+  openPhases.value[p] = true
+  add(p, 'allow')
+}
 function add(p: string, which: Which) {
   ensure(p, which).push({ _k: Math.random().toString(16).slice(2, 12), label: '', hosts: [] })
 }
@@ -127,9 +150,13 @@ function del(p: string, which: Which, e: Entry) {
 
 const counts = computed(() => Object.fromEntries(phases.map((p) => [p, list(p, 'allow').length + list(p, 'deny').length])))
 const editCounts = computed(() => Object.fromEntries(phases.map((p) => [p, edits.value.filter((x) => x.p === p).length])))
+// A slot opens with the phases that have rules or edits (Runtime when neither does).
 watch(
   () => props.slot.key,
-  () => (phase.value = counts.value.runtime || !counts.value.install ? 'runtime' : 'install'),
+  () => {
+    const has = (p: Phase) => (counts.value[p] ?? 0) > 0 || (editCounts.value[p] ?? 0) > 0
+    openPhases.value = { runtime: has('runtime') || !has('install'), install: has('install') }
+  },
   { immediate: true },
 )
 
@@ -194,7 +221,7 @@ const cell =
         <ul class="flex flex-col">
           <li v-for="x in edits" :key="x.kind + x.p + x.which + x.e._k" class="flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] hover:bg-muted/60">
             <span class="w-[92px] shrink-0 rounded px-1.5 py-px text-center text-[11px] font-medium" :class="badge[x.kind]">{{ badgeLabel[x.kind] }}</span>
-            <button type="button" class="min-w-0 truncate text-left hover:underline" :title="`Show in ${x.p}`" @click="phase = x.p; listOpen = false">
+            <button type="button" class="min-w-0 truncate text-left hover:underline" :title="`Show in ${x.p}`" @click="openPhases[x.p] = true; listOpen = false">
               <span :class="x.kind === 'removed' ? 'line-through' : ''">{{ editName(x.e) }}</span>
               <span class="text-muted-foreground"> · {{ x.p }} {{ x.which }}</span>
             </button>
@@ -214,118 +241,136 @@ const cell =
       </div>
     </div>
 
-    <div role="tablist" aria-label="Phase" class="flex gap-2">
-      <button
-        v-for="p in phases"
-        :key="p"
-        type="button"
-        role="tab"
-        :aria-selected="phase === p"
-        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[13px]"
-        :class="phase === p ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-slate-600'"
-        @click="phase = p"
-      >
-        {{ p === 'runtime' ? 'Runtime' : 'Install' }} <span class="opacity-75">· {{ counts[p] }}</span>
-        <span v-if="editCounts[p]" class="size-1.5 rounded-full bg-amber-500" :title="`${editCounts[p]} edits here`" />
-      </button>
-    </div>
-
-    <div v-for="which in (['allow', 'deny'] as const)" :key="which" class="flex flex-col gap-2">
-      <div class="flex items-baseline justify-between gap-3">
-        <h3 class="text-sm font-semibold" :class="which === 'deny' ? 'text-red-700' : ''">{{ which === 'allow' ? 'Allow' : 'Deny' }}</h3>
-        <span class="text-right text-xs text-muted-foreground">
-          {{ which === 'allow' ? 'A host with no methods allows any request. Add methods to bound it.' : 'Deny wins over allow.' }}
-        </span>
+    <!-- The two phases of network-policy@2, each a section that opens and closes. -->
+    <section v-for="p in phases" :key="p" class="rounded-xl border border-l-4 bg-background" :class="phaseColor[p]?.edge">
+      <div class="flex items-center gap-2 px-3 py-2.5">
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 items-center gap-2 text-left"
+          :aria-expanded="openPhases[p]"
+          :aria-controls="`phase-${slot.key}-${p}`"
+          @click="openPhases[p] = !openPhases[p]"
+        >
+          <ChevronRight class="size-4 shrink-0 transition-transform" :class="[phaseColor[p]?.text, openPhases[p] ? 'rotate-90' : '']" aria-hidden="true" />
+          <span class="text-sm font-semibold" :class="phaseColor[p]?.text">{{ phaseLabel[p] }}</span>
+          <span class="shrink-0 rounded-full px-2 py-px text-[11.5px] font-medium" :class="phaseColor[p]?.chip">{{ counts[p] }} {{ counts[p] === 1 ? 'rule' : 'rules' }}</span>
+          <span v-if="editCounts[p]" class="size-1.5 shrink-0 rounded-full bg-amber-500" :title="`${editCounts[p]} edits here`" />
+          <span class="min-w-0 truncate text-xs text-muted-foreground" :title="phaseHelp[p]">{{ phaseHelp[p] }}</span>
+        </button>
+        <button
+          v-if="canEdit && !openPhases[p]"
+          type="button"
+          class="inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-[13px] font-medium text-primary hover:bg-primary/5"
+          @click="addInClosed(p)"
+        >
+          <Plus class="size-3.5" /> Add rule
+        </button>
       </div>
-      <div class="overflow-hidden rounded-lg border bg-background">
-        <table class="w-full table-fixed border-collapse text-[13px]">
-          <colgroup>
-            <col class="w-[26%]" />
-            <col class="w-[28%]" />
-            <col class="w-[22%]" />
-            <col />
-            <col class="w-[64px]" />
-          </colgroup>
-          <thead>
-            <tr class="bg-slate-50 text-left text-slate-500">
-              <th class="px-3 py-2 font-medium">Rule</th>
-              <th class="px-3 py-2 font-medium">Hosts</th>
-              <th class="px-3 py-2 font-medium">Methods</th>
-              <th class="px-3 py-2 font-medium">Paths</th>
-              <th><span class="sr-only">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="e in list(phase, which)" :key="e._k" class="border-t align-top" :class="rowTint[origin(phase, which, e)]">
-              <td class="px-2 py-1.5">
-                <input
-                  :value="e.label"
-                  :disabled="!canEdit"
-                  placeholder="Name this rule"
-                  aria-label="Rule name"
-                  :class="cell"
-                  @input="e.label = ($event.target as HTMLInputElement).value"
-                />
-                <span
-                  v-if="origin(phase, which, e) !== 'inherited'"
-                  class="ml-1 inline-block rounded px-1.5 py-px text-[10.5px] font-medium"
-                  :class="badge[origin(phase, which, e)]"
-                  >{{ badgeLabel[origin(phase, which, e)] }}</span
-                >
-              </td>
-              <td class="px-2 py-1.5">
-                <input :value="csv(e.hosts)" :disabled="!canEdit" aria-label="Hosts" placeholder="api.example.com" :class="cell + ' font-mono text-[12.5px]'" @input="setCsv(e, 'hosts', ($event.target as HTMLInputElement).value)" />
-              </td>
-              <td class="px-2 py-1.5">
-                <input :value="csv(e.methods)" :disabled="!canEdit" aria-label="Methods" placeholder="any" :class="cell + ' font-mono text-[12.5px]'" @input="setCsv(e, 'methods', ($event.target as HTMLInputElement).value)" />
-              </td>
-              <td class="px-2 py-1.5">
-                <input :value="csv(e.paths)" :disabled="!canEdit" aria-label="Paths" placeholder="all" :class="cell + ' font-mono text-[12.5px]'" @input="setCsv(e, 'paths', ($event.target as HTMLInputElement).value)" />
-              </td>
-              <td class="px-1 py-1.5 text-right whitespace-nowrap">
-                <button
-                  v-if="canEdit && origin(phase, which, e) === 'changed'"
-                  type="button"
-                  aria-label="Undo this change"
-                  title="Undo this change"
-                  class="rounded p-1.5 text-amber-700 hover:bg-amber-100"
-                  @click="undoChange(phase, which, e)"
-                >
-                  <Undo2 class="size-3.5" />
-                </button>
-                <button v-if="canEdit" type="button" aria-label="Remove rule" title="Remove rule" class="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" @click="del(phase, which, e)">
-                  <Trash2 class="size-3.5" />
-                </button>
-              </td>
-            </tr>
-            <tr v-for="e in removed(phase, which)" :key="'rm-' + e._k" class="border-t bg-red-50/50 text-slate-400 shadow-[inset_3px_0_0_#F87171]">
-              <td class="px-3 py-1.5">
-                <span class="line-through">{{ e.label || '—' }}</span>
-                <span class="ml-1 inline-block rounded bg-red-100 px-1.5 py-px text-[10.5px] font-medium text-red-800">Removed here</span>
-              </td>
-              <td class="truncate px-3 py-1.5 font-mono text-[12.5px] line-through">{{ csv(e.hosts) }}</td>
-              <td class="truncate px-3 py-1.5 font-mono text-[12.5px] line-through">{{ csv(e.methods) || 'any' }}</td>
-              <td class="truncate px-3 py-1.5 font-mono text-[12.5px] line-through">{{ csv(e.paths) || 'all' }}</td>
-              <td class="px-1 py-1.5 text-right">
-                <button v-if="canEdit" type="button" aria-label="Restore rule from the library version" title="Restore" class="rounded p-1.5 text-slate-500 hover:bg-white" @click="restore(phase, which, e)">
-                  <Undo2 class="size-3.5" />
-                </button>
-              </td>
-            </tr>
-            <tr v-if="!list(phase, which).length && !removed(phase, which).length" class="border-t">
-              <td colspan="5" class="px-3 py-3 text-center text-muted-foreground">No {{ which }} rules in this phase.</td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="openPhases[p]" :id="`phase-${slot.key}-${p}`" class="flex flex-col gap-4 border-t px-3 pt-3 pb-3">
+        <div v-for="which in (['allow', 'deny'] as const)" :key="which" class="flex flex-col gap-2">
+          <div class="flex items-baseline justify-between gap-3">
+            <h3 class="text-sm font-semibold" :class="which === 'deny' ? 'text-red-700' : ''">{{ which === 'allow' ? 'Allow' : 'Deny' }}</h3>
+            <span class="text-right text-xs text-muted-foreground">
+              {{ which === 'allow' ? 'A host with no methods allows any request. Add methods to bound it.' : 'Deny wins over allow.' }}
+            </span>
+          </div>
+          <div class="overflow-hidden rounded-lg border bg-background">
+            <table class="w-full table-fixed border-collapse text-[13px]">
+              <colgroup>
+                <col class="w-[26%]" />
+                <col class="w-[28%]" />
+                <col class="w-[22%]" />
+                <col />
+                <col class="w-[64px]" />
+              </colgroup>
+              <thead>
+                <tr class="bg-slate-50 text-left text-slate-500">
+                  <th class="px-3 py-2 font-medium">Rule</th>
+                  <th class="px-3 py-2 font-medium">Hosts</th>
+                  <th class="px-3 py-2 font-medium">Methods</th>
+                  <th class="px-3 py-2 font-medium">Paths</th>
+                  <th><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="e in list(p, which)" :key="e._k" class="border-t align-top" :class="rowTint[origin(p, which, e)]">
+                  <td class="px-2 py-1.5">
+                    <input
+                      :value="e.label"
+                      :disabled="!canEdit"
+                      placeholder="Name this rule"
+                      aria-label="Rule name"
+                      :class="cell"
+                      @input="e.label = ($event.target as HTMLInputElement).value"
+                    />
+                    <span
+                      v-if="origin(p, which, e) !== 'inherited'"
+                      class="ml-1 inline-block rounded px-1.5 py-px text-[10.5px] font-medium"
+                      :class="badge[origin(p, which, e)]"
+                      >{{ badgeLabel[origin(p, which, e)] }}</span
+                    >
+                  </td>
+                  <td class="px-2 py-1.5">
+                    <input :value="csv(e.hosts)" :disabled="!canEdit" aria-label="Hosts" placeholder="api.example.com" :class="cell + ' font-mono text-[12.5px]'" @input="setCsv(e, 'hosts', ($event.target as HTMLInputElement).value)" />
+                  </td>
+                  <td class="px-2 py-1.5">
+                    <MethodSelect
+                      :model-value="e.methods ?? []"
+                      :disabled="!canEdit"
+                      :has-paths="!!e.paths?.length"
+                      :wildcard-host="(e.hosts ?? []).some((h) => h.includes('*'))"
+                      @update:model-value="setMethods(e, $event)"
+                    />
+                  </td>
+                  <td class="px-2 py-1.5">
+                    <input :value="csv(e.paths)" :disabled="!canEdit" aria-label="Paths" placeholder="all" :class="cell + ' font-mono text-[12.5px]'" @input="setCsv(e, 'paths', ($event.target as HTMLInputElement).value)" />
+                  </td>
+                  <td class="px-1 py-1.5 text-right whitespace-nowrap">
+                    <button
+                      v-if="canEdit && origin(p, which, e) === 'changed'"
+                      type="button"
+                      aria-label="Undo this change"
+                      title="Undo this change"
+                      class="rounded p-1.5 text-amber-700 hover:bg-amber-100"
+                      @click="undoChange(p, which, e)"
+                    >
+                      <Undo2 class="size-3.5" />
+                    </button>
+                    <button v-if="canEdit" type="button" aria-label="Remove rule" title="Remove rule" class="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600" @click="del(p, which, e)">
+                      <Trash2 class="size-3.5" />
+                    </button>
+                  </td>
+                </tr>
+                <tr v-for="e in removed(p, which)" :key="'rm-' + e._k" class="border-t bg-red-50/50 text-slate-400 shadow-[inset_3px_0_0_#F87171]">
+                  <td class="px-3 py-1.5">
+                    <span class="line-through">{{ e.label || '—' }}</span>
+                    <span class="ml-1 inline-block rounded bg-red-100 px-1.5 py-px text-[10.5px] font-medium text-red-800">Removed here</span>
+                  </td>
+                  <td class="truncate px-3 py-1.5 font-mono text-[12.5px] line-through">{{ csv(e.hosts) }}</td>
+                  <td class="truncate px-3 py-1.5 font-mono text-[12.5px] line-through">{{ csv(e.methods) || 'any' }}</td>
+                  <td class="truncate px-3 py-1.5 font-mono text-[12.5px] line-through">{{ csv(e.paths) || 'all' }}</td>
+                  <td class="px-1 py-1.5 text-right">
+                    <button v-if="canEdit" type="button" aria-label="Restore rule from the library version" title="Restore" class="rounded p-1.5 text-slate-500 hover:bg-white" @click="restore(p, which, e)">
+                      <Undo2 class="size-3.5" />
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!list(p, which).length && !removed(p, which).length" class="border-t">
+                  <td colspan="5" class="px-3 py-3 text-center text-muted-foreground">No {{ which }} rules in this phase.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button
+            v-if="canEdit"
+            type="button"
+            class="inline-flex items-center gap-1 self-start rounded px-2 py-1 text-[13px] font-medium text-primary hover:bg-primary/5"
+            @click="add(p, which)"
+          >
+            <Plus class="size-3.5" /> Add {{ which }} rule
+          </button>
+        </div>
       </div>
-      <button
-        v-if="canEdit"
-        type="button"
-        class="inline-flex items-center gap-1 self-start rounded px-2 py-1 text-[13px] font-medium text-primary hover:bg-primary/5"
-        @click="add(phase, which)"
-      >
-        <Plus class="size-3.5" /> Add {{ which }} rule
-      </button>
-    </div>
+    </section>
   </div>
 </template>
