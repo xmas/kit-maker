@@ -225,7 +225,9 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   blocks with install/runtime allow/deny rules and a "Polyglot CI" blueprint that mixes them, so one
   block's YAML lines are split across the policy (`demo.go`; created once, then left alone).
   Every spec example (`examples/`, embedded) becomes a blueprint whose parts are library blocks
-  (identical parts shared; `examples.go`, `TestExamplesCompile`), and nine sample profile
+  (identical parts shared; `examples.go`, `TestExamplesCompile`); a Dockerfile that COPYs files from
+  its example folder gets them inlined as heredoc COPYs, since a blueprint has no build context
+  (`inline.go`, `TestExampleDockerfilesNeedNoContext`), and nine sample profile
   blueprints (developer, docs-only, internal-only, isolated, ML research, ops agent, support,
   read-only validation…) are built from shared blocks (`profiles.go`, `TestProfilesCompile`).
   The library also gets "Ubuntu 24.04 (public)", a Dockerfile block on the official

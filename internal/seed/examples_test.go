@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/docker/kit-maker/internal/blueprints/compiler"
 	"github.com/docker/kit-maker/internal/blueprints/patch"
@@ -84,5 +85,54 @@ func TestUbuntuBaseWorkload(t *testing.T) {
 	}})
 	if !out.Valid || !strings.Contains(out.YAML, "FROM ubuntu:24.04") {
 		t.Fatalf("%s\n%s", out.Error, out.YAML)
+	}
+}
+
+// A blueprint has no build context, so no example Dockerfile may copy from
+// one: inlineContext turns those COPYs into heredocs.
+func TestExampleDockerfilesNeedNoContext(t *testing.T) {
+	exs, err := Examples()
+	if err != nil {
+		t.Fatal(err)
+	}
+	inlined := 0
+	for _, ex := range exs {
+		for _, sl := range ex.Slots {
+			build, _ := sl.Payload["build"].(string)
+			for _, line := range strings.Split(build, "\n") {
+				m := copyLine.FindStringSubmatch(line)
+				if m != nil && !strings.Contains(m[3], "<<") && !strings.Contains(m[3], "--from") {
+					t.Errorf("%s still copies from a build context: %s", ex.Name, strings.TrimSpace(line))
+				}
+			}
+			if strings.Contains(build, "Inlined by Kit Maker") {
+				inlined++
+			}
+		}
+	}
+	if inlined < 9 { // claude, claude-acp, claude-mixin, codex, codex-acp, codex-mixin, cursor, gemini, review-skill
+		t.Fatalf("only %d Dockerfiles were inlined", inlined)
+	}
+}
+
+func TestInlineContext(t *testing.T) {
+	fsys := fstest.MapFS{
+		"ex/scripts/run.sh":    {Data: []byte("#!/bin/sh\necho hi\n")},
+		"ex/content/a.md":      {Data: []byte("# A\n")},
+		"ex/content/refs/b.md": {Data: []byte("KITMAKER_EOF inside\n")},
+	}
+	got, err := inlineContext(fsys, "ex", "FROM x\nCOPY scripts/run.sh /usr/local/bin/run\nCOPY --chown=1000 content /srv/c\nCOPY --from=build /a /b\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"COPY --chmod=755 <<'KITMAKER_EOF' /usr/local/bin/run\n#!/bin/sh\necho hi\nKITMAKER_EOF",
+		"COPY --chown=1000 <<'KITMAKER_EOF' /srv/c/a.md\n# A\nKITMAKER_EOF",
+		"COPY --chown=1000 <<'KITMAKER_EOF_2' /srv/c/refs/b.md\nKITMAKER_EOF inside\nKITMAKER_EOF_2",
+		"COPY --from=build /a /b",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in:\n%s", want, got)
+		}
 	}
 }

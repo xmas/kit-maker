@@ -108,7 +108,11 @@ func convertExample(name string) (Example, error) {
 			file = name + ".dockerfile"
 		}
 		if b, err := examplesFS.ReadFile(path.Join(dir, file)); err == nil {
-			add("Dockerfile", "dockerfile", map[string]any{"build": string(b)})
+			build, err := inlineContext(examplesFS, dir, string(b))
+			if err != nil {
+				return ex, err
+			}
+			add("Dockerfile", "dockerfile", map[string]any{"build": build})
 		} else if d["dockerfile"] != nil {
 			return ex, fmt.Errorf("dockerfile %s: %w", file, err)
 		}
