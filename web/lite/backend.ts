@@ -36,6 +36,9 @@ export interface Backend {
   write(docs: Doc[]): Promise<Record<string, number>>
   login(email: string, password: string): Promise<User>
   logout(): Promise<void>
+  /** Publishing (shared only): the state as internal/lite.PublishState JSON. */
+  versions(blueprintId: string): Promise<string>
+  publish(request: string): Promise<string>
 }
 
 async function json<T>(res: Response): Promise<T> {
@@ -81,6 +84,16 @@ class Shared implements Backend {
   async logout() {
     await netFetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
     this.user = null
+  }
+  async versions(blueprintId: string) {
+    const res = await netFetch(`/api/versions?blueprint=${encodeURIComponent(blueprintId)}`)
+    if (!res.ok) throw new Error(`couldn't read versions (${res.status})`)
+    return await res.text()
+  }
+  async publish(request: string) {
+    const res = await netFetch('/api/publish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: request })
+    await json(res)
+    return this.versions((JSON.parse(request) as { blueprintId: string }).blueprintId)
   }
 }
 
@@ -132,6 +145,12 @@ class Local implements Backend {
     return this.user
   }
   async logout() {}
+  async versions(): Promise<string> {
+    throw new Error('no backend')
+  }
+  async publish(): Promise<string> {
+    throw new Error('Publishing needs this site’s backend.')
+  }
 }
 
 /** connect finds the backend: the Pages Functions when deployed, else this browser. */

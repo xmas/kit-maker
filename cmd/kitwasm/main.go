@@ -246,6 +246,25 @@ func (host) Revisions(blueprintID string) ([]lite.Doc, error) {
 	return docs, json.Unmarshal([]byte(v.String()), &docs)
 }
 
+func (host) Versions(blueprintID string) (*lite.PublishState, error) {
+	v, err := call("versions", blueprintID)
+	if err != nil {
+		return nil, err
+	}
+	var st lite.PublishState
+	return &st, json.Unmarshal([]byte(v.String()), &st)
+}
+
+func (host) Publish(req lite.PublishRequest) (*lite.PublishState, error) {
+	b, _ := json.Marshal(req)
+	v, err := call("publish", string(b))
+	if err != nil {
+		return nil, err
+	}
+	var st lite.PublishState
+	return &st, json.Unmarshal([]byte(v.String()), &st)
+}
+
 func (host) AI() lite.AI {
 	h := js.Global().Get("kitmakerHost")
 	if h.Type() != js.TypeObject || !h.Get("aiEnabled").Truthy() {

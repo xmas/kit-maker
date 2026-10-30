@@ -27,6 +27,10 @@ type Host interface {
 	Logout() error
 	// Revisions returns a blueprint's stored revisions.
 	Revisions(blueprintID string) ([]Doc, error)
+	// Versions says whether publishing is set up and lists a blueprint's
+	// versions; Publish starts publishing one and returns the new state.
+	Versions(blueprintID string) (*PublishState, error)
+	Publish(req PublishRequest) (*PublishState, error)
 	// AI runs a model request; nil when AI isn't set up.
 	AI() AI
 }

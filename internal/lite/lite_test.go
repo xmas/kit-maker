@@ -18,9 +18,13 @@ func (fakeHost) Login(email, password string) (*User, error) {
 	}
 	return &User{ID: "u1", Email: email}, nil
 }
-func (fakeHost) Logout() error                       { return nil }
+func (fakeHost) Logout() error                        { return nil }
 func (h fakeHost) Revisions(id string) ([]Doc, error) { return h.revs[id], nil }
-func (fakeHost) AI() AI                              { return nil }
+func (fakeHost) AI() AI                               { return nil }
+func (fakeHost) Versions(string) (*PublishState, error) {
+	return nil, errors.New("no backend")
+}
+func (fakeHost) Publish(PublishRequest) (*PublishState, error) { return nil, errors.New("no backend") }
 
 func starter(t *testing.T) *Store {
 	t.Helper()
@@ -175,6 +179,67 @@ func TestSignInAndEdit(t *testing.T) {
 	// Downloads.
 	w, _ = do(t, e, "GET", "/blueprints/bp_acme-shop/sbxenv.yaml", nil)
 	if !strings.Contains(w.Body.String(), "kits:\n  - ./acme-shop") {
+		t.Fatalf("sbxenv: %s", w.Body.String())
+	}
+}
+
+// publishHost is a backend that publishes instantly (the workflow's report
+// arrives before the next request).
+type publishHost struct {
+	fakeHost
+	versions []Version
+	sent     []PublishRequest
+}
+
+func (h *publishHost) Versions(string) (*PublishState, error) {
+	return &PublishState{Configured: true, AllowedSource: "ghcr.io/acme/", Versions: h.versions}, nil
+}
+
+func (h *publishHost) Publish(req PublishRequest) (*PublishState, error) {
+	h.sent = append(h.sent, req)
+	h.versions = append([]Version{{Version: req.Version, Repository: "ghcr.io/acme/sbx-kit-" + req.Slug,
+		Digest: "sha256:" + strings.Repeat("a", 64), Status: "published", YAML: req.YAML}}, h.versions...)
+	return h.Versions(req.BlueprintID)
+}
+
+func TestPublish(t *testing.T) {
+	s := starter(t)
+	h := &publishHost{}
+	e := NewEngine(s, h, ModeShared)
+	e.User = &User{ID: "u1", Email: "a@example.com"}
+
+	ri, err := e.Publish("bp_alpine")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.sent) != 1 || h.sent[0].Version != 1 || !strings.Contains(h.sent[0].YAML, `version: "1"`) {
+		t.Fatalf("first publish sent %+v", h.sent)
+	}
+	if ri.Published == nil || ri.Published.Command != "sbx run ghcr.io/acme/sbx-kit-alpine:latest" {
+		t.Fatalf("run info: %+v", ri.Published)
+	}
+
+	// Nothing changed: nothing is sent.
+	if ri, err = e.Publish("bp_alpine"); err != nil || !ri.Unchanged || len(h.sent) != 1 {
+		t.Fatalf("unchanged: %v %+v, sent %d", err, ri.Unchanged, len(h.sent))
+	}
+
+	// A change publishes v2.
+	if err := s.UpdateGoal("bp_alpine", "a new goal"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AddCheck("bp_alpine", CheckInput{URL: "https://example.com", Expect: "blocked"}); err != nil {
+		t.Fatal(err)
+	}
+	bp := s.blueprints["bp_alpine"]
+	bp.Description = "changed"
+	if _, err = e.Publish("bp_alpine"); err != nil || len(h.sent) != 2 || h.sent[1].Version != 2 {
+		t.Fatalf("second publish: %v, sent %+v", err, h.sent)
+	}
+
+	// The sbxenv follows :latest.
+	w, _ := do(t, e, "GET", "/blueprints/bp_alpine/sbxenv.yaml", nil)
+	if !strings.Contains(w.Body.String(), "source: ghcr.io/acme/sbx-kit-alpine:latest") || !strings.Contains(w.Body.String(), "pullPolicy: always") {
 		t.Fatalf("sbxenv: %s", w.Body.String())
 	}
 }

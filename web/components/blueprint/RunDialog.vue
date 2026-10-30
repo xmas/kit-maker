@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
-import { Check, Copy, Download, Play, Rocket, TriangleAlert, X } from '@lucide/vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { Check, Copy, Download, ExternalLink, LoaderCircle, Play, Rocket, TriangleAlert, X } from '@lucide/vue'
 
 // Run a blueprint with sbx. The main path is a published version: Publish
 // builds the kit image and pushes it to the deployment's registry (vN and
 // latest); sbx runs it by reference, and an sbxenv.yaml following :latest
 // with pullPolicy: always picks up every new version. The fallback is a
-// local copy: a folder sbx builds itself.
+// local copy: a folder sbx builds itself. The Cloudflare edition publishes
+// on GitHub Actions, so a version can be pending (the dialog polls until
+// the workflow reports) or failed.
 const props = defineProps<{ blueprintId: string; name: string }>()
 const open = defineModel<boolean>('open', { required: true })
 
@@ -20,12 +22,21 @@ interface Published {
   pinned: string
   command: string
 }
+interface Attempt {
+  version: number
+  error?: string
+  runUrl?: string
+  startedAt?: string
+}
 interface RunInfo {
   slug: string
   kind: string
   valid: boolean
   error?: string
   published?: Published
+  pending?: Attempt
+  failed?: Attempt
+  unchanged?: boolean
   canPublish: boolean
   publishSetup?: string
   allowedSource?: string
@@ -45,9 +56,32 @@ watch(
   open,
   async (o) => {
     if (o) await load()
+    else stopPolling()
   },
   { immediate: true },
 )
+
+// While a version is publishing, check every few seconds until it's done.
+let poll: ReturnType<typeof setInterval> | undefined
+function stopPolling() {
+  clearInterval(poll)
+  poll = undefined
+}
+function pollWhilePending() {
+  if (!info.value?.pending || poll) return
+  const waiting = info.value.pending.version
+  poll = setInterval(async () => {
+    const res = await fetch(`/blueprints/${props.blueprintId}/run`, { headers: { Accept: 'application/json' } }).catch(() => null)
+    if (!res?.ok) return
+    const next = (await res.json()) as RunInfo
+    info.value = next
+    if (next.pending) return
+    stopPolling()
+    if (next.published?.version === waiting) publishMsg.value = `Published v${waiting}.`
+    else if (next.failed?.version === waiting) publishMsg.value = ''
+  }, 4000)
+}
+onBeforeUnmount(stopPolling)
 async function load() {
   info.value = null
   loadError.value = publishMsg.value = publishError.value = ''
@@ -57,6 +91,7 @@ async function load() {
     const res = await fetch(`/blueprints/${props.blueprintId}/run`, { headers: { Accept: 'application/json' } })
     if (!res.ok) throw new Error(res.status === 403 ? "You can't download this blueprint." : `couldn't load (${res.status})`)
     info.value = await res.json()
+    pollWhilePending()
   } catch (e) {
     loadError.value = (e as Error).message
   }
@@ -72,7 +107,10 @@ async function publish() {
     if (!res.ok) throw new Error(out.error ?? `publishing failed (${res.status})`)
     info.value = out
     const now = out.published?.version
-    publishMsg.value = now === before ? `No changes since v${now}, so nothing was published.` : `Published v${now}.`
+    if (out.pending) {
+      publishMsg.value = ''
+      pollWhilePending()
+    } else publishMsg.value = out.unchanged || now === before ? `No changes since v${now}, so nothing was published.` : `Published v${now}.`
   } catch (e) {
     publishError.value = (e as Error).message
   } finally {
@@ -133,15 +171,23 @@ async function copy(text: string) {
                 v-if="info.canPublish"
                 type="button"
                 class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                :disabled="!info.valid || publishing || !!info.publishSetup"
+                :disabled="!info.valid || publishing || !!info.publishSetup || !!info.pending"
                 :title="info.publishSetup"
                 @click="publish"
               >
                 <Rocket class="size-3.5" />
-                {{ publishing ? 'Publishing…' : info.published ? `Publish v${info.published.version + 1}` : 'Publish v1' }}
+                {{ publishing || info.pending ? 'Publishing…' : info.published ? `Publish v${info.published.version + 1}` : 'Publish v1' }}
               </button>
             </div>
             <p v-if="publishing" class="text-xs text-muted-foreground">Building the kit image with BuildKit and pushing it to the registry…</p>
+            <p v-if="info.pending" role="status" class="flex items-center gap-1.5 text-xs text-slate-600">
+              <LoaderCircle class="size-3.5 animate-spin" /> Building v{{ info.pending.version }} on GitHub Actions and pushing it to the registry; this takes a minute or two.
+              <a v-if="info.pending.runUrl" :href="info.pending.runUrl" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-primary hover:underline">Watch <ExternalLink class="size-3" /></a>
+            </p>
+            <p v-if="info.failed && !publishing" role="alert" class="text-xs text-destructive">
+              Publishing v{{ info.failed.version }} failed: {{ info.failed.error }}
+              <a v-if="info.failed.runUrl" :href="info.failed.runUrl" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-primary hover:underline">Open the run <ExternalLink class="size-3" /></a>
+            </p>
             <p v-if="publishMsg" class="text-xs text-green-700">{{ publishMsg }}</p>
             <p v-if="publishError" role="alert" class="text-xs whitespace-pre-wrap text-destructive">{{ publishError }}</p>
             <p v-if="info.publishSetup" class="text-xs text-muted-foreground">{{ info.publishSetup }}</p>

@@ -29,8 +29,14 @@ site with no server to run:
   `make cf-build` and any static host), everything is saved in the browser
   and the header says "Saved in this browser".
 
-What it doesn't do: publish to a registry (no BuildKit here; the Run dialog
-offers the local copy and its `sbxenv.yaml`), teams and roles (everyone
+- **Publishing runs on GitHub Actions.** Publish compiles the next version
+  and starts `.github/workflows/publish-kit.yml`, which builds it with the
+  kit spec's BuildKit frontend and pushes `ghcr.io/<owner>/sbx-kit-<slug>:vN`
+  and `:latest`; the workflow reports the digest back and the Run dialog
+  shows the `sbx run` command and an `sbxenv.yaml` that follows `:latest`
+  (see "Publishing" below).
+
+What it doesn't do: teams and roles (everyone
 signed in can edit, so with sign-up open to any email, anyone who signs in
 can change the shared blueprints: set `ALLOWED_EMAILS` to keep it to your
 people), or the admin CLI.
@@ -112,6 +118,37 @@ Then, in `cloudflare/`:
    certificate are created for you. Nothing in the app names the host, so no
    rebuild is needed. Passkeys belong to the host they were made on, so pick
    the final host before people add them.
+
+## Publishing
+
+1. **Put the workflow on main.** GitHub only starts `workflow_dispatch`
+   workflows that are on the repository's default branch, so
+   `.github/workflows/publish-kit.yml` has to be on `main` (as well as on
+   `cloudflare`).
+2. **Create a token** that can start it: GitHub → Settings → Developer
+   settings → Fine-grained tokens → Generate. Repository access: only
+   `xmas/kit-maker`. Permissions: **Actions: Read and write**. Nothing else.
+3. **Set the secrets** (in a terminal; see the note above about prompts):
+
+   ```bash
+   printf '%s' 'xmas/kit-maker' | npx wrangler pages secret put PUBLISH_GITHUB_REPO --project-name=kitmaker
+   npx wrangler pages secret put PUBLISH_GITHUB_TOKEN --project-name=kitmaker
+   ```
+
+   Then deploy again (`make cf-deploy`).
+4. **Publish** from a blueprint's Run dialog. The first run creates the
+   package `ghcr.io/xmas/sbx-kit-<slug>`. GitHub makes new packages private,
+   so sbx can't pull it until you either make it public (the package's
+   settings on GitHub → Change visibility) or run `docker login ghcr.io` on
+   the machines that use it.
+5. **Allow the registry in sbx:** add `ghcr.io/xmas/` to
+   `kit.allowedSources` (`sbx settings get kit.allowedSources` shows the
+   list).
+
+Blueprints built on `dhi.io` images need a Docker Hub login during the
+build: add repository secrets `DHI_USERNAME` and `DHI_TOKEN` and the
+workflow uses them. Versions live in D1 (`blueprint_versions`); a version
+whose workflow never reports back shows as failed after 30 minutes.
 
 ## Automatic deployments
 

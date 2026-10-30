@@ -164,6 +164,8 @@ function installHost() {
     async revisions(id: string) {
       return JSON.stringify(await backend.revisions(id))
     },
+    versions: (id: string) => backend.versions(id),
+    publish: (request: string) => backend.publish(request),
     async ai(request: string, onDelta: ((text: string) => void) | null) {
       const res = await netFetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: request })
       if (!res.ok) {

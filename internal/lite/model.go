@@ -163,7 +163,7 @@ type Doc struct {
 
 // Store holds the documents in memory and remembers which changed.
 type Store struct {
-	Team       Team
+	Team Team
 	// Actor is who is making changes (set per request).
 	Actor      User
 	blocks     map[string]*Block

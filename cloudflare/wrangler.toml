@@ -12,6 +12,10 @@ pages_build_output_dir = "dist"
 #                      (unset: any verified email)
 #   GUEST_PASSPHRASE   optional: a shared passphrase that signs in as Guest
 #   ANTHROPIC_API_KEY  optional: turns on AI search, Explain and drafts
+#   PUBLISH_GITHUB_REPO   owner/repo whose publish-kit workflow builds kits
+#   PUBLISH_GITHUB_TOKEN  fine-grained token: Actions read and write on it
+#   PUBLISH_GITHUB_REF    optional: branch to run it from (default main)
+#   PUBLISH_REGISTRY      optional: default ghcr.io/<owner>
 # Locally they come from .dev.vars (git-ignored).
 
 [[d1_databases]]

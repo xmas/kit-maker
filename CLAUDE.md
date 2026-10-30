@@ -254,8 +254,14 @@ Local settings and secrets go in `deploy/compose/kitmaker.env` (git-ignored; `ma
   6-digit code or one-use link sent through Resend (`RESEND_API_KEY`, `MAIL_FROM`; printed to
   the console on localhost), then optional passkeys (@simplewebauthn/server; the header's key
   button), any verified email unless `ALLOWED_EMAILS` narrows it, an optional shared
-  `GUEST_PASSPHRASE` that signs in as Guest, a `JWT_SECRET`-signed cookie; docs with optimistic revs, revisions, an AI proxy using `ANTHROPIC_API_KEY`) or, when no Functions answer, in IndexedDB ("Saved in this browser").
-  No publishing (no BuildKit), no teams or roles. `.github/workflows/cloudflare.yml` deploys
+  `GUEST_PASSPHRASE` that signs in as Guest, a `JWT_SECRET`-signed cookie; docs with optimistic revs, revisions, an AI proxy using
+  `ANTHROPIC_API_KEY`; publishing: `api/publish` records a pending `blueprint_versions` row and
+  starts `.github/workflows/publish-kit.yml` (`PUBLISH_GITHUB_REPO`, `PUBLISH_GITHUB_TOKEN`; the
+  file must also be on main), which builds with BuildKit, pushes to GHCR and reports to
+  `api/publish/callback` with a one-use token; `api/versions` feeds the engine's Run info and the
+  Run dialog polls while a version is pending) or, when no Functions answer, in IndexedDB
+  ("Saved in this browser").
+  No teams or roles. `.github/workflows/cloudflare.yml` deploys
   on push to `cloudflare`. Tests: `internal/lite/lite_test.go`.
 - Not yet: custom roles, AI suggestions (threads, accept/reject), 3-way rebase with conflict
   resolution, included blueprints, forks, sharing a blueprint's private block to the library, typed forms beyond

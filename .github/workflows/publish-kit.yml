@@ -1,0 +1,90 @@
+# Publish a blueprint version for the Cloudflare edition (cloudflare/).
+# The Pages Function /api/publish starts this with one input: the request
+# (gzip + base64 JSON: id, slug, version, yaml, repository, callback, token).
+# It builds the descriptor with the kit spec's BuildKit frontend (its first
+# line, "# syntax=docker/sandbox-kit:3"), pushes <repository>:vN and :latest
+# to GHCR, and reports the digest back to the callback.
+#
+# GitHub only runs workflow_dispatch workflows that are on the default
+# branch, so this file has to be on main too.
+#
+# Optional repository secrets DHI_USERNAME / DHI_TOKEN log in to dhi.io for
+# blueprints built on Docker Hardened Images.
+
+name: Publish kit
+
+on:
+  workflow_dispatch:
+    inputs:
+      request:
+        description: Kit Maker publish request (sent by the Cloudflare edition)
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REQUEST: ${{ inputs.request }}
+      OWNER: ${{ github.repository_owner }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      DHI_USERNAME: ${{ secrets.DHI_USERNAME }}
+      DHI_TOKEN: ${{ secrets.DHI_TOKEN }}
+    steps:
+      - name: Read the request
+        run: |
+          set -euo pipefail
+          echo "$REQUEST" | base64 -d | gunzip > "$RUNNER_TEMP/req.json"
+          echo "::add-mask::$(jq -r .token "$RUNNER_TEMP/req.json")"
+          for k in id slug version repository callback token; do
+            v=$(jq -r --arg k "$k" '.[$k] | tostring' "$RUNNER_TEMP/req.json" | tr -d '\n')
+            printf '%s=%s\n' "KIT_$(echo "$k" | tr a-z A-Z)" "$v" >> "$GITHUB_ENV"
+          done
+          owner=$(echo "$OWNER" | tr A-Z a-z)
+          slug=$(jq -r .slug "$RUNNER_TEMP/req.json")
+          repo=$(jq -r .repository "$RUNNER_TEMP/req.json")
+          [[ "$slug" =~ ^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$ ]] || { echo "bad slug"; exit 1; }
+          [[ "$repo" == "ghcr.io/$owner/sbx-kit-$slug" ]] || { echo "repository must be ghcr.io/$owner/sbx-kit-$slug"; exit 1; }
+          [[ "$(jq -r .version "$RUNNER_TEMP/req.json")" =~ ^[0-9]+$ ]] || { echo "bad version"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/kit"
+          jq -r .yaml "$RUNNER_TEMP/req.json" > "$RUNNER_TEMP/kit/$slug.yaml"
+          head -1 "$RUNNER_TEMP/kit/$slug.yaml" | grep -qx '# syntax=docker/sandbox-kit:3' || { echo "not a Kit v3 descriptor"; exit 1; }
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to dhi.io
+        if: env.DHI_USERNAME != ''
+        run: echo "$DHI_TOKEN" | docker login dhi.io -u "$DHI_USERNAME" --password-stdin
+
+      - name: Build and push
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --file "$RUNNER_TEMP/kit/$KIT_SLUG.yaml" \
+            --tag "$KIT_REPOSITORY:v$KIT_VERSION" --tag "$KIT_REPOSITORY:latest" \
+            --push --metadata-file "$RUNNER_TEMP/meta.json" \
+            "$RUNNER_TEMP/kit"
+          echo "KIT_DIGEST=$(jq -r '."containerimage.digest"' "$RUNNER_TEMP/meta.json")" >> "$GITHUB_ENV"
+
+      - name: Report success
+        run: |
+          jq -n --arg id "$KIT_ID" --arg token "$KIT_TOKEN" --arg digest "$KIT_DIGEST" --arg run "$RUN_URL" \
+            '{id: $id, token: $token, status: "published", digest: $digest, runUrl: $run}' |
+            curl -fsS -X POST -H 'Content-Type: application/json' --data @- "$KIT_CALLBACK"
+
+      - name: Report failure
+        if: failure() && env.KIT_CALLBACK != ''
+        run: |
+          jq -n --arg id "$KIT_ID" --arg token "$KIT_TOKEN" --arg run "$RUN_URL" \
+            '{id: $id, token: $token, status: "failed", error: "The build failed. Open the workflow run for the log.", runUrl: $run}' |
+            curl -fsS -X POST -H 'Content-Type: application/json' --data @- "$KIT_CALLBACK"
